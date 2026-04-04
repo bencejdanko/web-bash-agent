@@ -162,6 +162,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                   onToggleTurn={toggleTurn}
                   collapsedThoughtIds={collapsedThoughtIds}
                   onToggleThought={toggleThought}
+                  bashSandbox={bashSandbox}
                 />
                 <div ref={messagesEndRef} style={{ height: '40px' }} />
               </div>

@@ -162,4 +162,11 @@ export class BashSandbox {
       };
     }
   }
+
+  /**
+   * Get the current working directory of the shell.
+   */
+  getCwd(): string {
+    return (this.bash as any).cwd || '/site';
+  }
 }

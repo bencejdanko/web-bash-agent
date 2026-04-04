@@ -12,6 +12,7 @@ interface MessageTurnsProps {
   onToggleTurn: (turnId: string) => void;
   collapsedThoughtIds: string[];
   onToggleThought: (thoughtId: string) => void;
+  bashSandbox?: any;
 }
 
 export const MessageTurns: React.FC<MessageTurnsProps> = ({
@@ -22,6 +23,7 @@ export const MessageTurns: React.FC<MessageTurnsProps> = ({
   onToggleTurn,
   collapsedThoughtIds,
   onToggleThought,
+  bashSandbox,
 }) => {
   const turns: { user: Message; responses: Message[] }[] = [];
   messages.forEach(m => {
@@ -59,6 +61,7 @@ export const MessageTurns: React.FC<MessageTurnsProps> = ({
                 onToggleWork={() => onToggleTurn(turnId)}
                 collapsedThoughtIds={collapsedThoughtIds}
                 onToggleThought={onToggleThought}
+                bashSandbox={bashSandbox}
               />
             )}
           </React.Fragment>
