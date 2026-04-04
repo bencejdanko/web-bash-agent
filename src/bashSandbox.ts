@@ -101,24 +101,26 @@ function createSiteHelpCommand() {
   });
 }
 
+export function normalizeSitePath(path: string): string {
+  if (path.startsWith('/site/')) return path;
+  if (path === '/site') return '/site/';
+  return `/site${path.startsWith('/') ? '' : '/'}${path}`;
+}
+
 export class BashSandbox {
   private bash: Bash;
+  private files: Record<string, string> = {};
 
   constructor(options: BashSandboxOptions = {}) {
     // Build the filesystem: mount everything under /site/
-    const files: Record<string, string> = {};
-
     if (options.files) {
       for (const [path, content] of Object.entries(options.files)) {
-        const normalizedPath = path.startsWith('/site/')
-          ? path
-          : `/site${path.startsWith('/') ? '' : '/'}${path}`;
-        files[normalizedPath] = content;
+        this.files[normalizeSitePath(path)] = content;
       }
     }
 
     // Add a welcome README
-    files['/site/README.md'] = [
+    this.files['/site/README.md'] = [
       '# Site Content',
       '',
       'This virtual filesystem contains the site\'s content.',
@@ -136,7 +138,7 @@ export class BashSandbox {
     ];
 
     this.bash = new Bash({
-      files,
+      files: this.files,
       cwd: '/site',
       customCommands,
     });
@@ -168,5 +170,15 @@ export class BashSandbox {
    */
   getCwd(): string {
     return (this.bash as any).cwd || '/site';
+  }
+
+  /**
+   * Returns the current state of the virtual filesystem.
+   */
+  getFilesystem(): Record<string, string> {
+    // Note: this returns the INITIAL files plus any additions.
+    // In a more advanced version, we'd sync this with just-bash's internal state.
+    // For now, this is what the agent mostly cares about for mentions.
+    return { ...this.files };
   }
 }

@@ -1,17 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { Panel, Group, Separator } from 'react-resizable-panels';
-import { BashSandbox } from './bashSandbox';
+import { BashSandbox, normalizeSitePath } from './bashSandbox';
 import { LlmBridge } from './llmBridge';
-
-// Modular Components
 import { SidebarHeader } from './components/SidebarHeader';
 import { FloatingToggleButton } from './components/FloatingToggleButton';
 import { MessageTurns } from './components/MessageTurns';
 import { ChatInput } from './components/ChatInput';
 import { HistoryPanel } from './components/HistoryPanel';
 import { Message, AgentSidebarProps } from './types';
-
-// Custom Hooks
 import { useSidebarWidth } from './hooks/useSidebarWidth';
 import { useAutoScroll } from './hooks/useAutoScroll';
 import { useHistoryPersistence } from './hooks/useHistoryPersistence';
@@ -33,9 +29,17 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
   const sidebarContentRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [actualFilesystem, setActualFilesystem] = useState<Record<string, string>>({});
 
   // Initialize sandbox and LLM bridge
   const { bashSandbox, llmBridge } = useAgentInitialization(props);
+
+  // Sync filesystem whenever sandbox is initialized or props change
+  React.useEffect(() => {
+    if (bashSandbox) {
+        setActualFilesystem(bashSandbox.getFilesystem());
+    }
+  }, [bashSandbox, props.filesystem]);
 
   // Use custom hooks for modular logic
   const sidebarWidth = useSidebarWidth(sidebarContentRef);
@@ -63,7 +67,8 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
     setHasStarted, 
     setIsExpanding,
     bashSandbox,
-    llmBridge
+    llmBridge,
+    (files) => setActualFilesystem(files)
   );
 
   const toggleTurn = (turnId: string) => {
@@ -179,7 +184,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                 inputRef={inputRef}
                 sidebarWidth={sidebarWidth}
                 placeholder="Ask anything, @ to mention, / for SKILL"
-                filesystem={props.filesystem}
+                filesystem={actualFilesystem}
               />
             </div>
           </Panel>

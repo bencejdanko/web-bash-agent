@@ -9,7 +9,8 @@ export const useAgentChat = (
   setHasStarted: (hasStarted: boolean) => void,
   setIsExpanding: (isExpanding: boolean) => void,
   bashSandbox: any,
-  llmBridge: any
+  llmBridge: any,
+  onFilesystemChange?: (files: Record<string, string>) => void
 ) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [turnStartTime, setTurnStartTime] = useState<number | null>(null);
@@ -88,6 +89,10 @@ export const useAgentChat = (
               const { command } = JSON.parse(toolCall.function.arguments);
               const result = await bashSandbox.exec(command);
               
+              if (onFilesystemChange) {
+                onFilesystemChange(bashSandbox.getFilesystem());
+              }
+
               let output = '';
               if (result.stdout) output += result.stdout;
               if (result.stderr) output += result.stderr;
