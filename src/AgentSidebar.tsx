@@ -177,7 +177,8 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                 onCancel={handleCancel}
                 inputRef={inputRef}
                 sidebarWidth={sidebarWidth}
-                placeholder="Ask anything, @ to mention, / for workflows"
+                placeholder="Ask anything, @ to mention, / for Skills"
+                filesystem={props.filesystem}
               />
             </div>
           </Panel>
