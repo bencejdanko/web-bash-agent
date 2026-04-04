@@ -14,6 +14,7 @@ export interface Message {
   reasoning_content?: string;
   iterationId?: string;
   thinkingTime?: number;
+  turnId?: string;
 }
 
 export interface AgentSidebarProps {
@@ -82,21 +83,21 @@ const CopyIcon = () => (
 /**
  * Premium Markdown Renderer
  */
-const MarkdownOutput: React.FC<{ content: string; className?: string }> = ({ content, className }) => {
+const MarkdownOutput: React.FC<{ content: string; className?: string; color?: string }> = ({ content, className, color = '#111827' }) => {
   return (
-    <div className={`markdown-output ${className || ''}`} style={{ fontSize: '14px', color: '#111827', lineHeight: '1.6' }}>
+    <div className={`markdown-output ${className || ''}`} style={{ fontSize: '14px', color, lineHeight: '1.6' }}>
       <ReactMarkdown 
         remarkPlugins={[remarkGfm]}
         components={{
           ul: ({node, ...props}) => <ul style={{ paddingLeft: '20px', marginBottom: '12px' }} {...props} />,
           ol: ({node, ...props}) => <ol style={{ paddingLeft: '20px', marginBottom: '12px' }} {...props} />,
           li: ({node, ...props}) => <li style={{ marginBottom: '4px' }} {...props} />,
-          code: ({node, ...props}) => <code style={{ backgroundColor: '#f3f4f6', padding: '2px 4px', borderRadius: '4px', fontSize: '0.9em', fontFamily: 'JetBrains Mono' }} {...props} />,
-          strong: ({node, ...props}) => <strong style={{ fontWeight: 600 }} {...props} />,
-          p: ({node, ...props}) => <p style={{ marginBottom: '12px' }} {...props} />,
-          h1: ({node, ...props}) => <h1 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }} {...props} />,
-          h2: ({node, ...props}) => <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }} {...props} />,
-          h3: ({node, ...props}) => <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '6px' }} {...props} />,
+          code: ({node, ...props}) => <code style={{ backgroundColor: '#f3f4f6', padding: '2px 4px', borderRadius: '4px', fontSize: '0.9em', fontFamily: 'JetBrains Mono', color: '#111827' }} {...props} />,
+          strong: ({node, ...props}) => <strong style={{ fontWeight: 600, color: 'inherit' }} {...props} />,
+          p: ({node, ...props}) => <p style={{ marginBottom: '12px', color: 'inherit' }} {...props} />,
+          h1: ({node, ...props}) => <h1 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: 'inherit' }} {...props} />,
+          h2: ({node, ...props}) => <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px', color: 'inherit' }} {...props} />,
+          h3: ({node, ...props}) => <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '6px', color: 'inherit' }} {...props} />,
         }}
       >
         {content}
@@ -123,54 +124,93 @@ const useTextHeight = (text: string, font: string, width: number, lineHeight: nu
 };
 
 /**
- * Custom Collapsible using Pretext for accurate height measurement to enable smooth transitions.
+ * WorkBlock handles the grouping of thoughts and tool calls into a single collapsible.
  */
-const SmoothCollapsible: React.FC<{ 
-  isOpen: boolean; 
-  text: string;
-  font: string;
-  lineHeight: number;
-  width: number;
-  title: React.ReactNode; 
-  onToggle?: () => void;
-  className?: string;
-  extraPadding?: number;
-  render?: (text: string) => React.ReactNode;
-}> = ({ isOpen, text, font, lineHeight, width, title, onToggle, className, extraPadding = 16, render }) => {
-  const height = useTextHeight(text, font, width, lineHeight, extraPadding);
+const WorkBlock: React.FC<{
+  isOpen: boolean;
+  totalTime: number;
+  children: React.ReactNode;
+  onToggle: () => void;
+}> = ({ isOpen, totalTime, children, onToggle }) => {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState<number | string>(0);
+
+  useEffect(() => {
+    if (isOpen && contentRef.current) {
+      setHeight(contentRef.current.scrollHeight);
+    } else {
+      setHeight(0);
+    }
+  }, [isOpen, children]);
 
   return (
-    <div className={`smooth-collapsible ${className || ''}`} style={{ marginBottom: '4px' }}>
-      <div 
+    <div style={{ marginBottom: '12px' }}>
+      <button 
         onClick={onToggle}
-        className="collapsible-header"
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
           cursor: 'pointer',
           userSelect: 'none',
-          padding: '2px 0',
+          padding: '6px 12px',
+          backgroundColor: '#f8fafc',
+          borderRadius: '20px',
+          border: '1px solid #f1f5f9',
+          fontSize: '13px',
+          color: '#64748b',
+          transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+          outline: 'none',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+        }}
+        onMouseOver={(e) => {
+          e.currentTarget.style.backgroundColor = '#f1f5f9';
+          e.currentTarget.style.color = '#475569';
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.backgroundColor = '#f8fafc';
+          e.currentTarget.style.color = '#64748b';
         }}
       >
-        <svg 
-          width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" 
-          style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)', color: '#9ca3af' }}
-        >
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-        {title}
-      </div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '16px',
+          height: '16px',
+          borderRadius: '50%',
+          backgroundColor: isOpen ? '#e2e8f0' : 'transparent',
+          transition: 'background-color 0.2s'
+        }}>
+          <svg 
+            width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" 
+            style={{ 
+              transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)', 
+              transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+              color: isOpen ? '#475569' : '#94a3b8'
+            }}
+          >
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <span style={{ fontWeight: 500 }}>Worked for {totalTime}s</span>
+      </button>
+      
       <div 
         style={{ 
-          height: isOpen ? `${height}px` : '0px',
+          height: typeof height === 'number' ? `${height}px` : height,
           overflow: 'hidden',
           transition: 'height 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s',
           opacity: isOpen ? 1 : 0,
         }}
       >
-        <div style={{ paddingBottom: '8px', paddingLeft: '12px' }}>
-          {render ? render(text) : text}
+        <div ref={contentRef} style={{ 
+          padding: '12px 0 4px 16px',
+          borderLeft: '1px solid #f1f5f9',
+          marginLeft: '20px',
+          marginTop: '4px'
+        }}>
+          {children}
         </div>
       </div>
     </div>
@@ -182,7 +222,8 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
   const [inputValue, setInputValue] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [activeIterationId, setActiveIterationId] = useState<string | null>(null);
+  const [collapsedTurnIds, setCollapsedTurnIds] = useState<string[]>([]);
+  const isAtBottomRef = useRef(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sidebarContentRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -226,14 +267,27 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
     }, props.model || 'openai/gpt-4o-mini');
   }
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isProcessing]);
+  // Auto-scroll to bottom of sidebar
+  useLayoutEffect(() => {
+    const container = sidebarContentRef.current;
+    if (container && (isAtBottomRef.current || isProcessing)) {
+      container.scrollTop = container.scrollHeight;
+    }
+  }, [messages, isProcessing, collapsedTurnIds]);
+
+  const handleScroll = () => {
+    const container = sidebarContentRef.current;
+    if (container) {
+      const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
+      isAtBottomRef.current = isAtBottom;
+    }
+  };
 
   const handleSend = async (text: string) => {
     if (!text.trim() || isProcessing) return;
 
-    const userMessage: Message = { role: 'user', content: text };
+    const turnId = `turn-${Date.now()}`;
+    const userMessage: Message = { role: 'user', content: text, turnId };
     let currentMessages = [...messages, userMessage];
     setMessages(currentMessages);
     setInputValue('');
@@ -246,7 +300,6 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
       while (isWorking && iterations < 15) {
         iterations++;
         const iterId = `iter-${Date.now()}-${iterations}`;
-        setActiveIterationId(iterId);
 
         const callStartTime = Date.now();
         const llmResponse = await llmBridgeRef.current.chat(currentMessages, { 
@@ -257,6 +310,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
         
         const assistantMessage = llmResponse.message as Message;
         assistantMessage.iterationId = iterId;
+        assistantMessage.turnId = turnId;
         assistantMessage.thinkingTime = Math.round((callEndTime - callStartTime) / 1000);
         
         const msg = llmResponse.message as any;
@@ -284,7 +338,8 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                 content: output,
                 tool_call_id: toolCall.id,
                 name: toolCall.function.name,
-                iterationId: iterId
+                iterationId: iterId,
+                turnId: turnId
               });
             }
           }
@@ -472,11 +527,42 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
         }
 
         .reasoning-header {
-          font-size: 13px;
-          font-weight: 500;
-          color: #6b7280;
-          letter-spacing: normal;
-          text-transform: none;
+          font-size: 11px;
+          font-weight: 600;
+          color: #94a3b8;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 6px;
+        }
+
+        .thinking-scroll-container {
+          max-height: 220px;
+          overflow-y: auto;
+          position: relative;
+          -webkit-mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+          mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+          padding: 8px 0;
+          scrollbar-width: none;
+        }
+
+        .thinking-scroll-container::-webkit-scrollbar {
+          display: none;
+        }
+
+        @keyframes streamingDot {
+          0% { opacity: 0.2; }
+          50% { opacity: 1; }
+          100% { opacity: 0.2; }
+        }
+
+        .streaming-indicator {
+          display: inline-block;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          backgroundColor: #3b82f6;
+          margin-left: 4px;
+          animation: streamingDot 1s infinite;
         }
       `}} />
 
@@ -525,6 +611,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
 
       <div 
         ref={sidebarContentRef}
+        onScroll={handleScroll}
         className="agent-scrollbar"
         style={{
           flex: 1,
@@ -543,104 +630,118 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
           </div>
         )}
         
-        {messages.map((m, i) => {
-          if (m.role === 'user') {
+        {(() => {
+          // Group messages by turn
+          const turns: { user: Message; responses: Message[] }[] = [];
+          messages.forEach(m => {
+            if (m.role === 'user') {
+              turns.push({ user: m, responses: [] });
+            } else {
+              const lastTurn = turns[turns.length - 1];
+              if (lastTurn) {
+                lastTurn.responses.push(m);
+              }
+            }
+          });
+
+          return turns.map((turn, turnIdx) => {
+            const isLastTurn = turnIdx === turns.length - 1;
+            const isFinished = !isProcessing || !isLastTurn;
+            
+            // Calculate total thinking time for the turn
+            const totalThinkingTime = turn.responses.reduce((sum, m) => sum + (m.thinkingTime || 0), 0);
+            
+            // Separate work items from final content
+            const hasWork = totalThinkingTime > 0 || turn.responses.some(m => m.tool_calls);
+            const turnId = turn.user.turnId || `turn-${turnIdx}`;
+            const workIsOpen = !collapsedTurnIds.includes(turnId);
+
             return (
-              <div key={`user-${i}`} className="user-bubble">
-                <MarkdownOutput content={m.content || ''} className="user-markdown" />
-              </div>
-            );
-          }
+              <React.Fragment key={`turn-${turnIdx}`}>
+                <div className="user-bubble">
+                  <MarkdownOutput content={turn.user.content || ''} className="user-markdown" />
+                </div>
 
-          if (m.role === 'assistant') {
-            const reasoning = m.reasoning_content || '';
-            const content = m.content || '';
-            const isOpen = !m.iterationId || m.iterationId === activeIterationId;
-            const thinkingTime = m.thinkingTime || 0;
+                {turn.responses.length > 0 && (
+                  <div className="assistant-turn-container" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {hasWork && (
+                      <WorkBlock 
+                        isOpen={workIsOpen}
+                        totalTime={totalThinkingTime}
+                        onToggle={() => {
+                          setCollapsedTurnIds(prev => 
+                            prev.includes(turnId) 
+                              ? prev.filter(id => id !== turnId) 
+                              : [...prev, turnId]
+                          );
+                        }}
+                      >
+                        {turn.responses.map((m, mIdx) => {
+                          if (m.role === 'assistant') {
+                            return (
+                              <React.Fragment key={`msg-${mIdx}`}>
+                                {m.reasoning_content && (
+                                  <div style={{ marginBottom: '20px' }}>
+                                    <div className="reasoning-header">
+                                      Thought
+                                      {!isFinished && isLastTurn && mIdx === turn.responses.length - 1 && <span className="streaming-indicator" />}
+                                    </div>
+                                    <div className="thinking-scroll-container">
+                                      <MarkdownOutput content={m.reasoning_content} className="reasoning-markdown" color="#64748b" />
+                                    </div>
+                                  </div>
+                                )}
+                                {m.tool_calls?.map((tc, tcIdx) => {
+                                  let args: any = {};
+                                  try { args = JSON.parse(tc.function.arguments); } catch {}
+                                  const toolOutput = turn.responses.find(tm => tm.role === 'tool' && tm.tool_call_id === tc.id);
+                                  const commandText = args.command || tc.function.arguments;
 
-            return (
-              <div key={`assistant-${i}`} className="assistant-message-container">
-                {reasoning && (
-                  <SmoothCollapsible 
-                    isOpen={isOpen}
-                    text={reasoning}
-                    font="13.5px Inter"
-                    lineHeight={20.25}
-                    width={sidebarWidth - 32}
-                    onToggle={() => setActiveIterationId(prev => prev === m.iterationId ? null : m.iterationId || null)}
-                    title={
-                      <div className="reasoning-header">
-                        Thought for {thinkingTime}s
-                      </div>
-                    }
-                    className="assistant-reasoning"
-                    render={(txt) => <MarkdownOutput content={txt} className="reasoning-markdown" />}
-                  />
+                                  return (
+                                    <div key={`tool-${tcIdx}`} className="terminal-box" style={{ margin: '0 0 16px 0' }}>
+                                      <div className="terminal-header" style={{ padding: '6px 10px' }}>
+                                        <span style={{ fontWeight: 500, fontSize: '11px' }}>Bash Command</span>
+                                      </div>
+                                      <div className="terminal-content" style={{ padding: '10px' }}>
+                                        <div className="terminal-command-line" style={{ fontSize: '11px' }}>
+                                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flex: 1, opacity: 0.9 }}>
+                                            <span className="breadcrumb" style={{ fontSize: '10px' }}>$</span>
+                                            <span style={{ fontWeight: 500, color: '#f4f4f5' }}>{commandText}</span>
+                                          </div>
+                                        </div>
+                                        {toolOutput ? (
+                                          <div style={{ color: '#d1d5db', whiteSpace: 'pre-wrap', marginTop: '8px', fontSize: '11px', lineHeight: 1.4, opacity: 0.9 }}>
+                                            {toolOutput.content}
+                                          </div>
+                                        ) : null}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </React.Fragment>
+                            );
+                          }
+                          return null;
+                        })}
+                      </WorkBlock>
+                    )}
+
+                    {/* Final Assistant Content */}
+                    {turn.responses.map((m, mIdx) => {
+                      if (m.role === 'assistant' && m.content) {
+                        return <MarkdownOutput key={`content-${mIdx}`} content={m.content} />;
+                      }
+                      return null;
+                    })}
+                  </div>
                 )}
-                
-                {content && (
-                  <MarkdownOutput content={content} />
-                )}
-
-                {m.tool_calls?.map((tc, idx) => {
-                  let args: any = {};
-                  try { args = JSON.parse(tc.function.arguments); } catch {}
-                  const toolOutput = messages.find(tm => tm.role === 'tool' && tm.tool_call_id === tc.id);
-                  const commandText = args.command || tc.function.arguments;
-
-                  return (
-                    <div key={`tool-${idx}`} className="terminal-box">
-                      <div className="terminal-header">
-                        <span style={{ fontWeight: 500 }}>Ran background command</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', opacity: 0.8 }} className="hover-brighten">
-                          <span style={{ fontSize: '11px' }}>Relocate</span>
-                          <RelocateIcon />
-                        </div>
-                      </div>
-                      <div className="terminal-content">
-                        <div className="terminal-command-line">
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flex: 1, opacity: 0.9 }}>
-                            <span className="breadcrumb">pagefind-bash-agent-astro &gt;</span>
-                            <span style={{ fontWeight: 500, color: '#f4f4f5' }}>{commandText}</span>
-                          </div>
-                          <button 
-                            onClick={() => navigator.clipboard.writeText(commandText)}
-                            style={{ background: 'none', border: 'none', color: '#71717a', cursor: 'pointer', padding: '2px', transition: 'color 0.2s' }}
-                            onMouseOver={(e) => e.currentTarget.style.color = '#e4e4e7'}
-                            onMouseOut={(e) => e.currentTarget.style.color = '#71717a'}
-                            title="Copy command"
-                          >
-                            <CopyIcon />
-                          </button>
-                        </div>
-                        {toolOutput ? (
-                          <div style={{ color: '#d1d5db', whiteSpace: 'pre-wrap', marginTop: '12px', fontSize: '12px', lineHeight: 1.6 }}>
-                            {toolOutput.content}
-                          </div>
-                        ) : isProcessing ? (
-                          <div style={{ color: '#52525b', animation: 'agentPulse 1.5s infinite', marginTop: '12px', fontSize: '12px' }}>
-                            running...
-                          </div>
-                        ) : null}
-                      </div>
-                      <div className="terminal-footer">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }} className="hover-brighten">
-                           <span>Always run</span>
-                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </div>
-                        <span style={{ fontWeight: 500 }}>Exit code 0</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              </React.Fragment>
             );
-          }
-          return null;
-        })}
+          });
+        })()}
 
         {isProcessing && !messages.some(m => m.role === 'assistant' && (m.content || m.tool_calls)) && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: '#9ca3af', padding: '0 4px', animation: 'agentFadeIn 0.5s' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: '#71717a', padding: '0 4px', animation: 'agentFadeIn 0.5s' }}>
             <div style={{ display: 'flex', gap: '4px' }}>
               <div style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#3b82f6', animation: 'agentPulse 0.8s infinite' }}></div>
               <div style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#3b82f6', animation: 'agentPulse 0.8s infinite 0.2s' }}></div>
