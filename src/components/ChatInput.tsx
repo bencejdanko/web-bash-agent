@@ -30,7 +30,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const [mentionType, setMentionType] = useState<MentionType>('none');
   const [mentionSearch, setMentionSearch] = useState('');
   const [mentionIndex, setMentionIndex] = useState(0);
-  const [attachments, setAttachments] = useState<string[]>([]);
 
   const files = useMemo(() => Object.keys(filesystem), [filesystem]);
   const directories = useMemo(() => {
@@ -119,14 +118,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       setInputValue(newVal);
       updateMentionState(newVal, newCursorPos);
     } else {
-      // For file/dir: remove from text and add to attachments section
-      const attachment = `@${mentionType}:${option.label}`;
+      // Just add the raw text @mention
+      const mentionText = `@${mentionType}:${option.label} `;
       const startOfText = textBeforeCursor.substring(0, lastAt);
-      newVal = startOfText + textAfterCursor;
-      newCursorPos = startOfText.length;
+      newVal = startOfText + mentionText + textAfterCursor;
+      newCursorPos = startOfText.length + mentionText.length;
       
       setInputValue(newVal);
-      setAttachments(prev => prev.includes(attachment) ? prev : [...prev, attachment]);
       setMentionType('none');
     }
     
@@ -174,17 +172,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   const handleSendAction = () => {
-    if (!inputValue.trim() && attachments.length === 0) return;
-    const finalContent = attachments.length > 0 
-      ? `${inputValue.trim()}\n\nAttachments: ${attachments.join(' ')}`.trim()
-      : inputValue;
-    onSend(finalContent);
-    setAttachments([]);
+    if (!inputValue.trim()) return;
+    onSend(inputValue);
     if (inputRef.current) inputRef.current.style.height = 'auto';
-  };
-
-  const removeAttachment = (attachment: string) => {
-    setAttachments(prev => prev.filter(a => a !== attachment));
   };
 
   return (
@@ -226,7 +216,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                     transition: 'background-color 0.1s ease',
                   }}
                 >
-                  <span style={{ color: '#7dd3fc', display: 'flex' }}>
+                  <span style={{ color: '#fff', display: 'flex', opacity: 0.8 }}>
                     {option.icon}
                   </span>
                   <span style={{ flexGrow: 1, color: '#eee' }}>{option.label}</span>
@@ -253,51 +243,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           paddingBottom: '40px' // Space for the send button area
         }}
       >
-        {attachments.length > 0 && (
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '8px',
-            padding: '12px 14px 4px 14px',
-            backgroundColor: '#fff',
-            borderBottom: 'none'
-          }}>
-            {attachments.map(att => (
-              <div 
-                key={att} 
-                className="mention-tag"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '2px 8px',
-                  fontSize: '12px'
-                }}
-              >
-                {att.startsWith('@file:') ? <FileIcon /> : <FolderIcon />}
-                <span>{att.split(':').slice(1).join(':')}</span>
-                <button 
-                  onClick={() => removeAttachment(att)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#94a3b8',
-                    cursor: 'pointer',
-                    padding: '0 0 0 4px',
-                    fontSize: '14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    lineHeight: 1
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.color = '#ef4444'}
-                  onMouseOut={(e) => e.currentTarget.style.color = '#94a3b8'}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+
         <textarea 
           ref={inputRef}
           aria-label="Message assistant..."
@@ -306,8 +252,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onFocus={(e) => {
-            (e.currentTarget.parentNode as HTMLDivElement).style.borderColor = '#3b82f6';
-            (e.currentTarget.parentNode as HTMLDivElement).style.boxShadow = '0 0 0 1px rgba(59, 130, 246, 0.1)';
+            (e.currentTarget.parentNode as HTMLDivElement).style.borderColor = '#1f1f1f';
+            (e.currentTarget.parentNode as HTMLDivElement).style.boxShadow = '0 0 0 1px rgba(31, 31, 31, 0.1)';
           }}
           onBlur={(e) => {
             (e.currentTarget.parentNode as HTMLDivElement).style.borderColor = '#e5e7eb';
@@ -370,23 +316,23 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           )}
           <button 
             onClick={handleSendAction}
-            disabled={isProcessing || (!inputValue.trim() && attachments.length === 0)}
+            disabled={isProcessing || !inputValue.trim()}
             style={{
-                backgroundColor: (inputValue.trim() || attachments.length > 0) ? '#eff6ff' : '#f3f4f6',
-                color: (inputValue.trim() || attachments.length > 0) ? '#1e40af' : '#9ca3af',
-                border: (inputValue.trim() || attachments.length > 0) ? '1px solid #dbeafe' : 'none',
+                backgroundColor: inputValue.trim() ? '#1f1f1f' : '#f3f4f6',
+                color: inputValue.trim() ? '#fff' : '#9ca3af',
+                border: inputValue.trim() ? '1px solid #1f1f1f' : 'none',
                 borderRadius: '50%',
                 width: '32px',
                 height: '32px',
-                cursor: ((inputValue.trim() || attachments.length > 0) && !isProcessing) ? 'pointer' : 'default',
+                cursor: (inputValue.trim() && !isProcessing) ? 'pointer' : 'default',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                 flexShrink: 0,
-                transform: ((inputValue.trim() || attachments.length > 0) && !isProcessing) ? 'scale(1)' : 'scale(0.9)',
+                transform: (inputValue.trim() && !isProcessing) ? 'scale(1)' : 'scale(0.9)',
                 opacity: isProcessing ? 0.5 : 1,
-                boxShadow: (inputValue.trim() || attachments.length > 0) ? '0 1px 3px rgba(59, 130, 246, 0.1)' : 'none'
+                boxShadow: inputValue.trim() ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none'
             }}
           >
             <ArrowRightIcon />

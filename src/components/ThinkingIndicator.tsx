@@ -15,21 +15,21 @@ export const ThinkingIndicator: React.FC = () => {
           width: '5px', 
           height: '5px', 
           borderRadius: '50%', 
-          backgroundColor: '#3b82f6', 
+          backgroundColor: '#1f1f1f', 
           animation: 'agentPulse 0.8s infinite' 
         }}></div>
         <div style={{ 
           width: '5px', 
           height: '5px', 
           borderRadius: '50%', 
-          backgroundColor: '#3b82f6', 
+          backgroundColor: '#1f1f1f', 
           animation: 'agentPulse 0.8s infinite 0.2s' 
         }}></div>
         <div style={{ 
           width: '5px', 
           height: '5px', 
           borderRadius: '50%', 
-          backgroundColor: '#3b82f6', 
+          backgroundColor: '#1f1f1f', 
           animation: 'agentPulse 0.8s infinite 0.4s' 
         }}></div>
       </div>
