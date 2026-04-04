@@ -27,7 +27,7 @@ export const FloatingToggleButton: React.FC<FloatingToggleButtonProps> = ({ onCl
         color: '#374151',
         transition: 'all 0.2s',
       }}
-      aria-label="PageFind Agent"
+      aria-label="Agent"
     >
       <BotIcon />
     </button>

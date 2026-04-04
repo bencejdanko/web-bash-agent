@@ -1,12 +1,17 @@
 import React from 'react';
-import { ChevronRight } from './Icons';
+import { ChevronRight, PlusIcon, HistoryIcon } from './Icons';
 
 interface SidebarHeaderProps {
-  isProcessing: boolean;
   onCollapse: () => void;
+  onNewChat: () => void;
+  onToggleHistory: () => void;
 }
 
-export const SidebarHeader: React.FC<SidebarHeaderProps> = ({ isProcessing, onCollapse }) => {
+export const SidebarHeader: React.FC<SidebarHeaderProps> = ({ 
+  onCollapse, 
+  onNewChat, 
+  onToggleHistory 
+}) => {
   return (
     <header 
       style={{
@@ -19,42 +24,87 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({ isProcessing, onCo
         flexShrink: 0,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ 
-            width: '8px', 
-            height: '8px', 
-            borderRadius: '50%', 
-            backgroundColor: isProcessing ? '#fbbf24' : '#10b981', 
-            boxShadow: isProcessing ? '0 0 8px #fbbf24' : 'none' 
-          }}></div>
-          <span style={{ fontWeight: 600, fontSize: '15px', color: '#111827', letterSpacing: '-0.02em' }}>PageFind Agent</span>
+      <span style={{ fontWeight: 300, fontSize: '15px', color: '#111827', letterSpacing: '-0.02em' }}>Agent</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <button 
+              onClick={onNewChat}
+              style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  color: '#9ca3af',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '6px',
+                  transition: 'all 0.2s',
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                e.currentTarget.style.color = '#374151';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="New Chat"
+          >
+              <PlusIcon />
+          </button>
+          <button 
+              onClick={onToggleHistory}
+              style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  color: '#9ca3af',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '6px',
+                  transition: 'all 0.2s',
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                e.currentTarget.style.color = '#374151';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              title="Past conversations"
+          >
+              <HistoryIcon />
+          </button>
+          <button 
+              onClick={onCollapse}
+              style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  color: '#9ca3af',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '6px',
+                  transition: 'all 0.2s',
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                e.currentTarget.style.color = '#374151';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#9ca3af';
+              }}
+              aria-label="Collapse sidebar"
+          >
+              <ChevronRight />
+          </button>
       </div>
-      <button 
-          onClick={onCollapse}
-          style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '6px',
-              color: '#9ca3af',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '6px',
-              transition: 'all 0.2s',
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.backgroundColor = '#f3f4f6';
-            e.currentTarget.style.color = '#374151';
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.color = '#9ca3af';
-          }}
-          aria-label="Collapse sidebar"
-      >
-          <ChevronRight />
-      </button>
     </header>
   );
 };

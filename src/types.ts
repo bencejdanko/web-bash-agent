@@ -11,6 +11,14 @@ export interface Message {
   turnDuration?: number;
 }
 
+export interface Conversation {
+  id: string;
+  title: string;
+  messages: Message[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface AgentSidebarProps {
     bashSandbox?: any;
     llmBridge?: any;
