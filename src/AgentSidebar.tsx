@@ -138,7 +138,6 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                 overflowY: 'auto',
                 display: 'flex',
                 flexDirection: 'column',
-                scrollBehavior: 'smooth',
                 flexGrow: hasStarted ? 1 : 0,
                 flexShrink: hasStarted ? 1 : 0,
                 flexBasis: 0,
