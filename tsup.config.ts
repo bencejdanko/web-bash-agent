@@ -7,6 +7,6 @@ export default defineConfig({
   clean: true,
   minify: true,
   sourcemap: true,
-  external: ['react', 'react-dom', 'astro'],
+  external: ['react', 'react-dom', 'astro', 'just-bash'],
   treeshake: true,
 });

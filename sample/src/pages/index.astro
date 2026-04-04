@@ -30,10 +30,10 @@ const OPENROUTER_TOKEN = "sk-or-v1-e9f58721cb4261422ac9f2558ae60379fc7091633d18e
             <div style="margin-top: 40px; line-height: 1.6;">
                 <h2>How to test</h2>
                 <ol>
-                    <li>Click on the Site Search Agent in the bottom left.</li>
+                    <li>Click on the Site Search Agent on the right.</li>
                     <li>Ask: "What projects are documented here?"</li>
-                    <li>Observe the agent using <code>ls /api/projects</code>.</li>
-                    <li>Observe the agent using <code>cat /api/projects/tldraw-astro.json</code>.</li>
+                    <li>Observe the agent using <code>ls</code>, <code>find</code>, <code>cat</code>, <code>grep</code>, <code>jq</code> etc.</li>
+                    <li>The agent now has a full bash environment — all standard commands work!</li>
                 </ol>
             </div>
         </div>
@@ -41,11 +41,23 @@ const OPENROUTER_TOKEN = "sk-or-v1-e9f58721cb4261422ac9f2558ae60379fc7091633d18e
 		<AgentSidebar 
             client:load 
             apiKey={OPENROUTER_TOKEN} 
-            model="nvidia/nemotron-3-nano-30b-a3b:free"
+            model="nvidia/nemotron-3-super-120b-a12b:free"
             filesystem={{
-                "/api/projects": "Directory containing project data",
-                "/api/projects/tldraw-astro.json": "TLDraw Astro project details",
-                "/api/projects/bash-agent.json": "Bash Agent Astro project details"
+                "/projects/tldraw-astro.json": JSON.stringify({
+                    name: "TLDraw Astro",
+                    description: "An Astro integration for interactive tldraw diagrams. Allows embedding .tldr files in Markdown content with automatic rendering and hot-reload support.",
+                    tech: ["TypeScript", "Astro", "tldraw", "React"],
+                    status: "stable",
+                    features: ["Hot reload on .tldr save", "Content collection integration", "VS Code extension"]
+                }, null, 2),
+                "/projects/bash-agent.json": JSON.stringify({
+                    name: "Pagefind Bash Agent",
+                    description: "An AI-powered site exploration agent that uses a virtual bash shell to navigate and search site content. Integrates Pagefind for full-text search.",
+                    tech: ["TypeScript", "Astro", "React", "just-bash", "Pagefind"],
+                    status: "beta",
+                    features: ["Virtual bash environment", "Pagefind search integration", "Agentic sidebar UI"]
+                }, null, 2),
+                "/about.md": "# About This Site\n\nThis is a portfolio and documentation site for open-source projects by Bence.\n\n## Projects\n\nSee the /projects directory for detailed project information.\n"
             }}
         />
 	</body>
