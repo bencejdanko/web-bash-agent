@@ -46,6 +46,19 @@ const SendIcon = () => (
     </svg>
 );
 
+const ArrowRightIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="5" y1="12" x2="19" y2="12"></line>
+    <polyline points="12 5 19 12 12 19"></polyline>
+  </svg>
+);
+
+const StopIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+    <rect x="6" y="6" width="12" height="12" rx="1" />
+  </svg>
+);
+
 const CommandIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}>
     <polyline points="4 17 10 11 4 5"></polyline>
@@ -124,18 +137,62 @@ const useTextHeight = (text: string, font: string, width: number, lineHeight: nu
 };
 
 /**
- * WorkBlock handles the grouping of thoughts and tool calls into a single collapsible.
+ * ThinkingBlock handles reasoning content with internal auto-scrolling
  */
-const WorkBlock: React.FC<{
-  isOpen: boolean;
-  totalTime: number;
-  children: React.ReactNode;
-  onToggle: () => void;
-}> = ({ isOpen, totalTime, children, onToggle }) => {
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [height, setHeight] = useState<number | string>(0);
+const ThinkingBlock: React.FC<{ content: string; isActive: boolean }> = ({ content, isActive }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (containerRef.current && isActive) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
+  }, [content, isActive]);
+
+  return (
+    <div 
+      ref={containerRef}
+      className="thinking-scroll-container"
+    >
+      <MarkdownOutput content={content} className="reasoning-markdown" color="#374151" />
+    </div>
+  );
+};
+
+/**
+ * Live timer component for real-time counting
+ */
+const LiveTimer: React.FC<{ startTime: number }> = ({ startTime }) => {
+  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
+    const update = () => {
+      setElapsed(Math.max(0, Math.floor((Date.now() - startTime) / 1000)));
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [startTime]);
+
+  return <>{elapsed}s</>;
+};
+
+/**
+ * WorkBlock handles the grouping of thoughts and tool calls into a single collapsible.
+ */
+/**
+ * Generic Collapsible component for work sessions and reasoning thoughts
+ */
+const Collapsible: React.FC<{
+  isOpen: boolean;
+  onToggle: () => void;
+  title: React.ReactNode;
+  children: React.ReactNode;
+  showBorder?: boolean;
+}> = ({ isOpen, onToggle, title, children, showBorder = true }) => {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState<number | string>(isOpen ? 'auto' : 0);
+
+  useLayoutEffect(() => {
     if (isOpen && contentRef.current) {
       setHeight(contentRef.current.scrollHeight);
     } else {
@@ -144,56 +201,52 @@ const WorkBlock: React.FC<{
   }, [isOpen, children]);
 
   return (
-    <div style={{ marginBottom: '12px' }}>
+    <div style={{ marginBottom: '4px' }}>
       <button 
-        onClick={onToggle}
+        onClick={(e) => {
+          e.preventDefault();
+          onToggle();
+        }}
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
+          gap: '6px',
           cursor: 'pointer',
           userSelect: 'none',
-          padding: '6px 12px',
-          backgroundColor: '#f8fafc',
-          borderRadius: '20px',
-          border: '1px solid #f1f5f9',
+          padding: '4px 0',
+          backgroundColor: 'transparent',
+          border: 'none',
           fontSize: '13px',
-          color: '#64748b',
+          color: '#94a3b8',
           transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
           outline: 'none',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+          textAlign: 'left',
+          width: 'fit-content'
         }}
         onMouseOver={(e) => {
-          e.currentTarget.style.backgroundColor = '#f1f5f9';
-          e.currentTarget.style.color = '#475569';
+          e.currentTarget.style.color = '#64748b';
         }}
         onMouseOut={(e) => {
-          e.currentTarget.style.backgroundColor = '#f8fafc';
-          e.currentTarget.style.color = '#64748b';
+          e.currentTarget.style.color = '#94a3b8';
         }}
       >
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          width: '16px',
-          height: '16px',
-          borderRadius: '50%',
-          backgroundColor: isOpen ? '#e2e8f0' : 'transparent',
-          transition: 'background-color 0.2s'
+          width: '14px',
+          height: '14px',
+          transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
+          opacity: 0.7,
         }}>
-          <svg 
-            width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" 
-            style={{ 
-              transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)', 
-              transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-              color: isOpen ? '#475569' : '#94a3b8'
-            }}
-          >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
         </div>
-        <span style={{ fontWeight: 500 }}>Worked for {totalTime}s</span>
+        <span style={{ fontWeight: 500, letterSpacing: '-0.01em' }}>
+          {title}
+        </span>
       </button>
       
       <div 
@@ -205,10 +258,10 @@ const WorkBlock: React.FC<{
         }}
       >
         <div ref={contentRef} style={{ 
-          padding: '12px 0 4px 16px',
-          borderLeft: '1px solid #f1f5f9',
-          marginLeft: '20px',
-          marginTop: '4px'
+          padding: '4px 0 8px 14px',
+          borderLeft: showBorder ? '1px solid #f1f5f9' : 'none',
+          marginLeft: '6px',
+          marginTop: '2px'
         }}>
           {children}
         </div>
@@ -221,12 +274,15 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [turnStartTime, setTurnStartTime] = useState<number | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [collapsedTurnIds, setCollapsedTurnIds] = useState<string[]>([]);
+  const [collapsedThoughtIds, setCollapsedThoughtIds] = useState<string[]>([]);
   const isAtBottomRef = useRef(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sidebarContentRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Measure sidebar width for pretext
   const [sidebarWidth, setSidebarWidth] = useState(380);
@@ -270,9 +326,28 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
   // Auto-scroll to bottom of sidebar
   useLayoutEffect(() => {
     const container = sidebarContentRef.current;
-    if (container && (isAtBottomRef.current || isProcessing)) {
-      container.scrollTop = container.scrollHeight;
+    if (!container) return;
+
+    const scrollToBottom = () => {
+      if (isAtBottomRef.current || isProcessing) {
+        container.scrollTop = container.scrollHeight;
+      }
+    };
+
+    // Immediate scroll when dependencies change
+    scrollToBottom();
+
+    // Use ResizeObserver to handle smooth expansions (like WorkBlock) or streamed content
+    const observer = new ResizeObserver(() => {
+      scrollToBottom();
+    });
+
+    const wrapper = container.querySelector('.message-list-wrapper');
+    if (wrapper) {
+      observer.observe(wrapper);
     }
+
+    return () => observer.disconnect();
   }, [messages, isProcessing, collapsedTurnIds]);
 
   const handleScroll = () => {
@@ -281,6 +356,15 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
       const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
       isAtBottomRef.current = isAtBottom;
     }
+  };
+
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsProcessing(false);
+    setTurnStartTime(null);
   };
 
   const handleSend = async (text: string) => {
@@ -292,20 +376,29 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
     setMessages(currentMessages);
     setInputValue('');
     setIsProcessing(true);
+    const turnStart = Date.now();
+    setTurnStartTime(turnStart);
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     try {
       let isWorking = true;
       let iterations = 0;
       
       while (isWorking && iterations < 15) {
+        if (controller.signal.aborted) break;
         iterations++;
         const iterId = `iter-${Date.now()}-${iterations}`;
 
         const callStartTime = Date.now();
         const llmResponse = await llmBridgeRef.current.chat(currentMessages, { 
           reasoning_effort: props.reasoningEffort || 'low',
-          include_thinking: props.includeThinking || true
+          include_thinking: props.includeThinking || true,
+          signal: controller.signal
         });
+        
+        if (controller.signal.aborted) break;
         const callEndTime = Date.now();
         
         const assistantMessage = llmResponse.message as Message;
@@ -324,6 +417,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
           const toolResults: Message[] = [];
           
           for (const toolCall of assistantMessage.tool_calls) {
+            if (controller.signal.aborted) break;
             if (toolCall.function.name === 'bash') {
               const { command } = JSON.parse(toolCall.function.arguments);
               const result = await bashSandboxRef.current.exec(command);
@@ -344,6 +438,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
             }
           }
           
+          if (controller.signal.aborted) break;
           currentMessages = [...currentMessages, assistantMessage, ...toolResults];
           setMessages(currentMessages);
         } else {
@@ -352,11 +447,34 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
           isWorking = false;
         }
       }
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Connection error. Check console for details.' }]);
-      console.error('Agent error:', error);
+    } catch (error: any) {
+      if (error.name === 'AbortError' || error.name === 'APIUserAbortError' || controller.signal.aborted) {
+        console.log('Chat cancelled by user');
+      } else {
+        setMessages(prev => [...prev, { role: 'assistant', content: 'Connection error. Check console for details.' }]);
+        console.error('Agent error:', error);
+      }
     } finally {
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
       setIsProcessing(false);
+      setTurnStartTime(null);
+      
+      const turnEnd = Date.now();
+      const finalDuration = Math.round((turnEnd - turnStart) / 1000);
+      
+      // Store the final duration in the user message for this turn
+      setMessages(prev => prev.map(m => 
+        m.turnId === turnId && m.role === 'user' 
+          ? { ...m, turnDuration: finalDuration } as any
+          : m
+      ));
+
+      // Auto-collapse the work session when done
+      if (turnId && !controller.signal.aborted) {
+        setCollapsedTurnIds(prev => [...new Set([...prev, turnId])]);
+      }
     }
   };
 
@@ -383,7 +501,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
           color: '#374151',
           transition: 'all 0.2s',
         }}
-        aria-label="Open Agentic Assistant"
+        aria-label="PageFind Agent"
       >
         <BotIcon />
       </button>
@@ -520,29 +638,14 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
           font-size: 11px;
         }
 
-        .assistant-reasoning {
-          border-left: none;
-          margin: 4px 0;
-          border-radius: 0;
-        }
-
-        .reasoning-header {
-          font-size: 11px;
-          font-weight: 600;
-          color: #94a3b8;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          margin-bottom: 6px;
-        }
 
         .thinking-scroll-container {
           max-height: 220px;
           overflow-y: auto;
           position: relative;
-          -webkit-mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
-          mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
-          padding: 8px 0;
+          padding: 4px 0;
           scrollbar-width: none;
+          margin-bottom: 8px;
         }
 
         .thinking-scroll-container::-webkit-scrollbar {
@@ -579,7 +682,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isProcessing ? '#fbbf24' : '#10b981', boxShadow: isProcessing ? '0 0 8px #fbbf24' : 'none' }}></div>
-            <span style={{ fontWeight: 600, fontSize: '15px', color: '#111827', letterSpacing: '-0.02em' }}>Agentic Assistant</span>
+            <span style={{ fontWeight: 600, fontSize: '15px', color: '#111827', letterSpacing: '-0.02em' }}>PageFind Agent</span>
         </div>
         <button 
             onClick={() => setIsCollapsed(true)}
@@ -615,14 +718,14 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
         className="agent-scrollbar"
         style={{
           flex: 1,
-          padding: '20px 16px',
+          padding: '12px 16px',
           overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column',
-          gap: '20px',
           scrollBehavior: 'smooth',
         }}
       >
+        <div className="message-list-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         {messages.length === 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center', gap: '16px', color: '#9ca3af', opacity: 0.6 }}>
              <div style={{ transform: 'scale(1.2)' }}><BotIcon /></div>
@@ -652,7 +755,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
             const totalThinkingTime = turn.responses.reduce((sum, m) => sum + (m.thinkingTime || 0), 0);
             
             // Separate work items from final content
-            const hasWork = totalThinkingTime > 0 || turn.responses.some(m => m.tool_calls);
+            const hasWork = totalThinkingTime > 0 || turn.responses.some(m => m.tool_calls) || (isLastTurn && isProcessing);
             const turnId = turn.user.turnId || `turn-${turnIdx}`;
             const workIsOpen = !collapsedTurnIds.includes(turnId);
 
@@ -665,9 +768,13 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                 {turn.responses.length > 0 && (
                   <div className="assistant-turn-container" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {hasWork && (
-                      <WorkBlock 
+                      <Collapsible 
                         isOpen={workIsOpen}
-                        totalTime={totalThinkingTime}
+                        title={
+                          <>
+                            Worked for {isLastTurn && isProcessing && turnStartTime ? <LiveTimer startTime={turnStartTime} /> : `${(turn.user as any).turnDuration || totalThinkingTime}s`}
+                          </>
+                        }
                         onToggle={() => {
                           setCollapsedTurnIds(prev => 
                             prev.includes(turnId) 
@@ -681,15 +788,26 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                             return (
                               <React.Fragment key={`msg-${mIdx}`}>
                                 {m.reasoning_content && (
-                                  <div style={{ marginBottom: '20px' }}>
-                                    <div className="reasoning-header">
-                                      Thought
-                                      {!isFinished && isLastTurn && mIdx === turn.responses.length - 1 && <span className="streaming-indicator" />}
-                                    </div>
-                                    <div className="thinking-scroll-container">
-                                      <MarkdownOutput content={m.reasoning_content} className="reasoning-markdown" color="#64748b" />
-                                    </div>
-                                  </div>
+                                  <Collapsible 
+                                    isOpen={!collapsedThoughtIds.includes(m.iterationId || `thought-${mIdx}`)}
+                                    title={
+                                      <>
+                                        Thought {m.thinkingTime ? `for ${m.thinkingTime}s` : ''}
+                                        {!isFinished && isLastTurn && mIdx === turn.responses.length - 1 && <span className="streaming-indicator" />}
+                                      </>
+                                    }
+                                    onToggle={() => {
+                                      const tId = m.iterationId || `thought-${mIdx}`;
+                                      setCollapsedThoughtIds(prev => 
+                                        prev.includes(tId) ? prev.filter(id => id !== tId) : [...prev, tId]
+                                      );
+                                    }}
+                                  >
+                                    <ThinkingBlock 
+                                      content={m.reasoning_content} 
+                                      isActive={!isFinished && isLastTurn} 
+                                    />
+                                  </Collapsible>
                                 )}
                                 {m.tool_calls?.map((tc, tcIdx) => {
                                   let args: any = {};
@@ -723,7 +841,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                           }
                           return null;
                         })}
-                      </WorkBlock>
+                      </Collapsible>
                     )}
 
                     {/* Final Assistant Content */}
@@ -750,70 +868,125 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
             <span style={{ fontSize: '13px', fontWeight: 500 }}>Thinking...</span>
           </div>
         )}
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} style={{ height: '40px' }} />
+        </div>
       </div>
 
-      <div style={{ padding: '16px', borderTop: '1px solid #f3f4f6', backgroundColor: '#fff' }}>
-        <div style={{ position: 'relative', display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
-          <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <textarea 
-              ref={inputRef}
-              aria-label="Message assistant..."
-              placeholder="Ask a question..."
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend(inputValue);
-                }
-              }}
-              style={{
-                flex: 1,
-                padding: '10px 14px',
-                borderRadius: '12px',
-                border: '1px solid #e5e7eb',
-                backgroundColor: '#fff',
-                color: '#111827',
-                fontSize: '14px',
-                outline: 'none',
-                transition: 'border-color 0.2s, box-shadow 0.2s, height 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-                resize: 'none',
-                minHeight: '40px',
-                height: `${useTextHeight(inputValue || ' ', '14px Inter', sidebarWidth - 60, 21, 20)}px`,
-                maxHeight: '200px',
-                lineHeight: '1.5',
-                fontFamily: 'inherit',
-                overflowY: 'auto',
-              }}
-              disabled={isProcessing}
-            />
-          </div>
-          <button 
-            onClick={() => {
-               handleSend(inputValue);
-               if (inputRef.current) inputRef.current.style.height = 'auto';
+      <div style={{ padding: '24px 16px 16px', borderTop: '1px solid #f3f4f6', backgroundColor: '#fff', flexShrink: 0 }}>
+        <div 
+          className="chat-input-container"
+          style={{ 
+            position: 'relative', 
+            display: 'flex', 
+            flexDirection: 'column',
+            border: '1px solid #e5e7eb',
+            borderRadius: '16px',
+            backgroundColor: '#fff',
+            transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.02)',
+          }}
+        >
+          <textarea 
+            ref={inputRef}
+            aria-label="Message assistant..."
+            placeholder="Ask a question..."
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend(inputValue);
+              }
             }}
-            disabled={isProcessing || !inputValue.trim()}
+            onFocus={(e) => {
+              (e.currentTarget.parentNode as HTMLDivElement).style.borderColor = '#111827';
+              (e.currentTarget.parentNode as HTMLDivElement).style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
+            }}
+            onBlur={(e) => {
+              (e.currentTarget.parentNode as HTMLDivElement).style.borderColor = '#e5e7eb';
+              (e.currentTarget.parentNode as HTMLDivElement).style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.02)';
+            }}
             style={{
-                backgroundColor: inputValue.trim() ? '#111827' : '#f3f4f6',
-                color: inputValue.trim() ? '#fff' : '#9ca3af',
-                border: 'none',
-                borderRadius: '10px',
-                width: '40px',
-                height: '40px',
-                cursor: inputValue.trim() ? 'pointer' : 'default',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                flexShrink: 0,
-                transform: inputValue.trim() ? 'scale(1)' : 'scale(0.95)',
+              width: '100%',
+              padding: '12px 14px 44px 14px',
+              border: 'none',
+              backgroundColor: 'transparent',
+              color: '#111827',
+              fontSize: '14px',
+              outline: 'none',
+              resize: 'none',
+              minHeight: '48px',
+              height: `${useTextHeight(inputValue || ' ', '14px Inter', sidebarWidth, 21, 20)}px`,
+              maxHeight: '200px',
+              lineHeight: '1.5',
+              fontFamily: 'inherit',
+              overflowY: 'auto',
             }}
-          >
-            <SendIcon />
-          </button>
+            disabled={isProcessing}
+          />
+          <div style={{
+            position: 'absolute',
+            right: '10px',
+            bottom: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            {isProcessing && (
+              <button 
+                onClick={handleCancel}
+                style={{
+                    backgroundColor: '#f3f4f6',
+                    color: '#ef4444',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                    flexShrink: 0,
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = '#e5e7eb';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f3f4f6';
+                }}
+                title="Cancel processing"
+              >
+                <StopIcon />
+              </button>
+            )}
+            <button 
+              onClick={() => {
+                 handleSend(inputValue);
+                 if (inputRef.current) inputRef.current.style.height = 'auto';
+              }}
+              disabled={isProcessing || !inputValue.trim()}
+              style={{
+                  backgroundColor: inputValue.trim() ? '#111827' : '#f3f4f6',
+                  color: inputValue.trim() ? '#fff' : '#9ca3af',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  cursor: (inputValue.trim() && !isProcessing) ? 'pointer' : 'default',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                  flexShrink: 0,
+                  transform: (inputValue.trim() && !isProcessing) ? 'scale(1)' : 'scale(0.9)',
+                  opacity: isProcessing ? 0.5 : 1
+              }}
+            >
+              <ArrowRightIcon />
+            </button>
+          </div>
         </div>
       </div>
     </div>

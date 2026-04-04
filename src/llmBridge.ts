@@ -52,7 +52,7 @@ Quick reference:
 Explore the filesystem to answer user questions. Be concise and helpful.`;
   }
 
-  async chat(messages: any[], options: { reasoning_effort?: 'low' | 'medium' | 'high', include_thinking?: boolean } = {}) {
+  async chat(messages: any[], options: { reasoning_effort?: 'low' | 'medium' | 'high', include_thinking?: boolean, signal?: AbortSignal } = {}) {
     if (!this.openai?.chat?.completions) {
         throw new Error('OpenAI client not configured');
     }
@@ -73,7 +73,7 @@ Explore the filesystem to answer user questions. Be concise and helpful.`;
       body.include_thinking = true;
     }
 
-    const response = await this.openai.chat.completions.create(body);
+    const response = await this.openai.chat.completions.create(body, { signal: options.signal });
     return response.choices[0];
   }
 }
