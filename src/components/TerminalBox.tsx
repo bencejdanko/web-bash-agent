@@ -1,15 +1,24 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
+import { LiveTimer } from './LiveTimer';
 import '@xterm/xterm/css/xterm.css';
 
 interface TerminalBoxProps {
   command: string;
   output?: string;
   bashSandbox?: any;
+  isPending?: boolean;
+  startTime?: number;
 }
 
-export const TerminalBox: React.FC<TerminalBoxProps> = ({ command, output, bashSandbox }) => {
+export const TerminalBox: React.FC<TerminalBoxProps> = ({ 
+  command, 
+  output, 
+  bashSandbox,
+  isPending,
+  startTime
+}) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -61,19 +70,24 @@ export const TerminalBox: React.FC<TerminalBoxProps> = ({ command, output, bashS
 
     // Initial sequence
     term.writeln(`\x1b[1;32m$\x1b[0m \x1b[1m${command}\x1b[0m`);
-    if (output) {
+    
+    if (isPending) {
+      term.write('\r\n\x1b[2mProcessing...\x1b[0m');
+    } else if (output) {
       const outputLines = output.split('\n');
       outputLines.forEach((line, idx) => {
         const prefix = idx === outputLines.length - 1 ? '\x1b[2m└\x1b[0m ' : '\x1b[2m│\x1b[0m ';
         term.writeln(`${prefix} ${line}`);
       });
+      term.write('\r\n' + getPrompt());
+    } else {
+      term.write('\r\n' + getPrompt());
     }
-    
-    term.write('\r\n' + getPrompt());
 
     let currentLine = '';
 
     const dataHandler = term.onData(data => {
+      // (same data handler as before)
       const code = data.charCodeAt(0);
       
       if (code === 13) { // Enter
@@ -84,9 +98,6 @@ export const TerminalBox: React.FC<TerminalBoxProps> = ({ command, output, bashS
              bashSandbox.exec(cmdToRun).then((res: any) => {
                if (res.stdout) term.write(res.stdout);
                if (res.stderr) term.write(`\x1b[31m${res.stderr}\x1b[0m`);
-               if (!res.stdout && !res.stderr && res.exitCode === 0) {
-                 // Success but no output
-               }
                term.write('\r\n' + getPrompt());
              }).catch((err: any) => {
                term.write(`\x1b[31mError: ${err}\x1b[0m\r\n`);
@@ -106,7 +117,6 @@ export const TerminalBox: React.FC<TerminalBoxProps> = ({ command, output, bashS
           term.write('\b \b');
         }
       } else if (code < 32) {
-        // Handle basic control chars if needed
       } else {
         currentLine += data;
         term.write(data);
@@ -126,13 +136,14 @@ export const TerminalBox: React.FC<TerminalBoxProps> = ({ command, output, bashS
       resizeObserver.disconnect();
       term.dispose();
     };
-  }, [mounted, bashSandbox, command, output]);
+  }, [mounted, bashSandbox, command, output, isPending]);
 
   if (!mounted) {
     return (
       <div className="terminal-box">
         <div className="terminal-header">
-           <span>Ran command</span>
+           <span>{isPending ? 'Running command...' : 'Ran command'}</span>
+           {isPending && startTime && <LiveTimer startTime={startTime} />}
         </div>
         <div style={{ padding: '10px', height: '150px', background: 'var(--agent-bg-terminal)' }} />
       </div>
@@ -141,8 +152,14 @@ export const TerminalBox: React.FC<TerminalBoxProps> = ({ command, output, bashS
 
   return (
     <div className="terminal-box">
-      <div className="terminal-header">
-        <span>Ran command</span>
+      <div className="terminal-header" style={{ pointerEvents: 'none' }}>
+        <span>{isPending ? 'Running command...' : 'Ran command'}</span>
+        {isPending && startTime && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="streaming-indicator" style={{ background: 'var(--agent-text-on-dark-dim)' }} />
+            <LiveTimer startTime={startTime} />
+          </div>
+        )}
       </div>
       <div 
         ref={terminalRef} 

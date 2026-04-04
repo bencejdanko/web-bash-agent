@@ -59,15 +59,15 @@ export const AssistantTurn: React.FC<AssistantTurnProps> = ({
                       isOpen={!collapsedThoughtIds.includes(tId)}
                       title={
                         <>
-                          Thought {m.thinkingTime ? `for ${m.thinkingTime}s` : ''}
+                          Thought {m.thinkingTime ? `for ${m.thinkingTime}s` : (isLastTurn && isProcessing && m.startTime ? <LiveTimer startTime={m.startTime} /> : '')}
                           {!isFinished && isLastTurn && mIdx === responses.length - 1 && <span className="streaming-indicator" />}
                         </>
                       }
                       onToggle={() => onToggleThought(tId)}
                     >
                       <ThinkingBlock 
-                        content={m.reasoning_content} 
-                        isActive={!isFinished && isLastTurn} 
+                        content={m.reasoning_content || ''} 
+                        isActive={!isFinished && isLastTurn && mIdx === responses.length - 1} 
                         sidebarWidth={sidebarWidth}
                       />
                     </Collapsible>
@@ -75,7 +75,7 @@ export const AssistantTurn: React.FC<AssistantTurnProps> = ({
                   {m.tool_calls?.map((tc, tcIdx) => {
                     let args: any = {};
                     try { args = JSON.parse(tc.function.arguments); } catch {}
-                    const toolOutput = responses.find(tm => tm.role === 'tool' && tm.tool_call_id === tc.id);
+                    const toolOutput = responses.find(tm => tm.role === 'tool' && tm.tool_call_id === tc.id && tm.iterationId === m.iterationId);
                     const commandText = args.command || tc.function.arguments;
 
                     return (
@@ -84,6 +84,8 @@ export const AssistantTurn: React.FC<AssistantTurnProps> = ({
                         command={commandText}
                         output={toolOutput?.content || undefined}
                         bashSandbox={bashSandbox}
+                        isPending={toolOutput?.isPending}
+                        startTime={toolOutput?.startTime}
                       />
                     );
                   })}

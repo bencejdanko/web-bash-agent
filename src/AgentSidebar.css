@@ -134,6 +134,7 @@
 }
 
 .agent-scrollbar {
+  scroll-behavior: smooth;
   mask-image: linear-gradient(to bottom, 
     black 0%, 
     black calc(100% - 60px), 

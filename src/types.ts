@@ -9,6 +9,8 @@ export interface Message {
   thinkingTime?: number;
   turnId?: string;
   turnDuration?: number;
+  isPending?: boolean;
+  startTime?: number;
 }
 
 export interface Conversation {
