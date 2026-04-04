@@ -237,3 +237,18 @@
 .xterm-container .xterm-viewport::-webkit-scrollbar-thumb:hover {
   background: #52525b;
 }
+
+/* @ Mention Styles */
+.mention-tag {
+  display: inline-flex;
+  align-items: center;
+  background-color: #eff6ff;
+  color: #1e40af;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 500;
+  border: 1px solid #dbeafe;
+  line-height: normal;
+  box-shadow: 0 1px 2px rgba(59, 130, 246, 0.05);
+  font-size: 13px;
+}

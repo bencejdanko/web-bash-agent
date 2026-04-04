@@ -17,6 +17,7 @@ interface AssistantTurnProps {
   collapsedThoughtIds: string[];
   onToggleThought: (thoughtId: string) => void;
   bashSandbox?: any;
+  sidebarWidth: number;
 }
 
 export const AssistantTurn: React.FC<AssistantTurnProps> = ({
@@ -30,6 +31,7 @@ export const AssistantTurn: React.FC<AssistantTurnProps> = ({
   collapsedThoughtIds,
   onToggleThought,
   bashSandbox,
+  sidebarWidth,
 }) => {
   const totalThinkingTime = responses.reduce((sum, m) => sum + (m.thinkingTime || 0), 0);
   const hasWork = totalThinkingTime > 0 || responses.some(m => m.tool_calls) || (isLastTurn && isProcessing);
@@ -66,6 +68,7 @@ export const AssistantTurn: React.FC<AssistantTurnProps> = ({
                       <ThinkingBlock 
                         content={m.reasoning_content} 
                         isActive={!isFinished && isLastTurn} 
+                        sidebarWidth={sidebarWidth}
                       />
                     </Collapsible>
                   )}

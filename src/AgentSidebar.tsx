@@ -163,6 +163,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                   collapsedThoughtIds={collapsedThoughtIds}
                   onToggleThought={toggleThought}
                   bashSandbox={bashSandbox}
+                  sidebarWidth={sidebarWidth}
                 />
                 <div ref={messagesEndRef} style={{ height: '40px' }} />
               </div>

@@ -20,14 +20,51 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState<number | string>(isOpen ? 'auto' : 0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   useLayoutEffect(() => {
-    if (isOpen && contentRef.current) {
-      setHeight(contentRef.current.scrollHeight);
+    if (!contentRef.current) return;
+
+    if (isOpen) {
+      if (height === 0) {
+        // Just opened: measure and start transition
+        setHeight(contentRef.current.scrollHeight);
+        setIsTransitioning(true);
+      } else {
+        // Already open: stay at auto if children change, unless we want to keep it responsive
+        // For streaming, 'auto' is best.
+        setHeight('auto');
+      }
     } else {
-      setHeight(0);
+      if (height !== 0) {
+        // Just closed: first set to pixels from auto (if it was auto)
+        const currentHeight = contentRef.current.scrollHeight;
+        setHeight(currentHeight);
+        
+        // Then trigger closure in next frame
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setHeight(0);
+            setIsTransitioning(true);
+          });
+        });
+      }
     }
-  }, [isOpen, children]);
+  }, [isOpen]);
+
+  // Handle height update when children change while open
+  useLayoutEffect(() => {
+    if (isOpen && !isTransitioning) {
+      setHeight('auto');
+    }
+  }, [children, isOpen, isTransitioning]);
+
+  const handleTransitionEnd = () => {
+    if (isOpen) {
+      setHeight('auto');
+    }
+    setIsTransitioning(false);
+  };
 
   return (
     <div style={{ marginBottom: '4px' }}>
@@ -79,6 +116,7 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
       </button>
       
       <div 
+        onTransitionEnd={handleTransitionEnd}
         style={{ 
           height: typeof height === 'number' ? `${height}px` : height,
           overflow: 'hidden',
