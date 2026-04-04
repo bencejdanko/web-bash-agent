@@ -24,11 +24,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   placeholder = "Ask a question..."
 }) => {
   return (
-    <div style={{ width: '100%', flexShrink: 0 }}>
+    <div style={{ width: '100%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
       <div 
         className="chat-input-container"
         style={{ 
           position: 'relative', 
+          width: '100%',
           display: 'flex', 
           flexDirection: 'column',
           border: '1px solid #e5e7eb',

@@ -21,6 +21,8 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
   const [showHistory, setShowHistory] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [isExpanding, setIsExpanding] = useState(false);
   const [turnStartTime, setTurnStartTime] = useState<number | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [collapsedTurnIds, setCollapsedTurnIds] = useState<string[]>([]);
@@ -64,6 +66,9 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
         const lastConv = parsed.find((c: Conversation) => c.id === lastActiveId);
         setCurrentConversationId(lastActiveId);
         setMessages(lastConv.messages);
+        if (lastConv.messages.length > 0) {
+          setHasStarted(true);
+        }
       }
     }
   }, []);
@@ -166,6 +171,15 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
 
   const handleSend = async (text: string) => {
     if (!text.trim() || isProcessing) return;
+
+    if (!hasStarted) {
+      setIsExpanding(true);
+      // Wait for the expand animation before transitioning down
+      setTimeout(() => {
+        setHasStarted(true);
+        setIsExpanding(false);
+      }, 800);
+    }
 
     const turnId = `turn-${Date.now()}`;
     const userMessage: Message = { role: 'user', content: text, turnId };
@@ -294,6 +308,8 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
     setCurrentConversationId(null);
     localStorage.removeItem('agent_active_conversation_id');
     setShowHistory(false);
+    setHasStarted(false);
+    setIsExpanding(false);
   };
 
   const handleSelectConversation = (id: string) => {
@@ -303,6 +319,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
       setMessages(conv.messages);
       localStorage.setItem('agent_active_conversation_id', id);
       setShowHistory(false);
+      setHasStarted(conv.messages.length > 0);
     }
   };
 
@@ -315,6 +332,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
       setMessages([]);
       setCurrentConversationId(null);
       localStorage.removeItem('agent_active_conversation_id');
+      setHasStarted(false);
     }
   };
 
@@ -382,24 +400,25 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
             onScroll={handleScroll}
             className="agent-scrollbar"
             style={{
-              flex: messages.length === 0 ? 0 : 1,
-              padding: messages.length === 0 ? '0' : '12px 16px',
-              overflowY: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              scrollBehavior: 'smooth',
-              transition: 'flex 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-            }}
+               overflowY: 'auto',
+               display: 'flex',
+               flexDirection: 'column',
+               scrollBehavior: 'smooth',
+               flexGrow: hasStarted ? 1 : 0,
+               flexShrink: hasStarted ? 1 : 0,
+               flexBasis: 0,
+               padding: hasStarted ? '12px 16px' : '0',
+               transition: 'flex-grow 0.8s cubic-bezier(0.16, 1, 0.3, 1), padding 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+             }}
           >
             <div className="message-list-wrapper" style={{ 
               display: 'flex', 
               flexDirection: 'column', 
               gap: '24px',
-              opacity: messages.length === 0 ? 0 : 1,
-              transition: 'opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-              pointerEvents: messages.length === 0 ? 'none' : 'auto',
-              height: messages.length === 0 ? 0 : 'auto',
-              overflow: messages.length === 0 ? 'hidden' : 'visible',
+              opacity: hasStarted ? 1 : 0,
+              transition: 'opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+              pointerEvents: hasStarted ? 'auto' : 'none',
+              overflow: hasStarted ? 'visible' : 'hidden',
             }}>
               <MessageTurns 
                 messages={messages}
@@ -414,7 +433,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
             </div>
           </div>
 
-          <div className={`chat-footer-wrapper ${messages.length === 0 ? 'centered' : 'bottom'}`}>
+          <div className={`chat-footer-wrapper ${!hasStarted ? 'centered' : 'bottom'} ${isExpanding ? 'expanding' : ''}`}>
             <ChatInput 
               inputValue={inputValue}
               setInputValue={setInputValue}
