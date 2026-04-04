@@ -2,14 +2,15 @@ import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { BashSandbox } from './bashSandbox';
 import { LlmBridge } from './llmBridge';
 import { Message, AgentSidebarProps } from './types';
-import { BotIcon, ChevronRight } from './components/Icons';
-import { MarkdownOutput } from './components/MarkdownOutput';
-import { ThinkingBlock } from './components/ThinkingBlock';
-import { LiveTimer } from './components/LiveTimer';
-import { Collapsible } from './components/Collapsible';
+import { Panel, Group, Separator } from 'react-resizable-panels';
+
+// Modular Components
+import { SidebarHeader } from './components/SidebarHeader';
+import { FloatingToggleButton } from './components/FloatingToggleButton';
+import { MessageTurns } from './components/MessageTurns';
 import { TerminalBox } from './components/TerminalBox';
 import { ChatInput } from './components/ChatInput';
-import { Panel, Group, Separator } from 'react-resizable-panels';
+
 import './AgentSidebar.css';
 
 export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
@@ -216,34 +217,26 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
     }
   };
 
+  const toggleTurn = (turnId: string) => {
+    setCollapsedTurnIds(prev => 
+      prev.includes(turnId) 
+        ? prev.filter(id => id !== turnId) 
+        : [...prev, turnId]
+    );
+  };
+
+  const toggleThought = (thoughtId: string) => {
+    setCollapsedThoughtIds(prev => 
+      prev.includes(thoughtId) 
+        ? prev.filter(id => id !== thoughtId) 
+        : [...prev, thoughtId]
+    );
+  };
+
   return (
     <>
-    {isCollapsed && (
-      <button
-        onClick={() => setIsCollapsed(false)}
-        style={{
-          position: 'fixed',
-          right: '20px',
-          bottom: '20px',
-          width: '48px',
-          height: '48px',
-          borderRadius: '24px',
-          backgroundColor: '#ffffff',
-          border: '1px solid #e5e7eb',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          zIndex: 9999,
-          color: '#374151',
-          transition: 'all 0.2s',
-        }}
-        aria-label="PageFind Agent"
-      >
-        <BotIcon />
-      </button>
-    )}
+    {isCollapsed && <FloatingToggleButton onClick={() => setIsCollapsed(false)} />}
+    
     <div 
       className={`agent-sidebar-layout-container ${isCollapsed ? 'collapsed' : ''}`}
       style={{
@@ -252,7 +245,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
         top: 0,
         bottom: 0,
         left: 0,
-        pointerEvents: 'none', // Allow clicking through to underlying content
+        pointerEvents: 'none',
         zIndex: 9998,
         display: 'flex',
         flexDirection: 'row',
@@ -265,7 +258,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
         
         <Separator 
           className="sidebar-resize-handle" 
-          style={{ pointerEvents: 'auto' }} // Enable resizing
+          style={{ pointerEvents: 'auto' }}
         />
 
         <Panel 
@@ -274,7 +267,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
           maxSize={1000}
           className="agent-sidebar-container"
           style={{
-            pointerEvents: 'auto', // Re-enable pointer events for sidebar content
+            pointerEvents: 'auto',
             backgroundColor: '#ffffff',
             display: 'flex',
             flexDirection: 'column',
@@ -283,210 +276,64 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
             boxShadow: '-4px 0 15px -3px rgba(0, 0, 0, 0.05)',
           }}
         >
+          <SidebarHeader 
+            isProcessing={isProcessing} 
+            onCollapse={() => setIsCollapsed(true)} 
+          />
 
-      <header 
-        style={{
-          padding: '12px 16px',
-          borderBottom: '1px solid #f3f4f6',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          backgroundColor: '#fff',
-          flexShrink: 0,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isProcessing ? '#fbbf24' : '#10b981', boxShadow: isProcessing ? '0 0 8px #fbbf24' : 'none' }}></div>
-            <span style={{ fontWeight: 600, fontSize: '15px', color: '#111827', letterSpacing: '-0.02em' }}>PageFind Agent</span>
-        </div>
-        <button 
-            onClick={() => setIsCollapsed(true)}
+          <div 
+            ref={sidebarContentRef}
+            onScroll={handleScroll}
+            className="agent-scrollbar"
             style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '6px',
-                color: '#9ca3af',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: '6px',
-                transition: 'all 0.2s',
+              flex: messages.length === 0 ? 0 : 1,
+              padding: messages.length === 0 ? '0' : '12px 16px',
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              scrollBehavior: 'smooth',
+              transition: 'flex 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
             }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = '#f3f4f6';
-              e.currentTarget.style.color = '#374151';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = '#9ca3af';
-            }}
-            aria-label="Collapse sidebar"
-        >
-            <ChevronRight />
-        </button>
-      </header>
-
-      <div 
-        ref={sidebarContentRef}
-        onScroll={handleScroll}
-        className="agent-scrollbar"
-        style={{
-          flex: messages.length === 0 ? 0 : 1,
-          padding: messages.length === 0 ? '0' : '12px 16px',
-          overflowY: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          scrollBehavior: 'smooth',
-          transition: 'flex 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-        }}
-      >
-        <div className="message-list-wrapper" style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: '24px',
-          opacity: messages.length === 0 ? 0 : 1,
-          transition: 'opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-          pointerEvents: messages.length === 0 ? 'none' : 'auto',
-          height: messages.length === 0 ? 0 : 'auto',
-          overflow: messages.length === 0 ? 'hidden' : 'visible',
-        }}>
-        
-        {(() => {
-          const turns: { user: Message; responses: Message[] }[] = [];
-          messages.forEach(m => {
-            if (m.role === 'user') {
-              turns.push({ user: m, responses: [] });
-            } else {
-              const lastTurn = turns[turns.length - 1];
-              if (lastTurn) {
-                lastTurn.responses.push(m);
-              }
-            }
-          });
-
-          return turns.map((turn, turnIdx) => {
-            const isLastTurn = turnIdx === turns.length - 1;
-            const isFinished = !isProcessing || !isLastTurn;
-            const totalThinkingTime = turn.responses.reduce((sum, m) => sum + (m.thinkingTime || 0), 0);
-            const hasWork = totalThinkingTime > 0 || turn.responses.some(m => m.tool_calls) || (isLastTurn && isProcessing);
-            const turnId = turn.user.turnId || `turn-${turnIdx}`;
-            const workIsOpen = !collapsedTurnIds.includes(turnId);
-
-            return (
-              <React.Fragment key={`turn-${turnIdx}`}>
-                <div className="user-bubble">
-                  <MarkdownOutput content={turn.user.content || ''} />
-                </div>
-
-                {turn.responses.length > 0 && (
-                  <div className="assistant-turn-container" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {hasWork && (
-                      <Collapsible 
-                        isOpen={workIsOpen}
-                        title={
-                          <>
-                            Worked for {isLastTurn && isProcessing && turnStartTime ? <LiveTimer startTime={turnStartTime} /> : `${turn.user.turnDuration || totalThinkingTime}s`}
-                          </>
-                        }
-                        onToggle={() => {
-                          setCollapsedTurnIds(prev => 
-                            prev.includes(turnId) 
-                              ? prev.filter(id => id !== turnId) 
-                              : [...prev, turnId]
-                          );
-                        }}
-                      >
-                        {turn.responses.map((m, mIdx) => {
-                          if (m.role === 'assistant') {
-                            const tId = m.iterationId || `thought-${mIdx}`;
-                            return (
-                              <React.Fragment key={`msg-${mIdx}`}>
-                                {m.reasoning_content && (
-                                  <Collapsible 
-                                    isOpen={!collapsedThoughtIds.includes(tId)}
-                                    title={
-                                      <>
-                                        Thought {m.thinkingTime ? `for ${m.thinkingTime}s` : ''}
-                                        {!isFinished && isLastTurn && mIdx === turn.responses.length - 1 && <span className="streaming-indicator" />}
-                                      </>
-                                    }
-                                    onToggle={() => {
-                                      setCollapsedThoughtIds(prev => 
-                                        prev.includes(tId) ? prev.filter(id => id !== tId) : [...prev, tId]
-                                      );
-                                    }}
-                                  >
-                                    <ThinkingBlock 
-                                      content={m.reasoning_content} 
-                                      isActive={!isFinished && isLastTurn} 
-                                    />
-                                  </Collapsible>
-                                )}
-                                {m.tool_calls?.map((tc, tcIdx) => {
-                                  let args: any = {};
-                                  try { args = JSON.parse(tc.function.arguments); } catch {}
-                                  const toolOutput = turn.responses.find(tm => tm.role === 'tool' && tm.tool_call_id === tc.id);
-                                  const commandText = args.command || tc.function.arguments;
-
-                                  return (
-                                    <TerminalBox 
-                                      key={`tool-${tcIdx}`}
-                                      command={commandText}
-                                      output={toolOutput?.content || undefined}
-                                    />
-                                  );
-                                })}
-                              </React.Fragment>
-                            );
-                          }
-                          return null;
-                        })}
-                      </Collapsible>
-                    )}
-
-                    {turn.responses.map((m, mIdx) => {
-                      if (m.role === 'assistant' && m.content) {
-                        return <MarkdownOutput key={`content-${mIdx}`} content={m.content} />;
-                      }
-                      return null;
-                    })}
-                  </div>
-                )}
-              </React.Fragment>
-            );
-          });
-        })()}
-
-        {isProcessing && !messages.some(m => m.role === 'assistant' && (m.content || m.tool_calls)) && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: '#71717a', padding: '0 4px', animation: 'agentFadeIn 0.5s' }}>
-            <div style={{ display: 'flex', gap: '4px' }}>
-              <div style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#3b82f6', animation: 'agentPulse 0.8s infinite' }}></div>
-              <div style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#3b82f6', animation: 'agentPulse 0.8s infinite 0.2s' }}></div>
-              <div style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#3b82f6', animation: 'agentPulse 0.8s infinite 0.4s' }}></div>
+          >
+            <div className="message-list-wrapper" style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '24px',
+              opacity: messages.length === 0 ? 0 : 1,
+              transition: 'opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+              pointerEvents: messages.length === 0 ? 'none' : 'auto',
+              height: messages.length === 0 ? 0 : 'auto',
+              overflow: messages.length === 0 ? 'hidden' : 'visible',
+            }}>
+              <MessageTurns 
+                messages={messages}
+                isProcessing={isProcessing}
+                turnStartTime={turnStartTime}
+                collapsedTurnIds={collapsedTurnIds}
+                onToggleTurn={toggleTurn}
+                collapsedThoughtIds={collapsedThoughtIds}
+                onToggleThought={toggleThought}
+              />
+              <div ref={messagesEndRef} style={{ height: '40px' }} />
             </div>
-            <span style={{ fontSize: '13px', fontWeight: 500 }}>Thinking...</span>
           </div>
-        )}
-        <div ref={messagesEndRef} style={{ height: '40px' }} />
-        </div>
-      </div>
 
-      <div className={`chat-footer-wrapper ${messages.length === 0 ? 'centered' : 'bottom'}`}>
-        <ChatInput 
-          inputValue={inputValue}
-          setInputValue={setInputValue}
-          isProcessing={isProcessing}
-          onSend={handleSend}
-          onCancel={handleCancel}
-          inputRef={inputRef}
-          sidebarWidth={sidebarWidth}
-          placeholder="Ask anything, @ to mention, / for workflows"
-        />
-      </div>
-      </Panel>
+          <div className={`chat-footer-wrapper ${messages.length === 0 ? 'centered' : 'bottom'}`}>
+            <ChatInput 
+              inputValue={inputValue}
+              setInputValue={setInputValue}
+              isProcessing={isProcessing}
+              onSend={handleSend}
+              onCancel={handleCancel}
+              inputRef={inputRef}
+              sidebarWidth={sidebarWidth}
+              placeholder="Ask anything, @ to mention, / for workflows"
+            />
+          </div>
+        </Panel>
       </Group>
     </div>
     </>
   );
 };
+
