@@ -258,9 +258,9 @@ const Collapsible: React.FC<{
         }}
       >
         <div ref={contentRef} style={{ 
-          padding: '4px 0 8px 14px',
-          borderLeft: showBorder ? '1px solid #f1f5f9' : 'none',
-          marginLeft: '6px',
+          padding: '4px 0 8px 0',
+          borderLeft: 'none',
+          marginLeft: '0',
           marginTop: '2px'
         }}>
           {children}
