@@ -106,12 +106,12 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
             className="agent-sidebar-container"
             style={{
               pointerEvents: 'auto',
-              backgroundColor: '#ffffff',
+              backgroundColor: 'var(--agent-bg-main)',
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
               fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-              boxShadow: '-4px 0 15px -3px rgba(0, 0, 0, 0.05)',
+              boxShadow: 'var(--agent-sidebar-shadow)',
             }}
           >
             <SidebarHeader 
@@ -178,7 +178,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                 onCancel={handleCancel}
                 inputRef={inputRef}
                 sidebarWidth={sidebarWidth}
-                placeholder="Ask anything, @ to mention, / for Skills"
+                placeholder="Ask anything, @ to mention, / for SKILL"
                 filesystem={props.filesystem}
               />
             </div>

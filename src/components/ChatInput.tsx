@@ -185,19 +185,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           style={{
             width: 'calc(100% - 32px)',
             maxWidth: '500px',
-            backgroundColor: '#1f1f1f',
-            color: '#fff',
+            backgroundColor: 'var(--agent-bg-terminal-header)',
+            color: 'var(--agent-text-white)',
             borderRadius: '12px',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+            boxShadow: 'var(--agent-menu-shadow)',
             marginBottom: '8px',
             overflow: 'hidden',
             zIndex: 1000,
-            border: '1px solid #333',
+            border: '1px solid var(--agent-border-menu)',
             animation: 'slideUp 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
           }}
         >
           {filteredOptions.length === 0 ? (
-            <div style={{ padding: '10px 16px', color: '#888', fontSize: '13px' }}>No matching results</div>
+            <div style={{ padding: '10px 16px', color: 'var(--agent-text-muted)', fontSize: '13px' }}>No matching results</div>
           ) : (
             <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
               {filteredOptions.map((option, idx) => (
@@ -210,16 +210,18 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '10px',
-                    backgroundColor: idx === mentionIndex ? '#333' : 'transparent',
+                    backgroundColor: idx === mentionIndex ? 'var(--agent-accent-hover)' : 'transparent',
                     cursor: 'pointer',
                     fontSize: '13px',
-                    transition: 'background-color 0.1s ease',
+                    transition: 'all 0.1s ease',
+                    borderLeft: idx === mentionIndex ? '3px solid var(--agent-text-on-dark)' : '3px solid transparent',
+                    paddingLeft: idx === mentionIndex ? '13px' : '16px', // Compensate for border
                   }}
                 >
-                  <span style={{ color: '#fff', display: 'flex', opacity: 0.8 }}>
+                  <span style={{ color: 'var(--agent-text-white)', display: 'flex', opacity: idx === mentionIndex ? 1 : 0.7 }}>
                     {option.icon}
                   </span>
-                  <span style={{ flexGrow: 1, color: '#eee' }}>{option.label}</span>
+                  <span style={{ flexGrow: 1, color: idx === mentionIndex ? 'var(--agent-text-white)' : 'var(--agent-text-on-dark-dim)' }}>{option.label}</span>
                 </div>
               ))}
             </div>
@@ -234,11 +236,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           width: '100%',
           display: 'flex', 
           flexDirection: 'column',
-          border: '1px solid #e5e7eb',
+          border: '1px solid var(--agent-border-main)',
           borderRadius: '16px',
-          backgroundColor: '#fff',
+          backgroundColor: 'var(--agent-bg-main)',
           transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.02)',
+          boxShadow: 'var(--agent-card-shadow)',
           overflow: 'hidden',
           paddingBottom: '40px' // Space for the send button area
         }}
@@ -252,19 +254,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onFocus={(e) => {
-            (e.currentTarget.parentNode as HTMLDivElement).style.borderColor = '#1f1f1f';
+            (e.currentTarget.parentNode as HTMLDivElement).style.borderColor = 'var(--agent-bg-dark)';
             (e.currentTarget.parentNode as HTMLDivElement).style.boxShadow = '0 0 0 1px rgba(31, 31, 31, 0.1)';
           }}
           onBlur={(e) => {
-            (e.currentTarget.parentNode as HTMLDivElement).style.borderColor = '#e5e7eb';
-            (e.currentTarget.parentNode as HTMLDivElement).style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.02)';
+            (e.currentTarget.parentNode as HTMLDivElement).style.borderColor = 'var(--agent-border-main)';
+            (e.currentTarget.parentNode as HTMLDivElement).style.boxShadow = 'var(--agent-card-shadow)';
           }}
           style={{
             width: '100%',
             padding: '12px 14px 8px 14px',
             border: 'none',
             backgroundColor: 'transparent',
-            color: '#111827',
+            color: 'var(--agent-text-main)',
             fontSize: '14px',
             outline: 'none',
             resize: 'none',
@@ -289,8 +291,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             <button 
               onClick={onCancel}
               style={{
-                  backgroundColor: '#f3f4f6',
-                  color: '#ef4444',
+                  backgroundColor: 'var(--agent-bg-subtle)',
+                  color: 'var(--agent-error)',
                   border: 'none',
                   borderRadius: '50%',
                   width: '32px',
@@ -318,9 +320,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             onClick={handleSendAction}
             disabled={isProcessing || !inputValue.trim()}
             style={{
-                backgroundColor: inputValue.trim() ? '#1f1f1f' : '#f3f4f6',
-                color: inputValue.trim() ? '#fff' : '#9ca3af',
-                border: inputValue.trim() ? '1px solid #1f1f1f' : 'none',
+                backgroundColor: inputValue.trim() ? 'var(--agent-bg-dark)' : 'var(--agent-bg-subtle)',
+                color: inputValue.trim() ? 'var(--agent-text-white)' : 'var(--agent-text-muted)',
+                border: inputValue.trim() ? '1px solid var(--agent-bg-dark)' : 'none',
                 borderRadius: '50%',
                 width: '32px',
                 height: '32px',

@@ -33,7 +33,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ content, isActive,
         minHeight: content ? `${Math.min(predictedHeight, 220)}px` : 0
       }}
     >
-      <MarkdownOutput content={content} className="reasoning-markdown" color="#374151" />
+      <MarkdownOutput content={content} className="reasoning-markdown" color="var(--agent-text-subtle)" />
     </div>
   );
 };

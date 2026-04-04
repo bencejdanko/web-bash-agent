@@ -16,15 +16,15 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
     <header 
       style={{
         padding: '12px 16px',
-        borderBottom: '1px solid #f3f4f6',
+        borderBottom: '1px solid var(--agent-bg-subtle)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: '#fff',
+        backgroundColor: 'var(--agent-bg-main)',
         flexShrink: 0,
       }}
     >
-      <span style={{ fontWeight: 300, fontSize: '15px', color: '#111827', letterSpacing: '-0.02em' }}>Agent</span>
+      <span style={{ fontWeight: 300, fontSize: '15px', color: 'var(--agent-text-main)', letterSpacing: '-0.02em' }}>Agent</span>
       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <button 
               onClick={onNewChat}
@@ -33,7 +33,7 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
                   border: 'none',
                   cursor: 'pointer',
                   padding: '6px',
-                  color: '#9ca3af',
+                  color: 'var(--agent-text-muted)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -41,12 +41,12 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
                   transition: 'all 0.2s',
               }}
               onMouseOver={(e) => {
-                e.currentTarget.style.backgroundColor = '#f3f4f6';
-                e.currentTarget.style.color = '#374151';
+                e.currentTarget.style.backgroundColor = 'var(--agent-bg-subtle)';
+                e.currentTarget.style.color = 'var(--agent-text-subtle)';
               }}
               onMouseOut={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = '#9ca3af';
+                e.currentTarget.style.color = 'var(--agent-text-muted)';
               }}
               title="New Chat"
           >
@@ -59,7 +59,7 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
                   border: 'none',
                   cursor: 'pointer',
                   padding: '6px',
-                  color: '#9ca3af',
+                  color: 'var(--agent-text-muted)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -67,12 +67,12 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
                   transition: 'all 0.2s',
               }}
               onMouseOver={(e) => {
-                e.currentTarget.style.backgroundColor = '#f3f4f6';
-                e.currentTarget.style.color = '#374151';
+                e.currentTarget.style.backgroundColor = 'var(--agent-bg-subtle)';
+                e.currentTarget.style.color = 'var(--agent-text-subtle)';
               }}
               onMouseOut={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = '#9ca3af';
+                e.currentTarget.style.color = 'var(--agent-text-muted)';
               }}
               title="Past conversations"
           >
@@ -85,7 +85,7 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
                   border: 'none',
                   cursor: 'pointer',
                   padding: '6px',
-                  color: '#9ca3af',
+                  color: 'var(--agent-text-muted)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -93,12 +93,12 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
                   transition: 'all 0.2s',
               }}
               onMouseOver={(e) => {
-                e.currentTarget.style.backgroundColor = '#f3f4f6';
-                e.currentTarget.style.color = '#374151';
+                e.currentTarget.style.backgroundColor = 'var(--agent-bg-subtle)';
+                e.currentTarget.style.color = 'var(--agent-text-subtle)';
               }}
               onMouseOut={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = '#9ca3af';
+                e.currentTarget.style.color = 'var(--agent-text-muted)';
               }}
               aria-label="Collapse sidebar"
           >

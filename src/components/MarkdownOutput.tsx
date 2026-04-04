@@ -8,7 +8,7 @@ interface MarkdownOutputProps {
   color?: string;
 }
 
-export const MarkdownOutput: React.FC<MarkdownOutputProps> = ({ content, className, color = '#111827' }) => {
+export const MarkdownOutput: React.FC<MarkdownOutputProps> = ({ content, className, color = 'var(--agent-text-main)' }) => {
   return (
     <div className={`markdown-output ${className || ''}`} style={{ fontSize: '14px', color, lineHeight: '1.6' }}>
       <ReactMarkdown 
@@ -17,7 +17,7 @@ export const MarkdownOutput: React.FC<MarkdownOutputProps> = ({ content, classNa
           ul: ({ ...props }) => <ul style={{ paddingLeft: '20px', marginBottom: '12px' }} {...props} />,
           ol: ({ ...props }) => <ol style={{ paddingLeft: '20px', marginBottom: '12px' }} {...props} />,
           p: ({ ...props }) => <p style={{ marginBottom: '12px', color: 'inherit' }} {...props} />,
-          code: ({ ...props }) => <code style={{ backgroundColor: '#f3f4f6', padding: '2px 4px', borderRadius: '4px', fontSize: '0.9em', fontFamily: 'JetBrains Mono', color: '#111827' }} {...props} />,
+          code: ({ ...props }) => <code style={{ backgroundColor: 'var(--agent-bg-subtle)', padding: '2px 4px', borderRadius: '4px', fontSize: '0.9em', fontFamily: 'JetBrains Mono', color: 'var(--agent-text-main)' }} {...props} />,
           strong: ({ ...props }) => <strong style={{ fontWeight: 600, color: 'inherit' }} {...props} />,
           h1: ({ ...props }) => <h1 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: 'inherit' }} {...props} />,
           h2: ({ ...props }) => <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px', color: 'inherit' }} {...props} />,

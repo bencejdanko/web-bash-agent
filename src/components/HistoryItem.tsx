@@ -24,14 +24,14 @@ export const HistoryItem: React.FC<HistoryItemProps> = ({
         margin: '0 8px 4px 8px',
         borderRadius: '10px',
         cursor: 'pointer',
-        backgroundColor: conv.id === currentConversationId ? '#f3f4f6' : 'transparent',
+        backgroundColor: conv.id === currentConversationId ? 'var(--agent-bg-subtle)' : 'transparent',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         transition: 'all 0.2s',
       }}
       onMouseOver={(e) => {
-        if (conv.id !== currentConversationId) e.currentTarget.style.backgroundColor = '#f9fafb';
+        if (conv.id !== currentConversationId) e.currentTarget.style.backgroundColor = 'var(--agent-bg-alt)';
       }}
       onMouseOut={(e) => {
         if (conv.id !== currentConversationId) e.currentTarget.style.backgroundColor = 'transparent';
@@ -42,14 +42,14 @@ export const HistoryItem: React.FC<HistoryItemProps> = ({
         <div style={{ 
           fontSize: '14px', 
           fontWeight: conv.id === currentConversationId ? 600 : 400,
-          color: '#111827',
+          color: 'var(--agent-text-main)',
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis'
         }}>
           {conv.title || 'Untitled Chat'}
         </div>
-        <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>
+        <div style={{ fontSize: '11px', color: 'var(--agent-text-muted)', marginTop: '2px' }}>
           {formatRelativeTime(conv.updatedAt)}
         </div>
       </div>
@@ -63,19 +63,19 @@ export const HistoryItem: React.FC<HistoryItemProps> = ({
           border: 'none',
           cursor: 'pointer',
           padding: '6px',
-          color: '#d1d5db',
+          color: 'var(--agent-text-on-dark-dim)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           borderRadius: '6px',
         }}
         onMouseOver={(e) => {
-          e.currentTarget.style.backgroundColor = '#fee2e2';
-          e.currentTarget.style.color = '#ef4444';
+          e.currentTarget.style.backgroundColor = 'var(--agent-error-bg)';
+          e.currentTarget.style.color = 'var(--agent-error)';
         }}
         onMouseOut={(e) => {
           e.currentTarget.style.backgroundColor = 'transparent';
-          e.currentTarget.style.color = '#d1d5db';
+          e.currentTarget.style.color = 'var(--agent-text-on-dark-dim)';
         }}
       >
         <TrashIcon />

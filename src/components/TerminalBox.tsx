@@ -134,7 +134,7 @@ export const TerminalBox: React.FC<TerminalBoxProps> = ({ command, output, bashS
         <div className="terminal-header">
            <span>Ran command</span>
         </div>
-        <div style={{ padding: '10px', height: '150px', background: '#18181b' }} />
+        <div style={{ padding: '10px', height: '150px', background: 'var(--agent-bg-terminal)' }} />
       </div>
     );
   }
@@ -149,7 +149,7 @@ export const TerminalBox: React.FC<TerminalBoxProps> = ({ command, output, bashS
         className="xterm-container"
         style={{ 
           padding: '10px', 
-          backgroundColor: '#18181b',
+          backgroundColor: 'var(--agent-bg-terminal)',
         }} 
       />
     </div>
