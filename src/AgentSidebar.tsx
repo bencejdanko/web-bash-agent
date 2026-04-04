@@ -8,6 +8,7 @@ export interface Message {
   name?: string;
   tool_call_id?: string;
   tool_calls?: any[];
+  reasoning_content?: string;
 }
 
 export interface AgentSidebarProps {
@@ -16,6 +17,8 @@ export interface AgentSidebarProps {
     apiKey?: string;
     model?: string;
     filesystem?: Record<string, string>;
+    reasoningEffort?: 'low' | 'medium' | 'high';
+    includeThinking?: boolean;
 }
 
 // Icons
@@ -44,10 +47,23 @@ const CommandIcon = () => (
   </svg>
 );
 
+const ChevronRight = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+);
+
+const ChevronLeft = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="15 18 9 12 15 6"></polyline>
+    </svg>
+);
+
 export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const bashSandboxRef = useRef<any>(null);
@@ -88,9 +104,20 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
       
       while (isWorking && iterations < 15) {
         iterations++;
-        const llmResponse = await llmBridgeRef.current.chat(currentMessages);
+        const llmResponse = await llmBridgeRef.current.chat(currentMessages, { 
+          reasoning_effort: props.reasoningEffort || 'low',
+          include_thinking: props.includeThinking || false
+        });
         const assistantMessage = llmResponse.message as Message;
         
+        // Extract reasoning trace from various providers (OpenRouter/DeepSeek/OpenAI/Anthropic/Nvidia)
+        const msg = llmResponse.message as any;
+        assistantMessage.reasoning_content = 
+            msg.reasoning_content || 
+            msg.reasoning || 
+            msg.thought || 
+            (msg.reasoning_details?.[0]?.text);
+
         if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
           const toolResults: Message[] = [];
           
@@ -132,24 +159,51 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
   };
 
   return (
+    <>
+    {isCollapsed && (
+      <button
+        onClick={() => setIsCollapsed(false)}
+        style={{
+          position: 'fixed',
+          right: '20px',
+          bottom: '20px',
+          width: '48px',
+          height: '48px',
+          borderRadius: '24px',
+          backgroundColor: '#ffffff',
+          border: '1px solid #e5e7eb',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          zIndex: 9999,
+          color: '#374151',
+          transition: 'all 0.2s',
+        }}
+        aria-label="Open Agentic Assistant"
+      >
+        <BotIcon />
+      </button>
+    )}
     <div 
-      className="agent-sidebar-container"
+      className={`agent-sidebar-container ${isCollapsed ? 'collapsed' : ''}`}
       style={{
         position: 'fixed',
-        right: '24px',
-        bottom: '24px',
+        right: 0,
+        top: 0,
+        bottom: 0,
         width: '420px',
-        height: 'calc(100vh - 48px)',
-        maxHeight: '900px',
         backgroundColor: '#ffffff',
-        borderRadius: '16px',
-        border: '1px solid #e5e7eb',
-        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02)',
+        borderLeft: '1px solid #e5e7eb',
+        boxShadow: '-4px 0 15px -3px rgba(0, 0, 0, 0.05)',
         display: 'flex',
         flexDirection: 'column',
         zIndex: 9998,
         overflow: 'hidden',
-        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        transform: isCollapsed ? 'translateX(100%)' : 'translateX(0)',
+        transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
     >
       <style dangerouslySetInnerHTML={{ __html: `
@@ -239,6 +293,31 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
           max-width: 100%;
         }
 
+        .assistant-reasoning {
+          background-color: #f9fafb;
+          border-left: 2px solid #e5e7eb;
+          padding: 8px 12px;
+          margin: 4px 0 10px 4px;
+          font-size: 13px;
+          color: #6b7280;
+          line-height: 1.5;
+          border-radius: 0 4px 4px 0;
+        }
+
+        .reasoning-header {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11px;
+          font-weight: 600;
+          color: #9ca3af;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 4px;
+          cursor: pointer;
+          user-select: none;
+        }
+
         .assistant-text {
           padding: 4px;
           font-size: 14px;
@@ -271,6 +350,26 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
             <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isProcessing ? '#fbbf24' : '#10b981' }}></div>
             <span style={{ fontWeight: 500, fontSize: '14px', color: '#111827', letterSpacing: '-0.01em' }}>Agentic Assistant</span>
         </div>
+        <button 
+            onClick={() => setIsCollapsed(true)}
+            style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px',
+                color: '#9ca3af',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '4px',
+                transition: 'background-color 0.2s',
+            }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            aria-label="Collapse sidebar"
+        >
+            <ChevronRight />
+        </button>
       </header>
 
       <div 
@@ -301,10 +400,27 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
           }
 
           if (m.role === 'assistant') {
+            const reasoning = m.reasoning_content || '';
+            const content = m.content || '';
+
             return (
               <div key={i} className="assistant-message-container">
-                {m.content && (
-                  <div className="assistant-text">{m.content}</div>
+                {reasoning && (
+                  <details className="assistant-reasoning" open={false}>
+                    <summary className="reasoning-header" style={{ listStyle: 'none' }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-90deg)', marginRight: '4px' }}>
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                      Thought Process
+                    </summary>
+                    <div style={{ marginTop: '8px', color: '#6b7280', fontSize: '13px' }}>
+                      {reasoning}
+                    </div>
+                  </details>
+                )}
+                
+                {content && (
+                  <div className="assistant-text">{content}</div>
                 )}
 
                 {m.tool_calls?.map((tc, idx) => {
@@ -398,5 +514,6 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
         </div>
       </div>
     </div>
+    </>
   );
 };

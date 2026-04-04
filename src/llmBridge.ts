@@ -52,16 +52,28 @@ Quick reference:
 Explore the filesystem to answer user questions. Be concise and helpful.`;
   }
 
-  async chat(messages: any[]) {
+  async chat(messages: any[], options: { reasoning_effort?: 'low' | 'medium' | 'high', include_thinking?: boolean } = {}) {
     if (!this.openai?.chat?.completions) {
         throw new Error('OpenAI client not configured');
     }
-    const response = await this.openai.chat.completions.create({
+    const body: any = {
       model: this.model,
       messages: [{ role: 'system', content: this.getSystemPrompt() }, ...messages],
       tools: this.getToolDefinitions() as any,
       tool_choice: 'auto',
-    });
+    };
+
+    // reasoning_effort is only supported by o1, o3-mini and newer models
+    if (options.reasoning_effort && (this.model.includes('o1') || this.model.includes('o3-mini'))) {
+      body.reasoning_effort = options.reasoning_effort;
+    }
+    
+    // include_thinking is supported by Claude 3.7
+    if (options.include_thinking) {
+      body.include_thinking = true;
+    }
+
+    const response = await this.openai.chat.completions.create(body);
     return response.choices[0];
   }
 }
