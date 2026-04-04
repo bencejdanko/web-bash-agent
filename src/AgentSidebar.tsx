@@ -1,4 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
+import { prepare, layout } from '@chenglou/pretext';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { BashSandbox } from './bashSandbox';
 import { LlmBridge } from './llmBridge';
 
@@ -9,6 +12,8 @@ export interface Message {
   tool_call_id?: string;
   tool_calls?: any[];
   reasoning_content?: string;
+  iterationId?: string;
+  thinkingTime?: number;
 }
 
 export interface AgentSidebarProps {
@@ -59,12 +64,148 @@ const ChevronLeft = () => (
     </svg>
 );
 
+const RelocateIcon = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 3h6v6"></path>
+      <path d="M10 14L21 3"></path>
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+    </svg>
+);
+
+const CopyIcon = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect>
+      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
+    </svg>
+);
+
+/**
+ * Premium Markdown Renderer
+ */
+const MarkdownOutput: React.FC<{ content: string; className?: string }> = ({ content, className }) => {
+  return (
+    <div className={`markdown-output ${className || ''}`} style={{ fontSize: '14px', color: '#111827', lineHeight: '1.6' }}>
+      <ReactMarkdown 
+        remarkPlugins={[remarkGfm]}
+        components={{
+          ul: ({node, ...props}) => <ul style={{ paddingLeft: '20px', marginBottom: '12px' }} {...props} />,
+          ol: ({node, ...props}) => <ol style={{ paddingLeft: '20px', marginBottom: '12px' }} {...props} />,
+          li: ({node, ...props}) => <li style={{ marginBottom: '4px' }} {...props} />,
+          code: ({node, ...props}) => <code style={{ backgroundColor: '#f3f4f6', padding: '2px 4px', borderRadius: '4px', fontSize: '0.9em', fontFamily: 'JetBrains Mono' }} {...props} />,
+          strong: ({node, ...props}) => <strong style={{ fontWeight: 600 }} {...props} />,
+          p: ({node, ...props}) => <p style={{ marginBottom: '12px' }} {...props} />,
+          h1: ({node, ...props}) => <h1 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }} {...props} />,
+          h2: ({node, ...props}) => <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }} {...props} />,
+          h3: ({node, ...props}) => <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '6px' }} {...props} />,
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  );
+};
+
+/**
+ * Helper to measure text height using Pretext
+ */
+const useTextHeight = (text: string, font: string, width: number, lineHeight: number, extraPadding = 0) => {
+  return useMemo(() => {
+    if (!text || width <= 0) return 0;
+    try {
+      const prepared = prepare(text, font, { whiteSpace: 'pre-wrap' });
+      const { height } = layout(prepared, width, lineHeight);
+      return height + extraPadding;
+    } catch (e) {
+      console.warn('Pretext layout failed:', e);
+      return 0;
+    }
+  }, [text, font, width, lineHeight, extraPadding]);
+};
+
+/**
+ * Custom Collapsible using Pretext for accurate height measurement to enable smooth transitions.
+ */
+const SmoothCollapsible: React.FC<{ 
+  isOpen: boolean; 
+  text: string;
+  font: string;
+  lineHeight: number;
+  width: number;
+  title: React.ReactNode; 
+  onToggle?: () => void;
+  className?: string;
+  extraPadding?: number;
+  render?: (text: string) => React.ReactNode;
+}> = ({ isOpen, text, font, lineHeight, width, title, onToggle, className, extraPadding = 16, render }) => {
+  const height = useTextHeight(text, font, width, lineHeight, extraPadding);
+
+  return (
+    <div className={`smooth-collapsible ${className || ''}`} style={{ marginBottom: '4px' }}>
+      <div 
+        onClick={onToggle}
+        className="collapsible-header"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          cursor: 'pointer',
+          userSelect: 'none',
+          padding: '2px 0',
+        }}
+      >
+        <svg 
+          width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" 
+          style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)', color: '#9ca3af' }}
+        >
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+        {title}
+      </div>
+      <div 
+        style={{ 
+          height: isOpen ? `${height}px` : '0px',
+          overflow: 'hidden',
+          transition: 'height 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s',
+          opacity: isOpen ? 1 : 0,
+        }}
+      >
+        <div style={{ paddingBottom: '8px', paddingLeft: '12px' }}>
+          {render ? render(text) : text}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [activeIterationId, setActiveIterationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const sidebarContentRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Measure sidebar width for pretext
+  const [sidebarWidth, setSidebarWidth] = useState(380);
+  useLayoutEffect(() => {
+    if (sidebarContentRef.current) {
+      setSidebarWidth(sidebarContentRef.current.clientWidth - 32); // subtract padding
+    }
+    
+    const observer = new ResizeObserver((entries) => {
+      if (entries[0]) {
+        setSidebarWidth(entries[0].contentRect.width - 32);
+      }
+    });
+    
+    if (sidebarContentRef.current) {
+      observer.observe(sidebarContentRef.current);
+    }
+    
+    return () => observer.disconnect();
+  }, []);
 
   const bashSandboxRef = useRef<any>(null);
   const llmBridgeRef = useRef<any>(null);
@@ -104,13 +245,20 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
       
       while (isWorking && iterations < 15) {
         iterations++;
+        const iterId = `iter-${Date.now()}-${iterations}`;
+        setActiveIterationId(iterId);
+
+        const callStartTime = Date.now();
         const llmResponse = await llmBridgeRef.current.chat(currentMessages, { 
           reasoning_effort: props.reasoningEffort || 'low',
-          include_thinking: props.includeThinking || false
+          include_thinking: props.includeThinking || true
         });
-        const assistantMessage = llmResponse.message as Message;
+        const callEndTime = Date.now();
         
-        // Extract reasoning trace from various providers (OpenRouter/DeepSeek/OpenAI/Anthropic/Nvidia)
+        const assistantMessage = llmResponse.message as Message;
+        assistantMessage.iterationId = iterId;
+        assistantMessage.thinkingTime = Math.round((callEndTime - callStartTime) / 1000);
+        
         const msg = llmResponse.message as any;
         assistantMessage.reasoning_content = 
             msg.reasoning_content || 
@@ -124,10 +272,8 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
           for (const toolCall of assistantMessage.tool_calls) {
             if (toolCall.function.name === 'bash') {
               const { command } = JSON.parse(toolCall.function.arguments);
-              
               const result = await bashSandboxRef.current.exec(command);
               
-              // Combine stdout and stderr for display, noting errors
               let output = '';
               if (result.stdout) output += result.stdout;
               if (result.stderr) output += result.stderr;
@@ -137,7 +283,8 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                 role: 'tool',
                 content: output,
                 tool_call_id: toolCall.id,
-                name: toolCall.function.name
+                name: toolCall.function.name,
+                iterationId: iterId
               });
             }
           }
@@ -236,24 +383,65 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
         }
 
         .terminal-box {
-          background: #111827;
-          border-radius: 8px;
+          background: #18181b;
+          border: 1px solid #27272a;
+          border-radius: 10px;
           padding: 0;
           overflow: hidden;
-          margin: 8px 0;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+          margin: 12px 0;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
-        .terminal-header-inline {
-          background: #1f2937;
+        .terminal-header {
+          background: #27272a;
+          padding: 8px 12px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-family: 'Inter', sans-serif;
+          font-size: 12px;
+          color: #a1a1aa;
+        }
+
+        .terminal-footer {
+          border-top: 1px solid #27272a;
           padding: 6px 12px;
           display: flex;
+          justify-content: space-between;
           align-items: center;
-          gap: 8px;
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 10px;
-          color: #9ca3af;
-          border-bottom: 1px solid #374151;
+          font-family: 'Inter', sans-serif;
+          font-size: 11px;
+          color: #71717a;
+        }
+
+        .user-bubble {
+          background: #f3f4f6;
+          padding: 10px 14px;
+          border-radius: 14px 14px 2px 14px;
+          color: #111827;
+          font-size: 14px;
+          align-self: flex-end;
+          max-width: 85%;
+          line-height: 1.5;
+          margin-left: auto;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .assistant-message-container {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          max-width: 100%;
+        }
+
+        @keyframes agentFadeIn {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes agentPulse {
+          0%, 100% { opacity: 0.4; }
+          50% { opacity: 1; }
         }
 
         .terminal-content {
@@ -261,78 +449,34 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
           color: #e5e7eb;
-          white-space: pre-wrap;
-          word-break: break-all;
-          max-height: 300px;
-          overflow-y: auto;
         }
 
-        .terminal-command {
-          color: #34d399;
+        .terminal-command-line {
+          color: #e5e7eb;
           margin-bottom: 8px;
           display: flex;
-          gap: 6px;
+          align-items: flex-start;
+          gap: 8px;
+          word-break: break-all;
         }
 
-        .user-bubble {
-          background: #f3f4f6;
-          padding: 10px 14px;
-          border-radius: 12px 12px 2px 12px;
-          color: #111827;
-          font-size: 14px;
-          align-self: flex-end;
-          max-width: 85%;
-          line-height: 1.5;
-          margin-left: auto;
-        }
-
-        .assistant-message-container {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          max-width: 100%;
+        .breadcrumb {
+          color: #71717a;
+          font-size: 11px;
         }
 
         .assistant-reasoning {
-          background-color: #f9fafb;
-          border-left: 2px solid #e5e7eb;
-          padding: 8px 12px;
-          margin: 4px 0 10px 4px;
-          font-size: 13px;
-          color: #6b7280;
-          line-height: 1.5;
-          border-radius: 0 4px 4px 0;
+          border-left: none;
+          margin: 4px 0;
+          border-radius: 0;
         }
 
         .reasoning-header {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 11px;
-          font-weight: 600;
-          color: #9ca3af;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          margin-bottom: 4px;
-          cursor: pointer;
-          user-select: none;
-        }
-
-        .assistant-text {
-          padding: 4px;
-          font-size: 14px;
-          color: #374151;
-          line-height: 1.6;
-        }
-
-        @keyframes agentFadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        @keyframes agentPulse {
-          0%, 100% { opacity: 0.4; }
-          50% { opacity: 1; }
+          font-size: 13px;
+          font-weight: 500;
+          color: #6b7280;
+          letter-spacing: normal;
+          text-transform: none;
         }
       `}} />
 
@@ -344,11 +488,12 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
           justifyContent: 'space-between',
           alignItems: 'center',
           backgroundColor: '#fff',
+          flexShrink: 0,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isProcessing ? '#fbbf24' : '#10b981' }}></div>
-            <span style={{ fontWeight: 500, fontSize: '14px', color: '#111827', letterSpacing: '-0.01em' }}>Agentic Assistant</span>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isProcessing ? '#fbbf24' : '#10b981', boxShadow: isProcessing ? '0 0 8px #fbbf24' : 'none' }}></div>
+            <span style={{ fontWeight: 600, fontSize: '15px', color: '#111827', letterSpacing: '-0.02em' }}>Agentic Assistant</span>
         </div>
         <button 
             onClick={() => setIsCollapsed(true)}
@@ -356,16 +501,22 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                padding: '4px',
+                padding: '6px',
                 color: '#9ca3af',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: '4px',
-                transition: 'background-color 0.2s',
+                borderRadius: '6px',
+                transition: 'all 0.2s',
             }}
-            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = '#f3f4f6';
+              e.currentTarget.style.color = '#374151';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#9ca3af';
+            }}
             aria-label="Collapse sidebar"
         >
             <ChevronRight />
@@ -373,6 +524,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
       </header>
 
       <div 
+        ref={sidebarContentRef}
         className="agent-scrollbar"
         style={{
           flex: 1,
@@ -380,21 +532,22 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
           overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column',
-          gap: '16px',
+          gap: '20px',
+          scrollBehavior: 'smooth',
         }}
       >
         {messages.length === 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center', gap: '12px', color: '#9ca3af', opacity: 0.7 }}>
-             <BotIcon />
-             <p style={{ fontSize: '13px' }}>I can explore the site's content via bash.<br />How can I help you today?</p>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center', gap: '16px', color: '#9ca3af', opacity: 0.6 }}>
+             <div style={{ transform: 'scale(1.2)' }}><BotIcon /></div>
+             <p style={{ fontSize: '14px', maxWidth: '240px', lineHeight: 1.6 }}>I can execute bash commands and explore your site's content. How can I assist you?</p>
           </div>
         )}
         
         {messages.map((m, i) => {
           if (m.role === 'user') {
             return (
-              <div key={i} className="user-bubble">
-                {m.content}
+              <div key={`user-${i}`} className="user-bubble">
+                <MarkdownOutput content={m.content || ''} className="user-markdown" />
               </div>
             );
           }
@@ -402,50 +555,80 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
           if (m.role === 'assistant') {
             const reasoning = m.reasoning_content || '';
             const content = m.content || '';
+            const isOpen = !m.iterationId || m.iterationId === activeIterationId;
+            const thinkingTime = m.thinkingTime || 0;
 
             return (
-              <div key={i} className="assistant-message-container">
+              <div key={`assistant-${i}`} className="assistant-message-container">
                 {reasoning && (
-                  <details className="assistant-reasoning" open={false}>
-                    <summary className="reasoning-header" style={{ listStyle: 'none' }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-90deg)', marginRight: '4px' }}>
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                      </svg>
-                      Thought Process
-                    </summary>
-                    <div style={{ marginTop: '8px', color: '#6b7280', fontSize: '13px' }}>
-                      {reasoning}
-                    </div>
-                  </details>
+                  <SmoothCollapsible 
+                    isOpen={isOpen}
+                    text={reasoning}
+                    font="13.5px Inter"
+                    lineHeight={20.25}
+                    width={sidebarWidth - 32}
+                    onToggle={() => setActiveIterationId(prev => prev === m.iterationId ? null : m.iterationId || null)}
+                    title={
+                      <div className="reasoning-header">
+                        Thought for {thinkingTime}s
+                      </div>
+                    }
+                    className="assistant-reasoning"
+                    render={(txt) => <MarkdownOutput content={txt} className="reasoning-markdown" />}
+                  />
                 )}
                 
                 {content && (
-                  <div className="assistant-text">{content}</div>
+                  <MarkdownOutput content={content} />
                 )}
 
                 {m.tool_calls?.map((tc, idx) => {
                   let args: any = {};
                   try { args = JSON.parse(tc.function.arguments); } catch {}
                   const toolOutput = messages.find(tm => tm.role === 'tool' && tm.tool_call_id === tc.id);
+                  const commandText = args.command || tc.function.arguments;
 
                   return (
-                    <div key={idx} className="terminal-box">
-                      <div className="terminal-header-inline">
-                        <CommandIcon /> bash
+                    <div key={`tool-${idx}`} className="terminal-box">
+                      <div className="terminal-header">
+                        <span style={{ fontWeight: 500 }}>Ran background command</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', opacity: 0.8 }} className="hover-brighten">
+                          <span style={{ fontSize: '11px' }}>Relocate</span>
+                          <RelocateIcon />
+                        </div>
                       </div>
                       <div className="terminal-content">
-                        <div className="terminal-command">
-                          <span>$</span> {args.command || tc.function.arguments}
+                        <div className="terminal-command-line">
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flex: 1, opacity: 0.9 }}>
+                            <span className="breadcrumb">pagefind-bash-agent-astro &gt;</span>
+                            <span style={{ fontWeight: 500, color: '#f4f4f5' }}>{commandText}</span>
+                          </div>
+                          <button 
+                            onClick={() => navigator.clipboard.writeText(commandText)}
+                            style={{ background: 'none', border: 'none', color: '#71717a', cursor: 'pointer', padding: '2px', transition: 'color 0.2s' }}
+                            onMouseOver={(e) => e.currentTarget.style.color = '#e4e4e7'}
+                            onMouseOut={(e) => e.currentTarget.style.color = '#71717a'}
+                            title="Copy command"
+                          >
+                            <CopyIcon />
+                          </button>
                         </div>
                         {toolOutput ? (
-                          <div style={{ color: '#d1d5db' }}>
+                          <div style={{ color: '#d1d5db', whiteSpace: 'pre-wrap', marginTop: '12px', fontSize: '12px', lineHeight: 1.6 }}>
                             {toolOutput.content}
                           </div>
                         ) : isProcessing ? (
-                          <div style={{ color: '#6b7280', animation: 'agentPulse 1.5s infinite' }}>
+                          <div style={{ color: '#52525b', animation: 'agentPulse 1.5s infinite', marginTop: '12px', fontSize: '12px' }}>
                             running...
                           </div>
                         ) : null}
+                      </div>
+                      <div className="terminal-footer">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }} className="hover-brighten">
+                           <span>Always run</span>
+                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </div>
+                        <span style={{ fontWeight: 500 }}>Exit code 0</span>
                       </div>
                     </div>
                   );
@@ -457,56 +640,75 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
         })}
 
         {isProcessing && !messages.some(m => m.role === 'assistant' && (m.content || m.tool_calls)) && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: '#9ca3af', padding: '0 4px' }}>
-            <div style={{ display: 'flex', gap: '3px' }}>
-              <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#d1d5db', animation: 'agentPulse 0.8s infinite' }}></div>
-              <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#d1d5db', animation: 'agentPulse 0.8s infinite 0.2s' }}></div>
-              <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#d1d5db', animation: 'agentPulse 0.8s infinite 0.4s' }}></div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: '#9ca3af', padding: '0 4px', animation: 'agentFadeIn 0.5s' }}>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <div style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#3b82f6', animation: 'agentPulse 0.8s infinite' }}></div>
+              <div style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#3b82f6', animation: 'agentPulse 0.8s infinite 0.2s' }}></div>
+              <div style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#3b82f6', animation: 'agentPulse 0.8s infinite 0.4s' }}></div>
             </div>
+            <span style={{ fontSize: '13px', fontWeight: 500 }}>Thinking...</span>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      <div style={{ padding: '16px', borderTop: '1px solid #f3f4f6' }}>
-        <div style={{ position: 'relative', display: 'flex', gap: '8px' }}>
-          <input 
-            aria-label="Message assistant..."
-            type="text"
-            placeholder="Ask a question..."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend(inputValue)}
-            style={{
-              flex: 1,
-              padding: '10px 14px',
-              borderRadius: '8px',
-              border: '1px solid #e5e7eb',
-              backgroundColor: '#fff',
-              color: '#111827',
-              fontSize: '14px',
-              outline: 'none',
-              transition: 'border-color 0.2s, box-shadow 0.2s',
-              boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-            }}
-            disabled={isProcessing}
-          />
+      <div style={{ padding: '16px', borderTop: '1px solid #f3f4f6', backgroundColor: '#fff' }}>
+        <div style={{ position: 'relative', display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+          <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <textarea 
+              ref={inputRef}
+              aria-label="Message assistant..."
+              placeholder="Ask a question..."
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend(inputValue);
+                }
+              }}
+              style={{
+                flex: 1,
+                padding: '10px 14px',
+                borderRadius: '12px',
+                border: '1px solid #e5e7eb',
+                backgroundColor: '#fff',
+                color: '#111827',
+                fontSize: '14px',
+                outline: 'none',
+                transition: 'border-color 0.2s, box-shadow 0.2s, height 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                resize: 'none',
+                minHeight: '40px',
+                height: `${useTextHeight(inputValue || ' ', '14px Inter', sidebarWidth - 60, 21, 20)}px`,
+                maxHeight: '200px',
+                lineHeight: '1.5',
+                fontFamily: 'inherit',
+                overflowY: 'auto',
+              }}
+              disabled={isProcessing}
+            />
+          </div>
           <button 
-            onClick={() => handleSend(inputValue)}
+            onClick={() => {
+               handleSend(inputValue);
+               if (inputRef.current) inputRef.current.style.height = 'auto';
+            }}
             disabled={isProcessing || !inputValue.trim()}
             style={{
                 backgroundColor: inputValue.trim() ? '#111827' : '#f3f4f6',
                 color: inputValue.trim() ? '#fff' : '#9ca3af',
                 border: 'none',
-                borderRadius: '8px',
-                width: '38px',
-                height: '38px',
+                borderRadius: '10px',
+                width: '40px',
+                height: '40px',
                 cursor: inputValue.trim() ? 'pointer' : 'default',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                transition: 'all 0.2s',
-                flexShrink: 0
+                transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                flexShrink: 0,
+                transform: inputValue.trim() ? 'scale(1)' : 'scale(0.95)',
             }}
           >
             <SendIcon />
