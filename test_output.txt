@@ -1,0 +1,40 @@
+
+[1m[46m RUN [49m[22m [36mv4.1.2 [39m[90m/home/bence/pagefind-bash-agent-astro[39m
+
+[90mstderr[2m | tests/AgentSidebar.test.tsx[2m > [22m[2mAgentSidebar[2m > [22m[2mtriggers run and displays terminal output
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+ [31m❯[39m tests/AgentSidebar.test.tsx [2m([22m[2m1 test[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 33[2mms[22m[39m
+[31m     [31m×[31m triggers run and displays terminal output[39m[32m 29[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m tests/AgentSidebar.test.tsx[2m > [22mAgentSidebar[2m > [22mtriggers run and displays terminal output
+[31m[1mTypeError[22m: () => ({
+    run: mockRun
+  }) is not a constructor[39m
+[36m [2m❯[22m AgentSidebar src/AgentSidebar.tsx:[2m21:29[22m[39m
+    [90m 19|[39m
+    [90m 20|[39m   [90m// Mocks/Inputs to be replaced by actual props/context[39m
+    [90m 21|[39m   const bashEngine = useRef(new BashEngine({}, { search: async () => (…
+    [90m   |[39m                             [31m^[39m
+    [90m 22|[39m   [35mconst[39m llmBridge [33m=[39m [34museRef[39m([35mnew[39m [33mLlmBridge[39m({}))[33m;[39m
+    [90m 23|[39m
+[90m [2m❯[22m Object.react_stack_bottom_frame node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/cjs/react-dom-client.development.js:[2m25904:20[22m[39m
+[90m [2m❯[22m renderWithHooks node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/cjs/react-dom-client.development.js:[2m7662:22[22m[39m
+[90m [2m❯[22m updateFunctionComponent node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/cjs/react-dom-client.development.js:[2m10166:19[22m[39m
+[90m [2m❯[22m beginWork node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/cjs/react-dom-client.development.js:[2m11778:18[22m[39m
+[90m [2m❯[22m runWithFiberInDEV node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/cjs/react-dom-client.development.js:[2m874:13[22m[39m
+[90m [2m❯[22m performUnitOfWork node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/cjs/react-dom-client.development.js:[2m17641:22[22m[39m
+[90m [2m❯[22m workLoopSync node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/cjs/react-dom-client.development.js:[2m17469:41[22m[39m
+[90m [2m❯[22m renderRootSync node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/cjs/react-dom-client.development.js:[2m17450:11[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m   Start at [22m 01:03:41
+[2m   Duration [22m 1.78s[2m (transform 149ms, setup 185ms, import 232ms, tests 33ms, environment 1.02s)[22m
+

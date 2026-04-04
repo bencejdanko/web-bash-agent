@@ -1,0 +1,52 @@
+---
+import { AgentSidebar } from 'pagefind-bash-agent-astro';
+
+// In a real app, you'd use import.meta.env.OPENROUTER_TOKEN
+const OPENROUTER_TOKEN = "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";
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Astro Test Page</title>
+        <script is:inline type="module" src="/pagefind/pagefind.js"></script>
+	</head>
+	<body style="background-color: #0d1117; color: #f0f6fc; font-family: sans-serif; padding: 40px;">
+		<div style="max-width: 800px; margin: 0 auto;">
+            <h1>Pagefind Bash Agent Test</h1>
+            <p>This is a test page for the <code>pagefind-bash-agent-astro</code> package.</p>
+            
+            <div style="margin-top: 40px; background: #161b22; padding: 24px; border-radius: 12px; border: 1px solid #30363d;">
+                <h2>Sample Projects (Collectibles)</h2>
+                <ul style="line-height: 2;">
+                    <li><a href="/api/projects/tldraw-astro.json" style="color: #58a6ff;">TLDraw Astro JSON API</a></li>
+                    <li><a href="/api/projects/bash-agent.json" style="color: #58a6ff;">Bash Agent Astro JSON API</a></li>
+                </ul>
+            </div>
+
+            <div style="margin-top: 40px; line-height: 1.6;">
+                <h2>How to test</h2>
+                <ol>
+                    <li>Click on the Site Search Agent in the bottom left.</li>
+                    <li>Ask: "What projects are documented here?"</li>
+                    <li>Observe the agent using <code>ls /api/projects</code>.</li>
+                    <li>Observe the agent using <code>cat /api/projects/tldraw-astro.json</code>.</li>
+                </ol>
+            </div>
+        </div>
+
+		<AgentSidebar 
+            client:load 
+            apiKey={OPENROUTER_TOKEN} 
+            model="nvidia/nemotron-3-nano-30b-a3b:free"
+            filesystem={{
+                "/api/projects": "Directory containing project data",
+                "/api/projects/tldraw-astro.json": "TLDraw Astro project details",
+                "/api/projects/bash-agent.json": "Bash Agent Astro project details"
+            }}
+        />
+	</body>
+</html>
