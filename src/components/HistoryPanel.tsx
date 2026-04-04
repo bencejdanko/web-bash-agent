@@ -70,7 +70,8 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
         style={{
           width: '100%',
           maxWidth: '768px',
-          maxHeight: '600px',
+          height: '600px',
+          maxHeight: '90vh',
           backgroundColor: '#fff',
           borderRadius: '16px',
           boxShadow: '0 20px 50px -12px rgba(0, 0, 0, 0.25)',
