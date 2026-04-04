@@ -7,6 +7,7 @@ export default defineConfig({
   clean: true,
   minify: true,
   sourcemap: true,
-  external: ['react', 'react-dom', 'astro', 'just-bash'],
+  external: ['react', 'react-dom', 'astro', 'just-bash', 'react-resizable-panels'],
   treeshake: true,
+  injectStyle: true,
 });
