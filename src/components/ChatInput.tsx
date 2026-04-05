@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useTextHeight } from '../hooks/useTextHeight';
 import { StopIcon, ArrowRightIcon, FileIcon, FolderIcon } from './Icons';
 
@@ -30,6 +30,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const [mentionType, setMentionType] = useState<MentionType>('none');
   const [mentionSearch, setMentionSearch] = useState('');
   const [mentionIndex, setMentionIndex] = useState(0);
+  const [containerWidth, setContainerWidth] = useState(sidebarWidth);
+  const measureRef = useRef<HTMLDivElement>(null);
 
   const files = useMemo(() => Object.keys(filesystem), [filesystem]);
   const directories = useMemo(() => {
@@ -67,6 +69,21 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   useEffect(() => {
     setMentionIndex(0);
   }, [filteredOptions.length]);
+
+  useEffect(() => {
+    if (measureRef.current) {
+      setContainerWidth(measureRef.current.clientWidth);
+    }
+    const observer = new ResizeObserver((entries) => {
+      if (entries[0]) {
+        setContainerWidth(entries[0].contentRect.width);
+      }
+    });
+    if (measureRef.current) {
+      observer.observe(measureRef.current);
+    }
+    return () => observer.disconnect();
+  }, []);
 
   const updateMentionState = useCallback((text: string, cursorPosition: number) => {
     const textBeforeCursor = text.substring(0, cursorPosition);
@@ -230,6 +247,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       )}
 
       <div 
+        ref={measureRef}
         className="chat-input-container"
         style={{ 
           position: 'relative', 
@@ -263,8 +281,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           }}
           style={{
             width: '100%',
+            boxSizing: 'border-box',
             padding: 'var(--agent-input-padding)',
-            paddingBottom: '8px', // Slightly less on bottom as the footer area provides space
+            paddingBottom: '8px', 
             border: 'none',
             backgroundColor: 'transparent',
             color: 'var(--agent-text-main)',
@@ -272,7 +291,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             outline: 'none',
             resize: 'none',
             minHeight: '48px',
-            height: `${useTextHeight(inputValue || ' ', '14px Inter', sidebarWidth, 21, 20)}px`,
+            height: `${useTextHeight(inputValue || ' ', '14px Inter', containerWidth, 21, 20)}px`,
             maxHeight: '200px',
             lineHeight: '1.5',
             fontFamily: 'inherit',

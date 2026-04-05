@@ -14,8 +14,17 @@ import { useAutoScroll } from './hooks/useAutoScroll';
 import { useHistoryPersistence } from './hooks/useHistoryPersistence';
 import { useAgentChat } from './hooks/useAgentChat';
 import { useAgentInitialization } from './hooks/useAgentInitialization';
+import { useEffect } from 'react';
 
 import './AgentSidebar.css';
+
+/**
+ * WARNING TO ALL AGENTS:
+ * DO NOT ADD "BOUNCY" OR "SPRING" PHYSICS ANIMATIONS TO THIS UI.
+ * THE USER FINDS THEM EXTREMELY ANNOYING.
+ * KEEP ALL TRANSITIONS SNAPPY (0.4s OR LESS) AND USE SIMPLE EASING (ease-out or expo-out).
+ * NO "WEIGHTY", "PREMIUM", OR "FLUID" PHYSICS.
+ */
 
 export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -23,7 +32,8 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
   const [inputValue, setInputValue] = useState('');
   const [hasStarted, setHasStarted] = useState(false);
   const [isExpanding, setIsExpanding] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [transitionStatus, setTransitionStatus] = useState<'none' | 'closing' | 'opening'>('none');
   const [collapsedTurnIds, setCollapsedTurnIds] = useState<string[]>([]);
   const [collapsedThoughtIds, setCollapsedThoughtIds] = useState<string[]>([]);
   
@@ -80,23 +90,43 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
     setCollapsedThoughtIds(prev => prev.includes(thoughtId) ? prev.filter(id => id !== thoughtId) : [...prev, thoughtId]);
   };
 
+  useEffect(() => {
+    // Initial slide-in on load
+    const timer = setTimeout(() => {
+      handleOpen();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleCollapse = () => {
+    if (!hasStarted) {
+      setTransitionStatus('closing');
+      setTimeout(() => {
+        setIsCollapsed(true);
+        setTimeout(() => setTransitionStatus('none'), 400);
+      }, 400);
+    } else {
+      setIsCollapsed(true);
+    }
+  };
+
+  const handleOpen = () => {
+    // Start with "breathed out" state for the slide in
+    setTransitionStatus('opening');
+    setIsCollapsed(false);
+    setTimeout(() => {
+      setTransitionStatus('none');
+    }, 400);
+  };
+
+  const isBreathedOut = hasStarted || transitionStatus !== 'none';
+  const isPadded = !isBreathedOut;
+
   return (
     <>
-      {isCollapsed && <FloatingToggleButton onClick={() => setIsCollapsed(false)} />}
+      {isCollapsed && <FloatingToggleButton onClick={handleOpen} />}
       
-        <div 
-        className={`agent-sidebar-layout-container ${isCollapsed ? 'collapsed' : ''}`}
-        style={{
-          position: 'fixed',
-          right: 0, top: 0, bottom: 0, left: 0,
-          pointerEvents: 'none',
-          zIndex: 9998,
-          display: 'flex',
-          flexDirection: 'row',
-          transform: isCollapsed ? 'translateX(100%)' : 'translateX(0)',
-          transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-        }}
-      >
+      <div className={`agent-sidebar-layout-container ${isCollapsed ? 'collapsed' : ''}`}>
         <Group orientation="horizontal" style={{ height: '100%', width: '100%' }}>
           <Panel style={{ pointerEvents: 'none' }} /> 
           
@@ -120,11 +150,11 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
           >
             <GalaxyBackground />
             <div 
-              className={`agent-panel-inner ${!hasStarted ? 'padded' : ''}`}
+              className={`agent-panel-inner ${isPadded ? 'padded' : ''}`}
               style={{ flexGrow: 1, zIndex: 1 }}
             >
               <SidebarHeader 
-                onCollapse={() => setIsCollapsed(true)} 
+                onCollapse={handleCollapse} 
                 onNewChat={() => { handleNewChat(); setShowHistory(false); setIsExpanding(false); }}
                 onToggleHistory={() => setShowHistory(!showHistory)}
               />
@@ -151,7 +181,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                   flexShrink: hasStarted ? 1 : 0,
                   flexBasis: 0,
                   padding: hasStarted ? '12px 16px' : '0',
-                  transition: 'flex-grow 0.8s cubic-bezier(0.16, 1, 0.3, 1), padding 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+                  transition: 'flex-grow 0.4s var(--agent-transition-smooth), padding 0.4s var(--agent-transition-smooth)',
                 }}
               >
                 <div className="message-list-wrapper" style={{ 
@@ -159,7 +189,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                   flexDirection: 'column', 
                   gap: '24px',
                   opacity: hasStarted ? 1 : 0,
-                  transition: 'opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+                  transition: 'opacity 0.4s var(--agent-transition-smooth)',
                   pointerEvents: hasStarted ? 'auto' : 'none',
                   overflow: hasStarted ? 'visible' : 'hidden',
                 }}>
