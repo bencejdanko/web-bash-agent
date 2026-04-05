@@ -19,6 +19,7 @@ interface AssistantTurnProps {
   onToggleThought: (thoughtId: string) => void;
   bashSandbox?: any;
   sidebarWidth: number;
+  onOpenInTerminal: (command?: string, output?: string) => void;
 }
 
 export const AssistantTurn: React.FC<AssistantTurnProps> = ({
@@ -33,6 +34,7 @@ export const AssistantTurn: React.FC<AssistantTurnProps> = ({
   onToggleThought,
   bashSandbox,
   sidebarWidth,
+  onOpenInTerminal,
 }) => {
   const totalThinkingTime = responses.reduce((sum, m) => sum + (m.thinkingTime || 0), 0);
   const hasWork = totalThinkingTime > 0 || responses.some(m => m.tool_calls) || (isLastTurn && isProcessing);
@@ -87,6 +89,7 @@ export const AssistantTurn: React.FC<AssistantTurnProps> = ({
                         bashSandbox={bashSandbox}
                         isPending={toolOutput?.isPending}
                         startTime={toolOutput?.startTime}
+                        onOpenExternal={() => onOpenInTerminal(commandText, toolOutput?.content || undefined)}
                       />
                     );
                   })}

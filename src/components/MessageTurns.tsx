@@ -14,6 +14,7 @@ interface MessageTurnsProps {
   onToggleThought: (thoughtId: string) => void;
   bashSandbox?: any;
   sidebarWidth: number;
+  onOpenInTerminal: (command?: string, output?: string) => void;
 }
 
 export const MessageTurns: React.FC<MessageTurnsProps> = ({
@@ -26,6 +27,7 @@ export const MessageTurns: React.FC<MessageTurnsProps> = ({
   onToggleThought,
   bashSandbox,
   sidebarWidth,
+  onOpenInTerminal,
 }) => {
   const turns: { user: Message; responses: Message[] }[] = [];
   messages.forEach(m => {
@@ -65,6 +67,7 @@ export const MessageTurns: React.FC<MessageTurnsProps> = ({
                 onToggleThought={onToggleThought}
                 bashSandbox={bashSandbox}
                 sidebarWidth={sidebarWidth}
+                onOpenInTerminal={onOpenInTerminal}
               />
             ) : (
               isLastTurn && isProcessing && (

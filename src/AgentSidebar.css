@@ -45,6 +45,7 @@
   --agent-shadow-subtle: 0 0 0 1px rgba(0, 0, 0, 0.05);
   --agent-shadow-large: 0 30px 60px -12px rgba(0, 0, 0, 0.4);
   --agent-shadow-button: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --agent-shadow-float: 0 8px 24px -4px rgba(0, 0, 0, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.08);
   
   /* Layout & Spacing */
   --agent-panel-padding: 20px;
@@ -79,10 +80,10 @@
   top: 0;
   bottom: 0;
   left: 0;
+  width: 100vw;
+  height: 100vh;
   pointer-events: none;
   z-index: 9998;
-  display: flex;
-  flex-direction: row;
   transition: transform var(--agent-transition-duration-slide) var(--agent-transition-smooth);
 }
 
@@ -227,24 +228,31 @@
 }
 
 .terminal-box {
-  background: var(--agent-bg-terminal);
-  border: 1px solid var(--agent-border-dark);
+  background: #ffffff;
   border-radius: var(--agent-radius-small);
   padding: 0;
   overflow: hidden;
-  margin: 16px 0;
+  margin: 12px 0;
+  transition: all 0.2s;
+}
+
+.terminal-box.minimal {
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
 }
 
 .terminal-header {
-  background: var(--agent-bg-terminal-header);
-  padding: 8px 12px;
+  background: #f9f9f9;
+  padding: 6px 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-family: 'Inter', sans-serif;
   font-size: 11px;
-  color: var(--agent-text-dim);
-  border-bottom: 1px solid var(--agent-border-dark);
+  color: #71717a;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .terminal-footer {
@@ -368,6 +376,130 @@
 
 .xterm-container .xterm-viewport::-webkit-scrollbar-thumb:hover {
   background: var(--agent-terminal-scrollbar-thumb-hover);
+}
+
+.floating-control-button {
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  background-color: var(--agent-bg-main);
+  border: 1px solid var(--agent-border-main);
+  box-shadow: var(--agent-shadow-float);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--agent-text-subtle);
+  transition: all 0.2s var(--agent-transition-smooth);
+  padding: 0;
+}
+
+.floating-control-button:hover {
+  transform: translateY(-2px);
+  background-color: var(--agent-bg-subtle);
+  color: var(--agent-text-main);
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.15);
+}
+
+.floating-control-button.terminal {
+  background-color: var(--agent-bg-dark);
+  border-color: var(--agent-border-dark);
+  color: var(--agent-text-on-dark-dim);
+}
+
+.floating-control-button.terminal:hover {
+  color: var(--agent-text-on-dark);
+  background-color: #27272a;
+}
+
+.terminal-external-btn {
+  background: transparent;
+  border: none;
+  color: var(--agent-text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  gap: 6px;
+}
+
+.terminal-shelf-container {
+  box-shadow: 0 -8px 24px -4px rgba(0, 0, 0, 0.1);
+}
+
+.terminal-header-btn {
+  background: transparent;
+  border: none;
+  color: var(--agent-text-dim);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.terminal-header-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--agent-text-on-dark);
+}
+
+.terminal-shelf-content::-webkit-scrollbar {
+  height: 6px;
+}
+
+.terminal-shelf-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.terminal-shelf-content::-webkit-scrollbar-thumb {
+  background: var(--agent-terminal-scrollbar-thumb);
+  border-radius: 3px;
+}
+
+.terminal-shelf-content::-webkit-scrollbar-thumb:hover {
+  background: var(--agent-terminal-scrollbar-thumb-hover);
+}
+
+.terminal-resize-handle-v {
+  height: 4px;
+  background-color: transparent;
+  transition: background-color 0.2s;
+  cursor: row-resize;
+  z-index: 10001;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.terminal-resize-handle-v:hover,
+.terminal-resize-handle-v[data-separator][data-resize-handle-active] {
+  background-color: #e5e7eb;
+}
+
+.terminal-selector-resize-handle {
+  width: 4px;
+  background-color: transparent;
+  cursor: col-resize;
+  transition: background-color 0.2s;
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+.terminal-selector-resize-handle:hover,
+.terminal-selector-resize-handle[data-separator][data-resize-handle-active] {
+  background-color: #e5e7eb;
+}
+
+.floating-controls-container {
+  pointer-events: none;
+}
+
+.floating-control-button {
+  pointer-events: auto;
 }
 
 
