@@ -261,6 +261,7 @@ export const TerminalBox: React.FC<TerminalBoxProps> = ({
           padding: isMinimal ? '0' : '12px', 
           backgroundColor: '#ffffff',
           overflow: 'hidden',
+          height: '100%',
         }} 
       />
     </div>

@@ -158,9 +158,9 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
       </div>
       
       <div className={`agent-sidebar-layout-container ${isCollapsed ? 'collapsed' : ''}`}>
-        <Group orientation="horizontal" style={{ height: '100%', width: '100%' }}>
-            {/* Area for Terminal Shelf (on the left of the sidebar) */}
-            <Panel 
+        <Group orientation="horizontal" style={{ height: '100%', width: '100%' }}>            <Panel 
+              defaultSize={800} // THE LIBRARY DOES ***NOT USE PERCENTAGES***!!! THESE ARE PIXEL VALUES! OBEY AND UNDERSTAND OR BE DESTROYED
+              minSize={200} // THE LIBRARY DOES ***NOT USE PERCENTAGES***!!! THESE ARE PIXEL VALUES! OBEY AND UNDERSTAND OR BE DESTROYED
               style={{ 
                 position: 'relative', 
                 pointerEvents: 'none',
@@ -180,9 +180,9 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
               >
                 {terminals.length > 0 && (
                   <Group orientation="vertical" style={{ height: '100%', width: '100%' }}>
-                    <Panel style={{ pointerEvents: 'none' }} />
+                    <Panel defaultSize={700} style={{ pointerEvents: 'none' }} />
                     <Separator className="terminal-resize-handle-v" style={{ pointerEvents: 'auto' }} />
-                    <Panel defaultSize={50} minSize={20} className="terminal-shelf-panel" style={{ pointerEvents: 'auto', overflow: 'hidden' }}>
+                    <Panel defaultSize={300} minSize={100} className="terminal-shelf-panel" style={{ pointerEvents: 'auto', overflow: 'hidden' }}>
                       <div className="terminal-shelf-minimal" style={{
                         height: '100%',
                         display: 'flex',
