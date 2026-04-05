@@ -65,6 +65,12 @@
   --agent-transition-duration: 0.4s;
   --agent-transition-duration-slide: 0.4s;
   --agent-transition-smooth: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Scrollbars */
+  --agent-scrollbar-thumb: #d1d5db;
+  --agent-scrollbar-thumb-hover: #9ca3af;
+  --agent-terminal-scrollbar-thumb: #3f3f46;
+  --agent-terminal-scrollbar-thumb-hover: #52525b;
 }
 
 .agent-sidebar-layout-container {
@@ -322,6 +328,27 @@
   background-color: var(--agent-bg-dark);
   margin-left: 4px;
   animation: streamingDot 1s infinite;
+}
+
+@keyframes agentFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes agentPulse {
+  0% { transform: scale(0.8); opacity: 0.3; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.8); opacity: 0.3; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 
