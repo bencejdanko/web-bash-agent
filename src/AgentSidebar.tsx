@@ -16,7 +16,7 @@ import { useHistoryPersistence } from './hooks/useHistoryPersistence';
 import { useAgentChat } from './hooks/useAgentChat';
 import { useAgentInitialization } from './hooks/useAgentInitialization';
 import { useEffect } from 'react';
-import { TerminalIcon, PlusIcon, XIcon, ExternalLinkIcon } from './components/Icons';
+import { PlusIcon, XIcon, CubeIcon } from './components/Icons';
 
 import './AgentSidebar.css';
 
@@ -231,28 +231,22 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                                   padding: '12px 8px',
                                   gap: '4px'
                               }}>
-                                  <div style={{ padding: '4px 8px 12px', fontSize: '10px', color: '#9ca3af', fontWeight: 600, letterSpacing: '0.05em' }}>
-                                      TERMINALS
-                                  </div>
+                      
                                   {terminals.map(t => (
                                       <div 
                                           key={t.id} 
                                           onClick={() => setActiveTerminalId(t.id)}
                                           style={{
-                                              padding: '8px 12px',
-                                              borderRadius: '6px',
                                               fontSize: '11px',
                                               fontFamily: 'JetBrains Mono',
                                               cursor: 'pointer',
                                               display: 'flex',
                                               justifyContent: 'space-between',
                                               alignItems: 'center',
-                                              backgroundColor: activeTerminalId === t.id ? '#ffffff' : 'transparent',
-                                              boxShadow: activeTerminalId === t.id ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
                                               color: activeTerminalId === t.id ? '#18181b' : '#71717a',
-                                              border: activeTerminalId === t.id ? '1px solid #e5e7eb' : '1px solid transparent',
                                           }}
                                       >
+                                          <CubeIcon />
                                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                               term-{t.id}
                                           </span>
