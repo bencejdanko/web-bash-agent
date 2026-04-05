@@ -92,31 +92,17 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
 
   useEffect(() => {
     // Initial slide-in on load
-    const timer = setTimeout(() => {
-      handleOpen();
-    }, 100);
-    return () => clearTimeout(timer);
+    handleOpen();
   }, []);
 
   const handleCollapse = () => {
-    if (!hasStarted) {
-      setTransitionStatus('closing');
-      setTimeout(() => {
-        setIsCollapsed(true);
-        setTimeout(() => setTransitionStatus('none'), 400);
-      }, 400);
-    } else {
-      setIsCollapsed(true);
-    }
+    setIsCollapsed(true);
+    setTransitionStatus('none');
   };
 
   const handleOpen = () => {
-    // Start with "breathed out" state for the slide in
-    setTransitionStatus('opening');
     setIsCollapsed(false);
-    setTimeout(() => {
-      setTransitionStatus('none');
-    }, 400);
+    setTransitionStatus('none');
   };
 
   const isBreathedOut = hasStarted || transitionStatus !== 'none';

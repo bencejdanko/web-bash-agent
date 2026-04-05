@@ -62,8 +62,8 @@
    * AGENTS: KEEP DURATIONS SNAPPY (0.4s or less). 
    * NEVER ATTEMPT TO MAKE IT "WEIGHTY" OR "PREMIUM" BY SLOWING IT DOWN.
    */
-  --agent-transition-duration: 0.4s;
-  --agent-transition-duration-slide: 0.4s;
+  --agent-transition-duration: 0.3s;
+  --agent-transition-duration-slide: 0.3s;
   --agent-transition-smooth: cubic-bezier(0.2, 0, 0, 1);
 
   /* Scrollbars */
