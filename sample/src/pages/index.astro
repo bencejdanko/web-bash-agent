@@ -5,14 +5,23 @@ import path from 'node:path';
 // 1. Resolve standardized paths
 const repoRoot = path.join(process.cwd(), '../'); 
 const agentsDir = path.join(repoRoot, '.agents');
-const pagefindIndexDir = path.join(process.cwd(), 'dist/pagefind');
-const buildDir = path.join(process.cwd(), 'dist');
+
+// Mount main site (bence) content 
+const benceDir = path.join(process.env.HOME || '/home/bence', 'bence'); 
+const pagefindIndexDir = path.join(benceDir, 'dist/pagefind');
+const postsDir = path.join(benceDir, 'src/content/posts');
+const appendicesDir = path.join(benceDir, 'src/content/appendices');
+const glossaryDir = path.join(benceDir, 'src/content/glossary');
 
 // 2. Gather the virtual filesystem (metadata + index)
 const realFilesystem: Record<string, string> = getAgentContextFilesystem({
     agentsDir,
     pagefindIndexDir,
-    buildDir
+    mounts: {
+        '/content/posts': postsDir,
+        '/content/appendices': appendicesDir,
+        '/content/glossary': glossaryDir
+    }
 });
 
 // 3. Extract the system prompt explicitly for total transparency

@@ -60,6 +60,7 @@ export function getAgentContextFilesystem(options: {
     agentsDir: string; 
     pagefindIndexDir?: string;
     buildDir?: string;
+    mounts?: Record<string, string>; // Mapping from virtual path to real path
 }): Record<string, string> {
     const realFilesystem: Record<string, string> = {};
 
@@ -81,10 +82,23 @@ export function getAgentContextFilesystem(options: {
 
     // 3. Mount the build output (dist)
     if (options.buildDir && fs.existsSync(options.buildDir)) {
-        // When mounting buildDir, we probably want to skip internal dist/node_modules but allow the buildDir itself
         const buildFs = getFilesystem(options.buildDir, ['node_modules', '.git']);
         for (const [p, content] of Object.entries(buildFs)) {
             realFilesystem['/build' + p] = content;
+        }
+    }
+
+    // 4. Mount additional custom directories
+    if (options.mounts) {
+        for (const [vPath, rPath] of Object.entries(options.mounts)) {
+            if (fs.existsSync(rPath)) {
+                const mountFs = getFilesystem(rPath);
+                for (const [p, content] of Object.entries(mountFs)) {
+                    // Ensure vPath starts with / and join it
+                    const prefix = vPath.startsWith('/') ? vPath : '/' + vPath;
+                    realFilesystem[prefix + p] = content;
+                }
+            }
         }
     }
 
