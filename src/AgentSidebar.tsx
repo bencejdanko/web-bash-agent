@@ -205,6 +205,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                                       }}>
                                           <TerminalBox 
                                               command={t.command || 'bash'} 
+                                              output={t.output}
                                               bashSandbox={bashSandbox} 
                                               isMinimal={true}
                                           />

@@ -71,12 +71,18 @@ export const TerminalBox: React.FC<TerminalBoxProps> = ({
     fitAddonRef.current = fitAddon;
 
     const getPrompt = () => {
-      return `\x1b[1;32m$\x1b[0m `;
+      return `\x1b[32m$\x1b[0m `;
     };
 
 
+    const isBashShell = !command || command === 'bash';
+
     // Initial sequence
-    term.writeln(`\x1b[1;32m$\x1b[0m \x1b[1m${command}\x1b[0m`);
+    if (!isBashShell) {
+      term.writeln(`\x1b[1;32m$\x1b[0m ${command}`);
+    } else {
+      term.write(getPrompt());
+    }
     
     // Add initial command to history if it's not a generic bash shell
     if (command && command !== 'bash' && !historyRef.current.includes(command)) {
@@ -91,9 +97,9 @@ export const TerminalBox: React.FC<TerminalBoxProps> = ({
         const prefix = idx === outputLines.length - 1 ? '\x1b[2m└\x1b[0m ' : '\x1b[2m│\x1b[0m ';
         term.writeln(`${prefix} ${line}`);
       });
-      term.write('\r\n' + getPrompt());
-    } else {
-      term.write('\r\n' + getPrompt());
+      term.write(getPrompt());
+    } else if (!isBashShell) {
+      term.write(getPrompt());
     }
 
     let currentLine = '';
