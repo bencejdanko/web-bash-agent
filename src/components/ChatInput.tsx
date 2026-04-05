@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useTextHeight } from '../hooks/useTextHeight';
-import { StopIcon, ArrowRightIcon, FileIcon, FolderIcon } from './Icons';
+import { StopIcon, ArrowRightIcon, FileIcon, FolderIcon, CubeIcon } from './Icons';
 
 interface ChatInputProps {
   inputValue: string;
@@ -12,6 +12,7 @@ interface ChatInputProps {
   sidebarWidth: number;
   placeholder?: string;
   filesystem?: Record<string, string>;
+  onOpenTerminal?: () => void;
 }
 
 type MentionType = 'none' | 'category' | 'file' | 'dir';
@@ -25,7 +26,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   inputRef,
   sidebarWidth,
   placeholder = "Ask a question...",
-  filesystem = {}
+  filesystem = {},
+  onOpenTerminal
 }) => {
   const [mentionType, setMentionType] = useState<MentionType>('none');
   const [mentionSearch, setMentionSearch] = useState('');
@@ -263,6 +265,21 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           paddingBottom: '40px' // Space for the send button area
         }}
       >
+        {onOpenTerminal && (
+          <button
+            onClick={onOpenTerminal}
+            className="chat-input-terminal-btn"
+            style={{
+              position: 'absolute',
+              left: '10px',
+              bottom: '8px',
+              zIndex: 5
+            }}
+          >
+            <span>Open terminal</span>
+            <CubeIcon size={14} />
+          </button>
+        )}
 
         <textarea 
           ref={inputRef}

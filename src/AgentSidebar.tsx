@@ -16,7 +16,7 @@ import { useHistoryPersistence } from './hooks/useHistoryPersistence';
 import { useAgentChat } from './hooks/useAgentChat';
 import { useAgentInitialization } from './hooks/useAgentInitialization';
 import { useEffect } from 'react';
-import { PlusIcon, XIcon, CubeIcon } from './components/Icons';
+import { XIcon, CubeIcon } from './components/Icons';
 
 import './AgentSidebar.css';
 
@@ -152,13 +152,6 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
         gap: '8px',
         zIndex: 9999,
       }}>
-        <button
-          onClick={() => openTerminal()}
-          className="floating-control-button terminal"
-          title="Open New Terminal"
-        >
-          <PlusIcon />
-        </button>
         {isCollapsed && (
           <FloatingToggleButton onClick={handleOpen} />
         )}
@@ -359,6 +352,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                       sidebarWidth={sidebarWidth}
                       placeholder="Ask anything, @ to mention, / for SKILL"
                       filesystem={actualFilesystem}
+                      onOpenTerminal={() => openTerminal()}
                     />
                   </div>
                 </div>

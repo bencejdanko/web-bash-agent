@@ -503,3 +503,36 @@
 }
 
 
+.chat-input-terminal-btn {
+  background: transparent;
+  border: none;
+  color: var(--agent-text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: var(--agent-radius-small);
+  transition: all 0.2s var(--agent-transition-smooth);
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+}
+
+.chat-input-terminal-btn:hover {
+  background-color: var(--agent-bg-subtle);
+  color: var(--agent-text-main);
+}
+
+.chat-input-terminal-btn:active {
+  transform: scale(0.97);
+}
+
+.chat-input-terminal-btn svg {
+  opacity: 0.7;
+}
+
+.chat-input-terminal-btn:hover svg {
+  opacity: 1;
+}
