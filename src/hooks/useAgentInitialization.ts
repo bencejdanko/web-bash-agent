@@ -49,13 +49,22 @@ export const useAgentInitialization = (props: AgentSidebarProps, currentModelCon
         
         // Initial bridge creation if not exists
         if (!llmBridge && currentModelConfig) {
+          const defaultHeaders: Record<string, string> = {};
+          if (currentModelConfig.keyIdentifier) {
+            defaultHeaders['X-Key-Identifier'] = currentModelConfig.keyIdentifier;
+          }
+          if (currentModelConfig.routerUrl) {
+            defaultHeaders['X-Router-URL'] = currentModelConfig.routerUrl;
+          }
+
           const bridge = props.llmBridge || new LlmBridge({
-            apiKey: currentModelConfig.apiKey,
+            apiKey: currentModelConfig.apiKey || 'proxy-key', 
             model: currentModelConfig.id, // Using ID as the model string for the API
             systemPrompt: props.systemPrompt,
             baseURL: currentModelConfig.endpoint,
             dangerouslyAllowBrowser: true,
-            tools: finalTools
+            tools: finalTools,
+            defaultHeaders
           });
           setLlmBridge(bridge);
         } else if (llmBridge) {
@@ -76,10 +85,19 @@ export const useAgentInitialization = (props: AgentSidebarProps, currentModelCon
   // 2. Update Bridge (model, systemPrompt)
   useEffect(() => {
     if (llmBridge && currentModelConfig) {
+        const defaultHeaders: Record<string, string> = {};
+        if (currentModelConfig.keyIdentifier) {
+          defaultHeaders['X-Key-Identifier'] = currentModelConfig.keyIdentifier;
+        }
+        if (currentModelConfig.routerUrl) {
+          defaultHeaders['X-Router-URL'] = currentModelConfig.routerUrl;
+        }
+
         llmBridge.updateConfig({
-            apiKey: currentModelConfig.apiKey,
+            apiKey: currentModelConfig.apiKey || 'proxy-key',
             endpoint: currentModelConfig.endpoint,
-            model: currentModelConfig.id
+            model: currentModelConfig.id,
+            defaultHeaders
         });
         llmBridge.setSystemPrompt(props.systemPrompt);
     }

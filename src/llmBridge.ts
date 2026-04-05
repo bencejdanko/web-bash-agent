@@ -17,22 +17,25 @@ export class LlmBridge {
     model: string;
     systemPrompt: string;
     tools?: any[];
+    defaultHeaders?: Record<string, string>;
   }) {
     this.openai = new OpenAI({
       apiKey: options.apiKey,
       baseURL: options.baseURL,
       dangerouslyAllowBrowser: options.dangerouslyAllowBrowser,
+      defaultHeaders: options.defaultHeaders,
     });
     this.model = options.model;
     this.systemPromptOverride = options.systemPrompt;
     this.tools = options.tools || [];
   }
 
-  updateConfig(config: { apiKey: string; endpoint: string; model: string }) {
+  updateConfig(config: { apiKey: string; endpoint: string; model: string; defaultHeaders?: Record<string, string> }) {
     this.openai = new OpenAI({
       apiKey: config.apiKey,
       baseURL: config.endpoint,
       dangerouslyAllowBrowser: true,
+      defaultHeaders: config.defaultHeaders,
     });
     this.model = config.model;
   }

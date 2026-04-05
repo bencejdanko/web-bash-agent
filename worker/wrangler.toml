@@ -1,0 +1,7 @@
+name = "llm-proxy"
+main = "index.ts"
+compatibility_date = "2024-04-05"
+
+[vars]
+# You can define identifiers here if needed, or set them as secrets.
+# wrangler secret put OPENROUTER_TOKEN

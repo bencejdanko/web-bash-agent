@@ -6,5 +6,5 @@ export { createSearchCommand } from './src/commands/search';
 export { createFetchInternalCommand } from './src/commands/fetch-internal';
 export { bashTool } from './src/tools/bash';
 
-export type { Message, AgentSidebarProps, ToolConfig } from './src/types';
+export type { Message, AgentSidebarProps, ToolConfig, ModelConfig } from './src/types';
 export type { BashSandboxOptions, ExecResult } from './src/bashSandbox';

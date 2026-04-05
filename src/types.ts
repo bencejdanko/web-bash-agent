@@ -46,7 +46,9 @@ export interface ModelConfig {
     id: string;
     name: string;
     endpoint: string;
-    apiKey: string;
+    apiKey?: string;
+    keyIdentifier?: string;
+    routerUrl?: string;
 }
 
 export interface AgentSidebarProps {

@@ -1,5 +1,5 @@
 ---
-import { AgentSidebar, getAgentContextFilesystem } from 'pagefind-bash-agent-astro';
+import { AgentSidebar, getAgentContextFilesystem, type ModelConfig } from 'pagefind-bash-agent-astro';
 import path from 'node:path';
 
 // 1. Resolve standardized paths
@@ -28,32 +28,16 @@ const realFilesystem: Record<string, string> = getAgentContextFilesystem({
 const systemPrompt = realFilesystem['/.agents/system_prompt.txt'];
 
 // 4. Configuration for testing (Per-model credentials)
-const OPENROUTER_TOKEN = "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";
-const MODELS = [
+const PROXY_URL = "https://llm-proxy.bencejdanko.workers.dev"; // Change this to your actual worker URL
+
+const MODELS: ModelConfig[] = [
     {
-        id: "nvidia/nemotron-3-super-120b-a12b:free",
-        name: "Nemotron 3 Super",
-        endpoint: "https://openrouter.ai/api/v1",
-        apiKey: OPENROUTER_TOKEN
+        id: "nvidia/nemotron-3-super-120b-a12b",
+        name: "nemotron-3-super-120b-a12b",
+        endpoint: PROXY_URL,
+        keyIdentifier: "OPENROUTER_TOKEN",
+        routerUrl: "https://openrouter.ai/api/v1"
     },
-    {
-        id: "google/gemini-2.0-flash-exp:free",
-        name: "Gemini 2.0 Flash",
-        endpoint: "https://openrouter.ai/api/v1",
-        apiKey: OPENROUTER_TOKEN
-    },
-    {
-        id: "meta-llama/llama-3.3-70b-instruct:free",
-        name: "Llama 3.3 70B",
-        endpoint: "https://openrouter.ai/api/v1",
-        apiKey: OPENROUTER_TOKEN
-    },
-    {
-        id: "deepseek/deepseek-r1:free",
-        name: "DeepSeek R1",
-        endpoint: "https://openrouter.ai/api/v1",
-        apiKey: OPENROUTER_TOKEN
-    }
 ];
 ---
 
