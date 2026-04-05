@@ -156,7 +156,7 @@
 
 .chat-footer-wrapper.centered .chat-input-container {
   width: 100%;
-  max-width: 380px;
+  max-width: 340px;
   flex-shrink: 0;
   transition: max-width var(--agent-transition-duration) var(--agent-transition-smooth);
 }

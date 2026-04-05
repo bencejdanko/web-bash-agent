@@ -29,10 +29,10 @@ export const useAgentChat = (
     if (!text.trim() || isProcessing) return;
 
     if (!hasStarted) {
+      setHasStarted(true);
       setIsExpanding(true);
-      // Wait for the expand animation before transitioning down
+      // Let the width expand state persist for the duration of the CSS transition
       setTimeout(() => {
-        setHasStarted(true);
         setIsExpanding(false);
       }, 800);
     }
