@@ -6,7 +6,7 @@ export const ThinkingIndicator: React.FC = () => {
       display: 'flex', 
       gap: '8px', 
       alignItems: 'center', 
-      color: '#71717a', 
+      color: 'var(--agent-text-dim)', 
       padding: '0 4px', 
       animation: 'agentFadeIn 0.5s' 
     }}>
@@ -15,21 +15,21 @@ export const ThinkingIndicator: React.FC = () => {
           width: '5px', 
           height: '5px', 
           borderRadius: '50%', 
-          backgroundColor: '#1f1f1f', 
+          backgroundColor: 'var(--agent-accent)', 
           animation: 'agentPulse 0.8s infinite' 
         }}></div>
         <div style={{ 
           width: '5px', 
           height: '5px', 
           borderRadius: '50%', 
-          backgroundColor: '#1f1f1f', 
+          backgroundColor: 'var(--agent-accent)', 
           animation: 'agentPulse 0.8s infinite 0.2s' 
         }}></div>
         <div style={{ 
           width: '5px', 
           height: '5px', 
           borderRadius: '50%', 
-          backgroundColor: '#1f1f1f', 
+          backgroundColor: 'var(--agent-accent)', 
           animation: 'agentPulse 0.8s infinite 0.4s' 
         }}></div>
       </div>

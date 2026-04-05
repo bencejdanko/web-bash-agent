@@ -17,7 +17,7 @@ export const MarkdownOutput: React.FC<MarkdownOutputProps> = ({ content, classNa
           ul: ({ ...props }) => <ul style={{ paddingLeft: '20px', marginBottom: '12px' }} {...props} />,
           ol: ({ ...props }) => <ol style={{ paddingLeft: '20px', marginBottom: '12px' }} {...props} />,
           p: ({ ...props }) => <p style={{ marginBottom: '12px', color: 'inherit' }} {...props} />,
-          code: ({ ...props }) => <code style={{ backgroundColor: 'var(--agent-bg-subtle)', padding: '2px 4px', borderRadius: '4px', fontSize: '0.9em', fontFamily: 'JetBrains Mono', color: 'var(--agent-text-main)' }} {...props} />,
+          code: ({ ...props }) => <code style={{ backgroundColor: 'var(--agent-bg-subtle)', padding: '2px 4px', borderRadius: 'var(--agent-radius-tiny)', fontSize: '0.9em', fontFamily: 'JetBrains Mono', color: 'var(--agent-text-main)' }} {...props} />,
           strong: ({ ...props }) => <strong style={{ fontWeight: 600, color: 'inherit' }} {...props} />,
           h1: ({ ...props }) => <h1 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: 'inherit' }} {...props} />,
           h2: ({ ...props }) => <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px', color: 'inherit' }} {...props} />,

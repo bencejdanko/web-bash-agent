@@ -54,7 +54,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        backgroundColor: 'var(--agent-overlay-bg)',
         zIndex: 100,
         display: 'flex',
         flexDirection: 'column',
@@ -81,15 +81,15 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
         <header 
           style={{
             padding: '16px 20px',
-            borderBottom: '1px solid #f3f4f6',
+            borderBottom: '1px solid var(--agent-bg-subtle)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             flexShrink: 0,
-            background: 'rgba(255, 255, 255, 0.5)',
+            background: 'var(--agent-header-glass)',
           }}
         >
-          <span style={{ fontWeight: 600, fontSize: '15px', color: '#111827' }}>Past conversations</span>
+          <span style={{ fontWeight: 600, fontSize: '15px', color: 'var(--agent-text-main)' }}>Past conversations</span>
           <button 
             onClick={onClose}
             style={{
@@ -97,7 +97,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
               border: 'none',
               cursor: 'pointer',
               fontSize: '22px',
-              color: '#9ca3af',
+              color: 'var(--agent-text-muted)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -118,7 +118,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
           }}
         >
           {conversations.length === 0 ? (
-            <div style={{ padding: '48px 20px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
+            <div style={{ padding: '48px 20px', textAlign: 'center', color: 'var(--agent-text-muted)', fontSize: '14px' }}>
               No conversations yet
             </div>
           ) : (

@@ -22,6 +22,8 @@
   --agent-text-on-dark: #f4f4f5;
   --agent-text-on-dark-dim: #d1d5db;
   --agent-text-white: #ffffff;
+  --agent-text-collapsed: #94a3b8;
+  --agent-text-collapsed-hover: #64748b;
   
   /* Accents & States */
   --agent-accent: #1f1f1f;
@@ -38,12 +40,21 @@
   --agent-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   --agent-menu-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   --agent-toggle-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --agent-overlay-bg: rgba(255, 255, 255, 0.9);
+  --agent-header-glass: rgba(255, 255, 255, 0.5);
+  --agent-shadow-subtle: 0 0 0 1px rgba(0, 0, 0, 0.05);
+  --agent-shadow-large: 0 30px 60px -12px rgba(0, 0, 0, 0.4);
+  --agent-shadow-button: 0 1px 3px rgba(0, 0, 0, 0.1);
   
   /* Layout & Spacing */
   --agent-panel-padding: 20px;
   --agent-input-gap: 16px;
   --agent-input-padding: 16px;
   --agent-header-height: 56px;
+  --agent-radius-tiny: 4px;
+  --agent-radius-small: 8px;
+  --agent-radius-medium: 12px;
+  --agent-radius-large: 16px;
   
   /* Transitions */
   --agent-transition-duration: 0.8s;
@@ -73,11 +84,11 @@
 .agent-panel-inner.padded {
   margin: var(--agent-panel-padding);
   border-radius: 0;
-  background-color: #ffffff;
+  background-color: var(--agent-bg-main);
   border: 1px solid var(--agent-border-main);
   box-shadow: 
-    0 30px 60px -12px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(0, 0, 0, 0.05);
+    var(--agent-shadow-large),
+    var(--agent-shadow-subtle);
   height: calc(100% - (var(--agent-panel-padding) * 2));
   width: calc(100% - (var(--agent-panel-padding) * 2));
 }
@@ -177,7 +188,7 @@
 .terminal-box {
   background: var(--agent-bg-terminal);
   border: 1px solid var(--agent-border-dark);
-  border-radius: 8px;
+  border-radius: var(--agent-radius-small);
   padding: 0;
   overflow: hidden;
   margin: 16px 0;

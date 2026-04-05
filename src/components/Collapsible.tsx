@@ -83,17 +83,17 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
           backgroundColor: 'transparent',
           border: 'none',
           fontSize: '13px',
-          color: '#94a3b8',
+          color: 'var(--agent-text-collapsed)',
           transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
           outline: 'none',
           textAlign: 'left',
           width: 'fit-content'
         }}
         onMouseOver={(e) => {
-          e.currentTarget.style.color = '#64748b';
+          e.currentTarget.style.color = 'var(--agent-text-collapsed-hover)';
         }}
         onMouseOut={(e) => {
-          e.currentTarget.style.color = '#94a3b8';
+          e.currentTarget.style.color = 'var(--agent-text-collapsed)';
         }}
       >
         <div style={{

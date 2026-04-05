@@ -254,8 +254,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onFocus={(e) => {
-            (e.currentTarget.parentNode as HTMLDivElement).style.borderColor = 'var(--agent-bg-dark)';
-            (e.currentTarget.parentNode as HTMLDivElement).style.boxShadow = '0 0 0 1px rgba(31, 31, 31, 0.1)';
+            (e.currentTarget.parentNode as HTMLDivElement).style.borderColor = 'var(--agent-accent)';
+            (e.currentTarget.parentNode as HTMLDivElement).style.boxShadow = 'var(--agent-shadow-subtle)';
           }}
           onBlur={(e) => {
             (e.currentTarget.parentNode as HTMLDivElement).style.borderColor = 'var(--agent-border-main)';
@@ -304,13 +304,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   justifyContent: 'center',
                   transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                   flexShrink: 0,
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                  boxShadow: 'var(--agent-shadow-button)'
               }}
               onMouseOver={(e) => {
-                e.currentTarget.style.backgroundColor = '#e5e7eb';
+                e.currentTarget.style.backgroundColor = 'var(--agent-border-main)';
               }}
               onMouseOut={(e) => {
-                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                e.currentTarget.style.backgroundColor = 'var(--agent-bg-subtle)';
               }}
               title="Cancel processing"
             >
@@ -335,7 +335,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 flexShrink: 0,
                 transform: (inputValue.trim() && !isProcessing) ? 'scale(1)' : 'scale(0.9)',
                 opacity: isProcessing ? 0.5 : 1,
-                boxShadow: inputValue.trim() ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none'
+                boxShadow: inputValue.trim() ? 'var(--agent-shadow-button)' : 'none'
             }}
           >
             <ArrowRightIcon />
