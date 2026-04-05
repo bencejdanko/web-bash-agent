@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTextHeight } from '../hooks/useTextHeight';
 import { StopIcon, ArrowRightIcon, FileIcon, FolderIcon, CubeIcon } from './Icons';
 
+import { AgentSkill } from '../types';
+
 interface ChatInputProps {
   inputValue: string;
   setInputValue: (val: string) => void;
@@ -12,10 +14,12 @@ interface ChatInputProps {
   sidebarWidth: number;
   placeholder?: string;
   filesystem?: Record<string, string>;
+  skills?: AgentSkill[];
   onOpenTerminal?: () => void;
 }
 
-type MentionType = 'none' | 'category' | 'file' | 'dir';
+type MentionType = 'none' | 'category' | 'file' | 'dir' | 'skill';
+
 
 export const ChatInput: React.FC<ChatInputProps> = ({
   inputValue,
@@ -27,6 +31,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   sidebarWidth,
   placeholder = "Ask a question...",
   filesystem = {},
+  skills = [],
   onOpenTerminal
 }) => {
   const [mentionType, setMentionType] = useState<MentionType>('none');
@@ -64,6 +69,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       return directories
         .filter(d => d.toLowerCase().includes(mentionSearch.toLowerCase()))
         .map(d => ({ id: d, label: d, icon: <FolderIcon /> }));
+    }
+    if (mentionType === 'skill') {
+      return (skills || [])
+        .filter(s => s.name.toLowerCase().includes(mentionSearch.toLowerCase()))
+        .map(s => ({ id: s.name, label: s.name, icon: <CubeIcon /> }));
     }
     return [];
   }, [mentionType, mentionSearch, files, directories]);
@@ -110,6 +120,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         setMentionSearch(mentionPart);
       }
     } else {
+      const lastSlash = textBeforeCursor.lastIndexOf('/');
+      if (lastSlash !== -1 && (lastSlash === 0 || textBeforeCursor[lastSlash - 1] === ' ')) {
+        const mentionPart = textBeforeCursor.substring(lastSlash + 1);
+        if (!mentionPart.includes(' ')) {
+          setMentionType('skill');
+          setMentionSearch(mentionPart);
+          return;
+        }
+      }
       setMentionType('none');
     }
   }, []);
@@ -127,6 +146,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     const textAfterCursor = inputValue.substring(cursorPosition);
     
     const lastAt = textBeforeCursor.lastIndexOf('@');
+    const lastSlash = textBeforeCursor.lastIndexOf('/');
+    const lastMarker = mentionType === 'skill' ? lastSlash : lastAt;
     
     let newVal = '';
     let newCursorPos = 0;
@@ -136,6 +157,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       newCursorPos = textBeforeCursor.substring(0, lastAt).length + option.id.length + 2;
       setInputValue(newVal);
       updateMentionState(newVal, newCursorPos);
+    } else if (mentionType === 'skill') {
+      const mentionText = `/${option.label} `;
+      const startOfText = textBeforeCursor.substring(0, lastSlash);
+      newVal = startOfText + mentionText + textAfterCursor;
+      newCursorPos = startOfText.length + mentionText.length;
+      
+      setInputValue(newVal);
+      setMentionType('none');
     } else {
       // Just add the raw text @mention
       const mentionText = `@${mentionType}:${option.label} `;

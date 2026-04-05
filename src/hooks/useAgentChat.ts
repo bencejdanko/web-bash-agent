@@ -186,6 +186,34 @@ export const useAgentChat = (
                 iterationId: iterId,
                 turnId: turnId
               });
+            } else if (toolCall.function.name === 'load_skill') {
+              const { skill_name } = JSON.parse(toolCall.function.arguments);
+              const skill = (llmBridge as any).skills.find((s: any) => s.name === skill_name);
+              
+              let result = '';
+              if (skill) {
+                result = `Skill loaded: ${skill.name}\n\nInstructions:\n${skill.instructions}`;
+              } else {
+                result = `Error: Skill '${skill_name}' not found.`;
+              }
+
+              setMessages(prev => [...prev, {
+                role: 'tool',
+                content: result,
+                tool_call_id: toolCall.id,
+                name: toolCall.function.name,
+                iterationId: iterId,
+                turnId: turnId
+              }]);
+
+              toolResults.push({
+                role: 'tool',
+                content: result,
+                tool_call_id: toolCall.id,
+                name: toolCall.function.name,
+                iterationId: iterId,
+                turnId: turnId
+              });
             }
           }
           

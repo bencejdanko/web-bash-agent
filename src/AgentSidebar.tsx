@@ -48,7 +48,8 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
   const [activeTerminalId, setActiveTerminalId] = useState<string | null>(null);
 
   // Initialize sandbox and LLM bridge
-  const { bashSandbox, llmBridge } = useAgentInitialization(props);
+  const { bashSandbox, llmBridge, skills } = useAgentInitialization(props);
+
 
   // Sync filesystem whenever sandbox is initialized or props change
   React.useEffect(() => {
@@ -405,8 +406,10 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                       sidebarWidth={sidebarWidth}
                       placeholder="Ask anything, @ to mention, / for SKILL"
                       filesystem={actualFilesystem}
+                      skills={skills}
                       onOpenTerminal={() => openTerminal()}
                     />
+
                   </div>
                 </div>
               </div>

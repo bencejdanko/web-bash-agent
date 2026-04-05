@@ -21,6 +21,14 @@ export interface Conversation {
   updatedAt: number;
 }
 
+export interface AgentSkill {
+    name: string;
+    description: string;
+    instructions: string; // The body content after frontmatter
+    path: string; // Path to the skill directory relative to /site/
+    metadata?: Record<string, string>;
+}
+
 export interface AgentSidebarProps {
     bashSandbox?: any;
     llmBridge?: any;
@@ -29,4 +37,6 @@ export interface AgentSidebarProps {
     filesystem?: Record<string, string>;
     reasoningEffort?: 'low' | 'medium' | 'high';
     includeThinking?: boolean;
+    skills?: AgentSkill[];
 }
+
