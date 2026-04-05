@@ -161,9 +161,11 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
         <Group orientation="horizontal" style={{ height: '100%', width: '100%' }}>
             {/* Area for Terminal Shelf (on the left of the sidebar) */}
             <Panel 
+              defaultSize={500}
               style={{ 
                 position: 'relative', 
                 pointerEvents: 'none',
+                overflow: 'hidden'
               }}
             >
               <div 
@@ -171,27 +173,56 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                 style={{ 
                   height: '100%', 
                   width: '100%', 
-                  paddingBottom: '80px', // HARDCODED FIXED SPACING FOR SHELF ONLY
+                  paddingBottom: '20px', // REDUCED PADDING BELOW TERMINAL PANEL
                   boxSizing: 'border-box',
                   display: 'flex',
                   flexDirection: 'column'
                 }}
               >
                 {terminals.length > 0 && (
-                  <Group orientation="vertical" style={{ height: '100%' }}>
+                  <Group orientation="vertical" style={{ height: '100%', width: '100%' }}>
                     <Panel style={{ pointerEvents: 'none' }} />
                     <Separator className="terminal-resize-handle-v" style={{ pointerEvents: 'auto' }} />
-                    <Panel defaultSize={30} minSize={10} className="terminal-shelf-panel" style={{ pointerEvents: 'auto' }}>
+                    <Panel defaultSize={300} minSize={100} className="terminal-shelf-panel" style={{ pointerEvents: 'auto', overflow: 'hidden' }}>
                       <div className="terminal-shelf-minimal" style={{
                         height: '100%',
                         display: 'flex',
+                        flexDirection: 'column',
                         backgroundColor: '#ffffff',
                         borderLeft: '1px solid var(--agent-border-main)',
                         borderTop: '1px solid var(--agent-border-main)',
                         position: 'relative',
-                        boxShadow: '0 -4px 12px rgba(0,0,0,0.05)'
+                        boxShadow: '0 -4px 12px rgba(0,0,0,0.05)',
+                        overflow: 'hidden'
                       }}>
-                        <Group orientation="horizontal" style={{ height: '100%', width: '100%' }}>
+                        <div className="terminal-shelf-header" style={{
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                            padding: '6px 12px',
+                            borderBottom: '1px solid var(--agent-border-main)',
+                            backgroundColor: '#ffffff',
+                            zIndex: 10
+                        }}>
+                            <button 
+                                onClick={() => setTerminals([])}
+                                style={{ 
+                                    background: 'none', 
+                                    border: 'none', 
+                                    cursor: 'pointer', 
+                                    padding: '4px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    color: 'var(--agent-text-dim)',
+                                    borderRadius: '4px',
+                                    transition: 'background-color 0.2s'
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--agent-bg-subtle)'}
+                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                                <XIcon size={16} />
+                            </button>
+                        </div>
+                        <Group orientation="horizontal" style={{ flexGrow: 1, width: '100%' }}>
                           <Panel defaultSize={80} style={{ position: 'relative', overflow: 'hidden' }}>
                               <div className="terminal-active-area" style={{ position: 'absolute', inset: 0 }}>
                                   {terminals.map(t => (
@@ -216,14 +247,15 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                           
                           <Separator className="terminal-selector-resize-handle" />
                           
-                          <Panel defaultSize={20} minSize={10} style={{ backgroundColor: '#f9f9f9', borderLeft: '1px solid var(--agent-border-main)' }}>
+                          <Panel defaultSize={140} minSize={40} style={{ backgroundColor: '#ffffff', borderLeft: '1px solid var(--agent-border-main)', overflow: 'hidden' }}>
                               <div className="terminal-selectors" style={{
                                   height: '100%',
                                   display: 'flex',
                                   flexDirection: 'column',
-                                  overflowY: 'auto',
+                                  overflowY: 'hidden',
                                   padding: '12px 8px',
-                                  gap: '4px'
+                                  gap: '4px',
+                                  boxSizing: 'border-box'
                               }}>
                       
                                   {terminals.map(t => (
@@ -244,12 +276,6 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                               term-{t.id}
                                           </span>
-                                          <button 
-                                              onClick={(e) => { e.stopPropagation(); closeTerminal(t.id); }}
-                                              style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', opacity: 0.6 }}
-                                          >
-                                              <XIcon size={12} />
-                                          </button>
                                       </div>
                                   ))}
                               </div>

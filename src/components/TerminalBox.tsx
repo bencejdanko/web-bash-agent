@@ -258,8 +258,9 @@ export const TerminalBox: React.FC<TerminalBoxProps> = ({
         ref={terminalRef} 
         className="xterm-container"
         style={{ 
-          padding: isMinimal ? '4px 12px' : '12px', 
+          padding: isMinimal ? '0' : '12px', 
           backgroundColor: '#ffffff',
+          overflow: 'hidden',
         }} 
       />
     </div>

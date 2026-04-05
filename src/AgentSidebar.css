@@ -231,9 +231,10 @@
   background: #ffffff;
   border-radius: var(--agent-radius-small);
   padding: 0;
-  overflow: hidden;
+  overflow: hidden !important;
   margin: 0;
   transition: all 0.2s;
+  height: 100%;
 }
 
 .terminal-box.minimal {
@@ -244,7 +245,7 @@
 }
 
 .terminal-header {
-  background: #f9f9f9;
+  background: #ffffff;
   padding: 6px 12px;
   display: flex;
   justify-content: space-between;
@@ -252,7 +253,7 @@
   font-family: 'Inter', sans-serif;
   font-size: 11px;
   color: #71717a;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--agent-border-main);
 }
 
 .terminal-footer {
@@ -359,23 +360,20 @@
   to { transform: translateY(0); opacity: 1; }
 }
 
-
-.xterm-container .xterm-viewport::-webkit-scrollbar {
-  width: 10px;
+.xterm-container .xterm-viewport::-webkit-scrollbar,
+.terminal-selectors::-webkit-scrollbar,
+.terminal-shelf-minimal::-webkit-scrollbar,
+.terminal-active-area::-webkit-scrollbar {
+  display: none !important;
 }
 
-.xterm-container .xterm-viewport::-webkit-scrollbar-track {
-  background: var(--agent-bg-terminal);
-}
-
-.xterm-container .xterm-viewport::-webkit-scrollbar-thumb {
-  background: var(--agent-terminal-scrollbar-thumb);
-  border: 2px solid var(--agent-bg-terminal);
-  border-radius: 5px;
-}
-
-.xterm-container .xterm-viewport::-webkit-scrollbar-thumb:hover {
-  background: var(--agent-terminal-scrollbar-thumb-hover);
+.xterm-container .xterm-viewport,
+.terminal-selectors,
+.terminal-shelf-minimal,
+.terminal-active-area {
+  overflow: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
 .floating-control-button {
