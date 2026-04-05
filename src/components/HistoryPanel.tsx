@@ -49,47 +49,44 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
   return (
     <div 
       style={{
-        position: 'fixed',
+        position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.25)',
-        zIndex: 10000,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        zIndex: 100,
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-        backdropFilter: 'blur(3px)',
-        animation: 'fadeIn 0.2s ease-out'
+        backdropFilter: 'blur(12px)',
+        animation: 'fadeIn 0.2s ease-out',
+        borderTopLeftRadius: 'inherit',
+        borderTopRightRadius: 'inherit',
+        borderBottomLeftRadius: 'inherit',
+        borderBottomRightRadius: 'inherit',
+        overflow: 'hidden'
       }}
     >
       <div 
         className="history-overlay-content"
         style={{
           width: '100%',
-          maxWidth: '768px',
-          height: '600px',
-          maxHeight: '90vh',
-          backgroundColor: '#fff',
-          borderRadius: '16px',
-          boxShadow: '0 20px 50px -12px rgba(0, 0, 0, 0.25)',
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
-          border: '1px solid #e5e7eb',
+          backgroundColor: 'transparent',
           animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
         }}
       >
         <header 
           style={{
-            padding: '16px',
+            padding: '16px 20px',
             borderBottom: '1px solid #f3f4f6',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             flexShrink: 0,
+            background: 'rgba(255, 255, 255, 0.5)',
           }}
         >
           <span style={{ fontWeight: 600, fontSize: '15px', color: '#111827' }}>Past conversations</span>
@@ -117,11 +114,11 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '8px 0'
+            padding: '16px 12px'
           }}
         >
           {conversations.length === 0 ? (
-            <div style={{ padding: '32px 20px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
+            <div style={{ padding: '48px 20px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
               No conversations yet
             </div>
           ) : (
@@ -132,7 +129,9 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                   key={conv.id}
                   conv={conv}
                   currentConversationId={currentConversationId}
-                  onSelectConversation={onSelectConversation}
+                  onSelectConversation={(id) => {
+                    onSelectConversation(id);
+                  }}
                   onDeleteConversation={onDeleteConversation}
                   formatRelativeTime={formatRelativeTime}
                 />

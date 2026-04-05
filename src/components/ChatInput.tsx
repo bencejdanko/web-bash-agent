@@ -263,7 +263,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           }}
           style={{
             width: '100%',
-            padding: '12px 14px 8px 14px',
+            padding: 'var(--agent-input-padding)',
+            paddingBottom: '8px', // Slightly less on bottom as the footer area provides space
             border: 'none',
             backgroundColor: 'transparent',
             color: 'var(--agent-text-main)',

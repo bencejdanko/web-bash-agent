@@ -39,20 +39,47 @@
   --agent-menu-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   --agent-toggle-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   
-  /* Scrollbars */
-  --agent-scrollbar-thumb: #e5e7eb;
-  --agent-scrollbar-thumb-hover: #d1d5db;
-  --agent-scrollbar-track: transparent;
-  --agent-terminal-scrollbar-thumb: #3f3f46;
-  --agent-terminal-scrollbar-thumb-hover: #52525b;
+  /* Layout & Spacing */
+  --agent-panel-padding: 20px;
+  --agent-input-gap: 16px;
+  --agent-input-padding: 16px;
+  --agent-header-height: 56px;
+  
+  /* Transitions */
+  --agent-transition-duration: 0.8s;
+  --agent-transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --agent-transition-smooth: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .agent-sidebar-container {
-  animation: agentSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: var(--agent-sidebar-shadow);
-  border-left: 1px solid var(--agent-border-main);
   display: flex;
   flex-direction: column;
+  overflow: visible !important;
+}
+
+.agent-panel-inner {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--agent-bg-main);
+  box-shadow: var(--agent-sidebar-shadow);
+  border-left: 1px solid var(--agent-border-main);
+  transition: all var(--agent-transition-duration) var(--agent-transition-bounce);
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+
+.agent-panel-inner.padded {
+  margin: var(--agent-panel-padding);
+  border-radius: 0;
+  background-color: #ffffff;
+  border: 1px solid var(--agent-border-main);
+  box-shadow: 
+    0 30px 60px -12px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  height: calc(100% - (var(--agent-panel-padding) * 2));
+  width: calc(100% - (var(--agent-panel-padding) * 2));
 }
 
 .chat-footer-wrapper {

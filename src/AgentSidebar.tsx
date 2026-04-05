@@ -7,6 +7,7 @@ import { FloatingToggleButton } from './components/FloatingToggleButton';
 import { MessageTurns } from './components/MessageTurns';
 import { ChatInput } from './components/ChatInput';
 import { HistoryPanel } from './components/HistoryPanel';
+import { GalaxyBackground } from './components/GalaxyBackground';
 import { Message, AgentSidebarProps } from './types';
 import { useSidebarWidth } from './hooks/useSidebarWidth';
 import { useAutoScroll } from './hooks/useAutoScroll';
@@ -83,7 +84,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
     <>
       {isCollapsed && <FloatingToggleButton onClick={() => setIsCollapsed(false)} />}
       
-      <div 
+        <div 
         className={`agent-sidebar-layout-container ${isCollapsed ? 'collapsed' : ''}`}
         style={{
           position: 'fixed',
@@ -96,7 +97,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
           transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
-        <Group direction="horizontal">
+        <Group orientation="horizontal" style={{ height: '100%', width: '100%' }}>
           <Panel style={{ pointerEvents: 'none' }} /> 
           
           <Separator 
@@ -109,83 +110,87 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
             minSize={320} 
             maxSize={1000}
             className="agent-sidebar-container"
-            style={{
+            style={{ 
               pointerEvents: 'auto',
-              backgroundColor: 'var(--agent-bg-main)',
               display: 'flex',
               flexDirection: 'column',
-              overflow: 'hidden',
-              fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-              boxShadow: 'var(--agent-sidebar-shadow)',
+              height: '100%',
+              position: 'relative'
             }}
           >
-            <SidebarHeader 
-              onCollapse={() => setIsCollapsed(true)} 
-              onNewChat={() => { handleNewChat(); setShowHistory(false); setIsExpanding(false); }}
-              onToggleHistory={() => setShowHistory(!showHistory)}
-            />
-
-            {showHistory && (
-              <HistoryPanel 
-                conversations={conversations}
-                currentConversationId={currentConversationId}
-                onSelectConversation={(id) => { handleSelectConversation(id); setShowHistory(false); }}
-                onDeleteConversation={handleDeleteConversation}
-                onClose={() => setShowHistory(false)}
-              />
-            )}
-
+            <GalaxyBackground />
             <div 
-              ref={sidebarContentRef}
-              onScroll={handleScroll}
-              className="agent-scrollbar"
-              style={{
-                overflowY: 'auto',
-                display: 'flex',
-                flexDirection: 'column',
-                flexGrow: hasStarted ? 1 : 0,
-                flexShrink: hasStarted ? 1 : 0,
-                flexBasis: 0,
-                padding: hasStarted ? '12px 16px' : '0',
-                transition: 'flex-grow 0.8s cubic-bezier(0.16, 1, 0.3, 1), padding 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
-              }}
+              className={`agent-panel-inner ${!hasStarted ? 'padded' : ''}`}
+              style={{ flexGrow: 1, zIndex: 1 }}
             >
-              <div className="message-list-wrapper" style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: '24px',
-                opacity: hasStarted ? 1 : 0,
-                transition: 'opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
-                pointerEvents: hasStarted ? 'auto' : 'none',
-                overflow: hasStarted ? 'visible' : 'hidden',
-              }}>
-                <MessageTurns 
-                  messages={messages}
-                  isProcessing={isProcessing}
-                  turnStartTime={turnStartTime}
-                  collapsedTurnIds={collapsedTurnIds}
-                  onToggleTurn={toggleTurn}
-                  collapsedThoughtIds={collapsedThoughtIds}
-                  onToggleThought={toggleThought}
-                  bashSandbox={bashSandbox}
-                  sidebarWidth={sidebarWidth}
-                />
-                <div ref={messagesEndRef} style={{ height: '40px' }} />
-              </div>
-            </div>
-
-            <div className={`chat-footer-wrapper ${!hasStarted ? 'centered' : 'bottom'} ${isExpanding ? 'expanding' : ''}`}>
-              <ChatInput 
-                inputValue={inputValue}
-                setInputValue={setInputValue}
-                isProcessing={isProcessing}
-                onSend={(text) => handleSend(text, setInputValue, setCollapsedTurnIds)}
-                onCancel={handleCancel}
-                inputRef={inputRef}
-                sidebarWidth={sidebarWidth}
-                placeholder="Ask anything, @ to mention, / for SKILL"
-                filesystem={actualFilesystem}
+              <SidebarHeader 
+                onCollapse={() => setIsCollapsed(true)} 
+                onNewChat={() => { handleNewChat(); setShowHistory(false); setIsExpanding(false); }}
+                onToggleHistory={() => setShowHistory(!showHistory)}
               />
+
+              {showHistory && (
+                <HistoryPanel 
+                  conversations={conversations}
+                  currentConversationId={currentConversationId}
+                  onSelectConversation={(id) => { handleSelectConversation(id); setShowHistory(false); }}
+                  onDeleteConversation={handleDeleteConversation}
+                  onClose={() => setShowHistory(false)}
+                />
+              )}
+
+              <div 
+                ref={sidebarContentRef}
+                onScroll={handleScroll}
+                className="agent-scrollbar"
+                style={{
+                  overflowY: 'auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flexGrow: hasStarted ? 1 : 0,
+                  flexShrink: hasStarted ? 1 : 0,
+                  flexBasis: 0,
+                  padding: hasStarted ? '12px 16px' : '0',
+                  transition: 'flex-grow 0.8s cubic-bezier(0.16, 1, 0.3, 1), padding 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+                }}
+              >
+                <div className="message-list-wrapper" style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '24px',
+                  opacity: hasStarted ? 1 : 0,
+                  transition: 'opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+                  pointerEvents: hasStarted ? 'auto' : 'none',
+                  overflow: hasStarted ? 'visible' : 'hidden',
+                }}>
+                  <MessageTurns 
+                    messages={messages}
+                    isProcessing={isProcessing}
+                    turnStartTime={turnStartTime}
+                    collapsedTurnIds={collapsedTurnIds}
+                    onToggleTurn={toggleTurn}
+                    collapsedThoughtIds={collapsedThoughtIds}
+                    onToggleThought={toggleThought}
+                    bashSandbox={bashSandbox}
+                    sidebarWidth={sidebarWidth}
+                  />
+                  <div ref={messagesEndRef} style={{ height: '40px' }} />
+                </div>
+              </div>
+
+              <div className={`chat-footer-wrapper ${!hasStarted ? 'centered' : 'bottom'} ${isExpanding ? 'expanding' : ''}`}>
+                <ChatInput 
+                  inputValue={inputValue}
+                  setInputValue={setInputValue}
+                  isProcessing={isProcessing}
+                  onSend={(text) => handleSend(text, setInputValue, setCollapsedTurnIds)}
+                  onCancel={handleCancel}
+                  inputRef={inputRef}
+                  sidebarWidth={sidebarWidth}
+                  placeholder="Ask anything, @ to mention, / for SKILL"
+                  filesystem={actualFilesystem}
+                />
+              </div>
             </div>
           </Panel>
         </Group>
@@ -193,4 +198,3 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
     </>
   );
 };
-

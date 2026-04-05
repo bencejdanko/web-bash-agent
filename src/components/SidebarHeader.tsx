@@ -16,7 +16,6 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
     <header 
       style={{
         padding: '12px 16px',
-        borderBottom: '1px solid var(--agent-bg-subtle)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
