@@ -161,7 +161,6 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
         <Group orientation="horizontal" style={{ height: '100%', width: '100%' }}>
             {/* Area for Terminal Shelf (on the left of the sidebar) */}
             <Panel 
-              defaultSize={500}
               style={{ 
                 position: 'relative', 
                 pointerEvents: 'none',
@@ -173,7 +172,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                 style={{ 
                   height: '100%', 
                   width: '100%', 
-                  paddingBottom: '20px', // REDUCED PADDING BELOW TERMINAL PANEL
+                  paddingBottom: '0px', 
                   boxSizing: 'border-box',
                   display: 'flex',
                   flexDirection: 'column'
@@ -183,7 +182,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                   <Group orientation="vertical" style={{ height: '100%', width: '100%' }}>
                     <Panel style={{ pointerEvents: 'none' }} />
                     <Separator className="terminal-resize-handle-v" style={{ pointerEvents: 'auto' }} />
-                    <Panel defaultSize={300} minSize={100} className="terminal-shelf-panel" style={{ pointerEvents: 'auto', overflow: 'hidden' }}>
+                    <Panel defaultSize={50} minSize={20} className="terminal-shelf-panel" style={{ pointerEvents: 'auto', overflow: 'hidden' }}>
                       <div className="terminal-shelf-minimal" style={{
                         height: '100%',
                         display: 'flex',
@@ -247,7 +246,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                           
                           <Separator className="terminal-selector-resize-handle" />
                           
-                          <Panel defaultSize={140} minSize={40} style={{ backgroundColor: '#ffffff', borderLeft: '1px solid var(--agent-border-main)', overflow: 'hidden' }}>
+                          <Panel defaultSize={20} minSize={10} style={{ backgroundColor: '#ffffff', borderLeft: '1px solid var(--agent-border-main)', overflow: 'hidden' }}>
                               <div className="terminal-selectors" style={{
                                   height: '100%',
                                   display: 'flex',
@@ -262,6 +261,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                                       <div 
                                           key={t.id} 
                                           onClick={() => setActiveTerminalId(t.id)}
+                                          className="terminal-selector-item"
                                           style={{
                                               fontSize: '11px',
                                               fontFamily: 'JetBrains Mono',
@@ -270,12 +270,38 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                                               justifyContent: 'space-between',
                                               alignItems: 'center',
                                               color: activeTerminalId === t.id ? '#18181b' : '#71717a',
+                                              padding: '4px 6px',
+                                              borderRadius: '4px',
+                                              backgroundColor: activeTerminalId === t.id ? 'var(--agent-bg-subtle)' : 'transparent',
+                                              transition: 'background-color 0.2s',
+                                              gap: '8px'
                                           }}
                                       >
-                                          <CubeIcon />
-                                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                              term-{t.id}
-                                          </span>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+                                              <CubeIcon />
+                                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                  term-{t.id}
+                                              </span>
+                                          </div>
+                                          <button 
+                                              onClick={(e) => { e.stopPropagation(); closeTerminal(t.id); }}
+                                              className="terminal-item-close-btn"
+                                              style={{
+                                                  background: 'none',
+                                                  border: 'none',
+                                                  cursor: 'pointer',
+                                                  padding: '2px',
+                                                  display: 'flex',
+                                                  alignItems: 'center',
+                                                  color: 'inherit',
+                                                  opacity: 0.5,
+                                                  transition: 'opacity 0.2s'
+                                              }}
+                                              onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
+                                              onMouseOut={(e) => e.currentTarget.style.opacity = '0.5'}
+                                          >
+                                              <XIcon size={12} />
+                                          </button>
                                       </div>
                                   ))}
                               </div>

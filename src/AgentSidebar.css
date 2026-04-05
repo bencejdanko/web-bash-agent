@@ -534,3 +534,16 @@
 .chat-input-terminal-btn:hover svg {
   opacity: 1;
 }
+
+.terminal-selector-item:hover {
+    background-color: var(--agent-bg-subtle) !important;
+}
+
+.terminal-selector-item:hover .terminal-item-close-btn {
+    opacity: 0.8;
+}
+
+.terminal-item-close-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+}
