@@ -5,6 +5,7 @@ import { LiveTimer } from './LiveTimer';
 import { ThinkingBlock } from './ThinkingBlock';
 import { TerminalBox } from './TerminalBox';
 import { MarkdownOutput } from './MarkdownOutput';
+import { ThinkingIndicator } from './ThinkingIndicator';
 
 interface AssistantTurnProps {
   responses: Message[];
@@ -103,6 +104,24 @@ export const AssistantTurn: React.FC<AssistantTurnProps> = ({
         }
         return null;
       })}
+      {isLastTurn && isProcessing && (
+        (() => {
+          const lastMsg = responses[responses.length - 1];
+          const isActuallyThinking = lastMsg?.role === 'assistant' && 
+            !(lastMsg.reasoning_content || '').trim() && 
+            !(lastMsg.content || '').trim() && 
+            !lastMsg.tool_calls?.length;
+          
+          if (isActuallyThinking) {
+            return (
+              <div style={{ marginLeft: '12px', marginTop: '8px' }}>
+                <ThinkingIndicator />
+              </div>
+            );
+          }
+          return null;
+        })()
+      )}
     </div>
   );
 };

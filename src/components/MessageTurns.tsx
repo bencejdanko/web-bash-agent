@@ -52,7 +52,7 @@ export const MessageTurns: React.FC<MessageTurnsProps> = ({
               <MarkdownOutput content={turn.user.content || ''} />
             </div>
 
-            {turn.responses.length > 0 && (
+            {turn.responses.length > 0 ? (
               <AssistantTurn 
                 responses={turn.responses}
                 isLastTurn={isLastTurn}
@@ -66,14 +66,16 @@ export const MessageTurns: React.FC<MessageTurnsProps> = ({
                 bashSandbox={bashSandbox}
                 sidebarWidth={sidebarWidth}
               />
+            ) : (
+              isLastTurn && isProcessing && (
+                <div style={{ marginLeft: '12px', marginTop: '16px', marginBottom: '16px' }}>
+                  <ThinkingIndicator />
+                </div>
+              )
             )}
           </React.Fragment>
         );
       })}
-
-      {isProcessing && !messages.some(m => m.role === 'assistant' && (m.content || m.tool_calls)) && (
-        <ThinkingIndicator />
-      )}
     </>
   );
 };
