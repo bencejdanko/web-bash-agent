@@ -138,16 +138,20 @@ export const useAgentChat = (
           m.iterationId === iterId ? { ...assistantMessage } : m
         ));
 
+
         if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
           const toolResults: Message[] = [];
-          
+
+
           for (const toolCall of assistantMessage.tool_calls) {
             if (controller.signal.aborted) break;
-            if (toolCall.function.name === 'bash') {
-              const { command } = JSON.parse(toolCall.function.arguments);
+            
+            const tool = (llmBridge.tools as any[])?.find(t => (t.definition?.function?.name || t.function?.name) === toolCall.function.name);
+            
+            if (tool) {
+              const args = JSON.parse(toolCall.function.arguments);
               
               // Add a placeholder tool result so we can show a loader/timer
-              const toolResultId = `tool-${Date.now()}`;
               const pendingToolResult: Message = {
                 role: 'tool',
                 content: '',
@@ -160,55 +164,57 @@ export const useAgentChat = (
               };
               setMessages(prev => [...prev, pendingToolResult]);
 
-              const result = await bashSandbox.exec(command);
-              
-              if (onFilesystemChange) {
-                onFilesystemChange(bashSandbox.getFilesystem());
+              try {
+                const output = await tool.handler(args, { bashSandbox, llmBridge });
+                
+                if (onFilesystemChange) {
+                  onFilesystemChange(bashSandbox.getFilesystem());
+                }
+
+                // Update the tool result with actual output
+                setMessages(prev => prev.map(m => 
+                  m.role === 'tool' && m.tool_call_id === toolCall.id && m.iterationId === iterId
+                    ? { ...m, content: output || '(no output)', isPending: false }
+                    : m
+                ));
+                
+                toolResults.push({
+                  role: 'tool',
+                  content: output || '(no output)',
+                  tool_call_id: toolCall.id,
+                  name: toolCall.function.name,
+                  iterationId: iterId,
+                  turnId: turnId
+                });
+              } catch (e: any) {
+                const errorOutput = `Error executing tool '${toolCall.function.name}': ${e.message || e}`;
+                setMessages(prev => prev.map(m => 
+                  m.role === 'tool' && m.tool_call_id === toolCall.id && m.iterationId === iterId
+                    ? { ...m, content: errorOutput, isPending: false }
+                    : m
+                ));
+                toolResults.push({
+                  role: 'tool',
+                  content: errorOutput,
+                  tool_call_id: toolCall.id,
+                  name: toolCall.function.name,
+                  iterationId: iterId,
+                  turnId: turnId
+                });
               }
-
-              let output = '';
-              if (result.stdout) output += result.stdout;
-              if (result.stderr) output += result.stderr;
-              if (!output.trim()) output = '(no output)';
-
-              // Update the tool result with actual output
-              setMessages(prev => prev.map(m => 
-                m.role === 'tool' && m.tool_call_id === toolCall.id && m.iterationId === iterId
-                  ? { ...m, content: output, isPending: false }
-                  : m
-              ));
-              
-              toolResults.push({
-                role: 'tool',
-                content: output,
-                tool_call_id: toolCall.id,
-                name: toolCall.function.name,
-                iterationId: iterId,
-                turnId: turnId
-              });
-            } else if (toolCall.function.name === 'load_skill') {
-              const { skill_name } = JSON.parse(toolCall.function.arguments);
-              const skill = (llmBridge as any).skills.find((s: any) => s.name === skill_name);
-              
-              let result = '';
-              if (skill) {
-                result = `Skill loaded: ${skill.name}\n\nInstructions:\n${skill.instructions}`;
-              } else {
-                result = `Error: Skill '${skill_name}' not found.`;
-              }
-
+            } else {
+              const errorOutput = `Error: Tool '${toolCall.function.name}' not found.`;
               setMessages(prev => [...prev, {
                 role: 'tool',
-                content: result,
+                content: errorOutput,
                 tool_call_id: toolCall.id,
                 name: toolCall.function.name,
                 iterationId: iterId,
                 turnId: turnId
               }]);
-
               toolResults.push({
                 role: 'tool',
-                content: result,
+                content: errorOutput,
                 tool_call_id: toolCall.id,
                 name: toolCall.function.name,
                 iterationId: iterId,

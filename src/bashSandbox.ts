@@ -5,13 +5,19 @@
  * Replaces the limited 3-command BashEngine with a real bash shell
  * that supports 80+ commands, pipes, redirections, globs, and more.
  */
-import { Bash, defineCommand } from 'just-bash';
+import { Bash } from 'just-bash';
+import { createSearchCommand } from './commands/search';
+import { createFetchInternalCommand } from './commands/fetch-internal';
+
+
 
 export interface BashSandboxOptions {
   /** Files to pre-load into the virtual filesystem under /site/ */
   files?: Record<string, string>;
   /** Pagefind instance for full-text search */
   pagefind?: any;
+  /** Additional custom commands to add to the bash shell */
+  customCommands?: any[];
 }
 
 export interface ExecResult {
@@ -20,86 +26,6 @@ export interface ExecResult {
   exitCode: number;
 }
 
-/**
- * Create the custom `search` command that wraps Pagefind.
- * This gives the agent full-text search as a natural shell command:
- *   search "my query"
- *   search accessibility | head -5
- */
-function createSearchCommand(pagefind: any) {
-  return defineCommand('search', async (args, _ctx) => {
-    const query = args.join(' ');
-    if (!query) {
-      return {
-        stdout: '',
-        stderr: 'Usage: search <query>\nPerforms full-text search across the entire site.\n',
-        exitCode: 1,
-      };
-    }
-
-    if (!pagefind) {
-      return {
-        stdout: '',
-        stderr: 'search: Pagefind index not loaded. File-based search via grep is still available.\n',
-        exitCode: 1,
-      };
-    }
-
-    try {
-      const result = await pagefind.search(query);
-      if (!result?.results?.length) {
-        return { stdout: 'No results found.\n', stderr: '', exitCode: 0 };
-      }
-
-      const lines = await Promise.all(
-        result.results.slice(0, 8).map(async (r: any) => {
-          const data = await r.data();
-          const title = data.meta?.title || data.url || 'Untitled';
-          const excerpt = (data.excerpt || '').replace(/<[^>]*>/g, '').trim();
-          return `${data.url}\t${title}\n  ${excerpt}`;
-        })
-      );
-
-      return { stdout: lines.join('\n\n') + '\n', stderr: '', exitCode: 0 };
-    } catch (e) {
-      return {
-        stdout: '',
-        stderr: `search: error - ${e}\n`,
-        exitCode: 1,
-      };
-    }
-  });
-}
-
-/**
- * Create a `help` override that includes our custom search command
- * in the available commands listing.
- */
-function createSiteHelpCommand() {
-  return defineCommand('site-help', async (_args, _ctx) => {
-    return {
-      stdout: [
-        'Site Explorer - Virtual Bash Environment',
-        '=========================================',
-        '',
-        'The site content is in /site/. Use standard bash commands to explore:',
-        '',
-        '  ls /site/              List site content',
-        '  find /site -name "*.json"   Find files by pattern',
-        '  cat /site/path/file    Read a file',
-        '  grep -r "term" /site/  Search within files',
-        '  cat file.json | jq .   Parse JSON',
-        '',
-        'Custom commands:',
-        '  search <query>         Full-text search via Pagefind',
-        '  site-help              Show this help',
-        '',
-      ].join('\n'),
-      stderr: '',
-      exitCode: 0,
-    };
-  });
-}
 
 export function normalizeSitePath(path: string): string {
   if (path.startsWith('/site/')) return path;
@@ -119,41 +45,53 @@ export class BashSandbox {
       }
     }
 
-    // Add a welcome README
-    this.files['/site/README.md'] = [
-      '# Site Content',
-      '',
-      'This virtual filesystem contains the site\'s content.',
-      'Use standard bash commands to explore.',
-      '',
-      'Try: ls, find, cat, grep, jq',
-      'For full-text search: search "your query"',
-      'For help: site-help',
-    ].join('\n');
-
-    // Build custom commands
-    const customCommands = [
+    // Build core commands
+    const coreCommands = [
       createSearchCommand(options.pagefind),
-      createSiteHelpCommand(),
+      createFetchInternalCommand(),
     ];
+
+    // Merge with user-provided custom commands
+    const allCommands = [...coreCommands, ...(options.customCommands || [])];
 
     this.bash = new Bash({
       files: this.files,
       cwd: '/site',
-      customCommands,
+      customCommands: allCommands,
     });
+
+
   }
+
 
   /**
    * Execute a bash command in the virtual environment.
    * Returns stdout, stderr, and exit code.
    */
+
   async exec(command: string): Promise<ExecResult> {
     try {
       const result = await this.bash.exec(command);
+      
+
+      const decode = (val: any) => {
+        if (!val) return '';
+        if (typeof val === 'string') return val;
+        
+        // Handle Uint8Array, Buffer, or array of numbers
+        if (val instanceof Uint8Array || (val && val.constructor && val.constructor.name === 'Uint8Array') || Array.isArray(val)) {
+            try {
+                return new TextDecoder().decode(Uint8Array.from(val));
+            } catch (e) {
+                return String(val);
+            }
+        }
+        return String(val);
+      };
+
       return {
-        stdout: result.stdout || '',
-        stderr: result.stderr || '',
+        stdout: decode(result.stdout),
+        stderr: decode(result.stderr),
         exitCode: result.exitCode ?? 0,
       };
     } catch (e) {

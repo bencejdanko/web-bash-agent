@@ -1,46 +1,95 @@
-import { useRef } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { BashSandbox } from '../bashSandbox';
 import { LlmBridge } from '../llmBridge';
-import { AgentSidebarProps } from '../types';
+import { AgentSidebarProps, ModelConfig } from '../types';
 import { discoverSkills } from '../skills';
+import { registry } from '../registry';
 
-export const useAgentInitialization = (props: AgentSidebarProps) => {
-  const bashSandboxRef = useRef<BashSandbox | null>(null);
-  const llmBridgeRef = useRef<LlmBridge | null>(null);
+export const useAgentInitialization = (props: AgentSidebarProps, currentModelConfig: ModelConfig) => {
+  const [bashSandbox, setBashSandbox] = useState<BashSandbox | null>(null);
+  const [llmBridge, setLlmBridge] = useState<LlmBridge | null>(null);
+  const [skills, setSkills] = useState<any[]>([]);
+  const [isInitializing, setIsInitializing] = useState(true);
 
-  if (!bashSandboxRef.current) {
-    const pf = typeof window !== 'undefined' ? (window as any).pagefind : null;
-    bashSandboxRef.current = props.bashSandbox || new BashSandbox({
-      files: props.filesystem || {},
-      pagefind: pf,
-    });
-  }
+  // 1. Initialize Skills and Sandbox (Stable)
+  useEffect(() => {
+    const initSandbox = async () => {
+      try {
+        const discoveredSkills = props.skills || discoverSkills(props.filesystem || {});
+        setSkills(discoveredSkills);
 
-  if (!llmBridgeRef.current) {
-    const bridge = props.llmBridge || new LlmBridge({
-      apiKey: props.apiKey || '',
-      baseURL: 'https://openrouter.ai/api/v1',
-      dangerouslyAllowBrowser: true,
-    }, props.model || 'openai/gpt-4o-mini');
+        const skillContext = { skills: discoveredSkills };
+        const pagefindContext = { pagefind: typeof window !== 'undefined' ? (window as any).pagefind : null };
 
-    // Discover skills from filesystem if not explicitly provided
-    const skills = props.skills || discoverSkills(props.filesystem || {});
-    bridge.setSkills(skills);
-    llmBridgeRef.current = bridge;
-  }
+        // Build Tools
+        const toolConfigs = [{ type: 'bash' }, { type: 'load-skill' }];
+        const finalTools: any[] = [];
+        for (const config of toolConfigs) {
+          const result = await registry.getTool(config, skillContext);
+          if (Array.isArray(result)) finalTools.push(...result);
+          else if (result) finalTools.push(result);
+        }
 
+        // Build Commands
+        const customCommands: any[] = [];
+        const commandConfigs = props.customBashCommands || [];
+        for (const config of commandConfigs) {
+          const cmd = await registry.getCommand(config, pagefindContext);
+          if (Array.isArray(cmd)) customCommands.push(...cmd);
+          else if (cmd) customCommands.push(cmd);
+        }
 
-  const bashSandbox = bashSandboxRef.current;
-  const llmBridge = llmBridgeRef.current;
+        const sandbox = props.bashSandbox || new BashSandbox({
+          files: props.filesystem || {},
+          pagefind: pagefindContext.pagefind,
+          customCommands
+        });
 
-  if (!bashSandbox || !llmBridge) {
-    throw new Error('Initialization failed');
-  }
+        setBashSandbox(sandbox);
+        
+        // Initial bridge creation if not exists
+        if (!llmBridge && currentModelConfig) {
+          const bridge = props.llmBridge || new LlmBridge({
+            apiKey: currentModelConfig.apiKey,
+            model: currentModelConfig.id, // Using ID as the model string for the API
+            systemPrompt: props.systemPrompt,
+            baseURL: currentModelConfig.endpoint,
+            dangerouslyAllowBrowser: true,
+            tools: finalTools
+          });
+          setLlmBridge(bridge);
+        } else if (llmBridge) {
+          // Update tools if they changed
+          llmBridge.setTools(finalTools);
+        }
+
+      } catch (error) {
+        console.error('Sandbox initialization failed:', error);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    initSandbox();
+  }, [props.filesystem, props.customBashCommands]); // Only re-init sandbox if these change
+
+  // 2. Update Bridge (model, systemPrompt)
+  useEffect(() => {
+    if (llmBridge && currentModelConfig) {
+        llmBridge.updateConfig({
+            apiKey: currentModelConfig.apiKey,
+            endpoint: currentModelConfig.endpoint,
+            model: currentModelConfig.id
+        });
+        llmBridge.setSystemPrompt(props.systemPrompt);
+    }
+  }, [currentModelConfig, props.systemPrompt]);
+
 
   return {
     bashSandbox,
     llmBridge,
-    skills: llmBridge.skills
+    skills,
+    isInitializing
   };
 };
-

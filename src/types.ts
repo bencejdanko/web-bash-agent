@@ -29,14 +29,41 @@ export interface AgentSkill {
     metadata?: Record<string, string>;
 }
 
+export type ToolConfig = 
+    | { type: 'bash' }
+    | { type: 'load-skill' }
+    | { type: 'mcp'; serverUrl: string }
+    | { type: string; [key: string]: any } // Generic serializable config
+    | any; // Allow passing full AgentTool object directly (client-side)
+
+export type BashCommandConfig =
+    | { type: 'mcp'; serverUrl: string; toolName: string }
+    | { type: string; [key: string]: any } // Generic serializable config
+    | any; // Allow passing full Command object directly (client-side)
+
+
+export interface ModelConfig {
+    id: string;
+    name: string;
+    endpoint: string;
+    apiKey: string;
+}
+
 export interface AgentSidebarProps {
     bashSandbox?: any;
     llmBridge?: any;
-    apiKey?: string;
-    model?: string;
+    
+    models: ModelConfig[];
+    initialModelId?: string;
+
+    systemPrompt: string;
     filesystem?: Record<string, string>;
     reasoningEffort?: 'low' | 'medium' | 'high';
+
     includeThinking?: boolean;
     skills?: AgentSkill[];
+    // Can be explicit BashCommandConfig objects (serializable) OR full Command objects (client-side)
+    customBashCommands?: (BashCommandConfig | any)[];
 }
+
 

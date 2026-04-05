@@ -16,7 +16,8 @@ import { useHistoryPersistence } from './hooks/useHistoryPersistence';
 import { useAgentChat } from './hooks/useAgentChat';
 import { useAgentInitialization } from './hooks/useAgentInitialization';
 import { useEffect } from 'react';
-import { XIcon, CubeIcon } from './components/Icons';
+import { XIcon, CubeIcon, HammerIcon, MCPIcon, EllipsisIcon, FileIcon } from './components/Icons';
+import { InfoPanel } from './components/InfoPanel';
 
 import './AgentSidebar.css';
 
@@ -38,6 +39,8 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
   const [transitionStatus, setTransitionStatus] = useState<'none' | 'closing' | 'opening'>('none');
   const [collapsedTurnIds, setCollapsedTurnIds] = useState<string[]>([]);
   const [collapsedThoughtIds, setCollapsedThoughtIds] = useState<string[]>([]);
+  const [currentModelId, setCurrentModelId] = useState(props.initialModelId || props.models[0]?.id);
+  const currentModelConfig = props.models.find(m => m.id === currentModelId) || props.models[0];
   
   const sidebarContentRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -46,10 +49,10 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
   const [actualFilesystem, setActualFilesystem] = useState<Record<string, string>>({});
   const [terminals, setTerminals] = useState<{ id: string; command?: string; output?: string }[]>([]);
   const [activeTerminalId, setActiveTerminalId] = useState<string | null>(null);
+  const [activeInfoPanel, setActiveInfoPanel] = useState<'tools' | 'mcp' | 'system' | null>(null);
 
   // Initialize sandbox and LLM bridge
-  const { bashSandbox, llmBridge, skills } = useAgentInitialization(props);
-
+  const { bashSandbox, llmBridge, skills, isInitializing } = useAgentInitialization(props, currentModelConfig);
 
   // Sync filesystem whenever sandbox is initialized or props change
   React.useEffect(() => {
@@ -100,6 +103,7 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
     (files) => setActualFilesystem(files)
   );
 
+
   const toggleTurn = (turnId: string) => {
     setCollapsedTurnIds(prev => prev.includes(turnId) ? prev.filter(id => id !== turnId) : [...prev, turnId]);
   };
@@ -110,8 +114,10 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
 
   useEffect(() => {
     // Initial slide-in on load
-    handleOpen();
-  }, []);
+    if (!isInitializing) {
+        handleOpen();
+    }
+  }, [isInitializing]);
 
   const handleCollapse = () => {
     setIsCollapsed(true);
@@ -141,6 +147,26 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
         return next;
     });
   };
+
+  if (isInitializing) {
+    return (
+        <div className="agent-sidebar-loading" style={{
+            position: 'fixed',
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: '400px',
+            backgroundColor: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            borderLeft: '1px solid var(--agent-border-main)'
+        }}>
+            <div className="loading-spinner">Initializing Agent...</div>
+        </div>
+    );
+  }
 
   return (
     <>
@@ -341,8 +367,11 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                 >
                   <SidebarHeader 
                     onCollapse={handleCollapse} 
-                    onNewChat={() => { handleNewChat(); setShowHistory(false); setIsExpanding(false); }}
-                    onToggleHistory={() => setShowHistory(!showHistory)}
+                    onNewChat={() => { handleNewChat(); setShowHistory(false); setIsExpanding(false); setActiveInfoPanel(null); }}
+                    onToggleHistory={() => { setShowHistory(!showHistory); setActiveInfoPanel(null); }}
+                    onToggleTools={() => { setActiveInfoPanel(activeInfoPanel === 'tools' ? null : 'tools'); setShowHistory(false); }}
+                    onToggleRegistry={() => { setActiveInfoPanel(activeInfoPanel === 'mcp' ? null : 'mcp'); setShowHistory(false); }}
+                    onToggleSystem={() => { setActiveInfoPanel(activeInfoPanel === 'system' ? null : 'system'); setShowHistory(false); }}
                   />
 
                   {showHistory && (
@@ -353,6 +382,108 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                       onDeleteConversation={handleDeleteConversation}
                       onClose={() => setShowHistory(false)}
                     />
+                  )}
+
+                  {activeInfoPanel === 'tools' && (
+                    <InfoPanel title="Agent Tools & Skills" onClose={() => setActiveInfoPanel(null)}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        <section>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {llmBridge?.tools.map((tool: any, i: number) => {
+                              const def = tool.definition?.function || tool;
+                              return (
+                                <div 
+                                  key={i} 
+                                  style={{ 
+                                    padding: '12px', 
+                                    backgroundColor: 'var(--agent-bg-subtle)', 
+                                    borderRadius: '8px', 
+                                    border: '1px solid var(--agent-border-main)',
+                                    transition: 'all 0.2s ease-out',
+                                    cursor: 'default'
+                                  }}
+                                  onMouseOver={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'var(--agent-bg-main)';
+                                    e.currentTarget.style.boxShadow = 'var(--agent-card-shadow)';
+                                    e.currentTarget.style.borderColor = 'var(--agent-border-dark)';
+                                  }}
+                                  onMouseOut={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'var(--agent-bg-subtle)';
+                                    e.currentTarget.style.boxShadow = 'none';
+                                    e.currentTarget.style.borderColor = 'var(--agent-border-main)';
+                                  }}
+                                >
+                                  <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--agent-text-main)', marginBottom: '4px', fontFamily: 'JetBrains Mono' }}>
+                                    {def.name}
+                                  </div>
+                                  <div style={{ fontSize: '12px', color: 'var(--agent-text-muted)', lineHeight: '1.5' }}>
+                                    {def.description}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </section>
+                      </div>
+                    </InfoPanel>
+                  )}
+
+                  {activeInfoPanel === 'mcp' && (
+                    <InfoPanel title="MCP" onClose={() => setActiveInfoPanel(null)}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ padding: '16px', backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: '12px', border: '1px dashed var(--agent-border-main)', textAlign: 'center' }}>
+                          <MCPIcon size={24} />
+                          <div style={{ fontSize: '13px', color: 'var(--agent-text-muted)' }}>
+                            Registering dynamic tools and MCP endpoints
+                          </div>
+                        </div>
+                        
+                        <section>
+                           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                             {(props.customBashCommands || []).filter((c: any) => c.type === 'mcp' || c.type === 'mcp-server').length === 0 ? (
+                               <div style={{ fontSize: '12px', color: 'var(--agent-text-muted)', fontStyle: 'italic', padding: '0 8px' }}>
+                                 No MCP extensions configured.
+                               </div>
+                             ) : (
+                               (props.customBashCommands || []).map((cmd: any, i: number) => (
+                                 <div key={i} style={{ padding: '12px', backgroundColor: 'var(--agent-bg-subtle)', borderRadius: '8px', border: '1px solid var(--agent-border-main)' }}>
+                                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                     <span style={{ fontWeight: 600, fontSize: '12px', color: 'var(--agent-text-main)', fontFamily: 'JetBrains Mono' }}>{cmd.type}</span>
+                                     <span style={{ fontSize: '10px', color: 'var(--agent-accent)', backgroundColor: 'var(--agent-accent-alpha)', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>Active</span>
+                                   </div>
+                                   <div style={{ fontSize: '11px', color: 'var(--agent-text-dim)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                     {cmd.serverUrl || 'Internal Registry'}
+                                   </div>
+                                 </div>
+                               ))
+                             )}
+                           </div>
+                        </section>
+                      </div>
+                    </InfoPanel>
+                  )}
+
+                  {activeInfoPanel === 'system' && (
+                    <InfoPanel title="System Information" onClose={() => setActiveInfoPanel(null)}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        <section>
+                          <div style={{ 
+                            padding: '12px', 
+                            backgroundColor: '#1e1e1e', 
+                            color: '#d4d4d4', 
+                            borderRadius: '8px', 
+                            fontSize: '11px', 
+                            fontFamily: 'JetBrains Mono', 
+                            lineHeight: '1.6',
+                            maxHeight: '300px',
+                            overflowY: 'auto',
+                            whiteSpace: 'pre-wrap'
+                          }}>
+                            {props.systemPrompt}
+                          </div>
+                        </section>
+                      </div>
+                    </InfoPanel>
                   )}
 
                   <div 
@@ -408,6 +539,9 @@ export const AgentSidebar: React.FC<AgentSidebarProps> = (props) => {
                       filesystem={actualFilesystem}
                       skills={skills}
                       onOpenTerminal={() => openTerminal()}
+                      models={props.models}
+                      currentModelId={currentModelId}
+                      onModelChange={setCurrentModelId}
                     />
 
                   </div>

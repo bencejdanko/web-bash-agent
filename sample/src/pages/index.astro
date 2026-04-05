@@ -1,8 +1,51 @@
 ---
-import { AgentSidebar } from 'pagefind-bash-agent-astro';
+import { AgentSidebar, getAgentContextFilesystem } from 'pagefind-bash-agent-astro';
+import path from 'node:path';
 
-// In a real app, you'd use import.meta.env.OPENROUTER_TOKEN
+// 1. Resolve standardized paths
+const repoRoot = path.join(process.cwd(), '../'); 
+const agentsDir = path.join(repoRoot, '.agents');
+const pagefindIndexDir = path.join(process.cwd(), 'dist/pagefind');
+const buildDir = path.join(process.cwd(), 'dist');
+
+// 2. Gather the virtual filesystem (metadata + index)
+const realFilesystem: Record<string, string> = getAgentContextFilesystem({
+    agentsDir,
+    pagefindIndexDir,
+    buildDir
+});
+
+// 3. Extract the system prompt explicitly for total transparency
+const systemPrompt = realFilesystem['/.agents/system_prompt.txt'];
+
+// 4. Configuration for testing (Per-model credentials)
 const OPENROUTER_TOKEN = "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";
+const MODELS = [
+    {
+        id: "nvidia/nemotron-3-super-120b-a12b:free",
+        name: "Nemotron 3 Super",
+        endpoint: "https://openrouter.ai/api/v1",
+        apiKey: OPENROUTER_TOKEN
+    },
+    {
+        id: "google/gemini-2.0-flash-exp:free",
+        name: "Gemini 2.0 Flash",
+        endpoint: "https://openrouter.ai/api/v1",
+        apiKey: OPENROUTER_TOKEN
+    },
+    {
+        id: "meta-llama/llama-3.3-70b-instruct:free",
+        name: "Llama 3.3 70B",
+        endpoint: "https://openrouter.ai/api/v1",
+        apiKey: OPENROUTER_TOKEN
+    },
+    {
+        id: "deepseek/deepseek-r1:free",
+        name: "DeepSeek R1",
+        endpoint: "https://openrouter.ai/api/v1",
+        apiKey: OPENROUTER_TOKEN
+    }
+];
 ---
 
 <html lang="en">
@@ -11,55 +54,40 @@ const OPENROUTER_TOKEN = "sk-or-v1-e9f58721cb4261422ac9f2558ae60379fc7091633d18e
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Astro Test Page</title>
-        <script is:inline type="module" src="/pagefind/pagefind.js"></script>
+		<title>Astro Real Test Page (Modular Agent)</title>
+        <script is:inline>
+            (async () => {
+                try {
+                    const pagefind = await import("/pagefind/pagefind.js");
+                    window.pagefind = pagefind;
+                    console.log("Pagefind loaded and attached to window.");
+                } catch (e) {
+                    console.warn("Pagefind index not found. Agent search will be disabled until site is built.");
+                }
+            })();
+        </script>
 	</head>
 	<body style="font-family: sans-serif; padding: 2rem; max-width: 800px; margin: 0 auto; background: #f9fafb;">
 		<div>
-            <h1>Pagefind Bash Agent Test</h1>
-            <p>This is a test page for the <code>pagefind-bash-agent-astro</code> package.</p>
+            <h1>Modular Pagefind Bash Agent</h1>
+            <p>This is a test page using the new <strong>Modular Architecture</strong>.</p>
             
             <div style="margin-top: 2rem;">
-                <h2>Sample Projects</h2>
+                <h2>Internal Search and Skills</h2>
+                <p>The agent below uses built-in Pagefind search and discoverable skills.</p>
                 <ul>
-                    <li><a href="/api/projects/tldraw-astro.json">TLDraw Astro JSON API</a></li>
-                    <li><a href="/api/projects/bash-agent.json">Bash Agent Astro JSON API</a></li>
+                    <li>Files loaded: {Object.keys(realFilesystem).length}</li>
                 </ul>
-            </div>
-
-            <div style="margin-top: 2rem;">
-                <h2>How to test</h2>
-                <ol>
-                    <li>Click on the Agent button on the right.</li>
-                    <li>Ask: "What projects are documented here?"</li>
-                    <li>The agent will use bash commands to explore.</li>
-                </ol>
             </div>
         </div>
 
 		<AgentSidebar 
             client:only="react" 
-            apiKey={OPENROUTER_TOKEN} 
-            model="nvidia/nemotron-3-super-120b-a12b:free"
-            filesystem={{
-                "/projects/tldraw-astro.json": JSON.stringify({
-                    name: "TLDraw Astro",
-                    description: "An Astro integration for interactive tldraw diagrams. Allows embedding .tldr files in Markdown content with automatic rendering and hot-reload support.",
-                    tech: ["TypeScript", "Astro", "tldraw", "React"],
-                    status: "stable",
-                    features: ["Hot reload on .tldr save", "Content collection integration", "VS Code extension"]
-                }, null, 2),
-                "/projects/bash-agent.json": JSON.stringify({
-                    name: "Pagefind Bash Agent",
-                    description: "An AI-powered site exploration agent that uses a virtual bash shell to navigate and search site content. Integrates Pagefind for full-text search.",
-                    tech: ["TypeScript", "Astro", "React", "just-bash", "Pagefind"],
-                    status: "beta",
-                    features: ["Virtual bash environment", "Pagefind search integration", "Agentic sidebar UI"]
-                }, null, 2),
-                "/about.md": "# About This Site\n\nThis is a portfolio and documentation site for open-source projects by Bence.\n\n## Projects\n\nSee the /projects directory for detailed project information.\n",
-                "/.agents/skills/web-search/SKILL.md": "---\nname: web-search\ndescription: Search the web for information using a search engine.\n---\n\n# Web Search Skill\n\nUse this skill whenever you need information that is not documented in the local codebase.\n\n1. Formulate a search query.\n2. In a real environment, you'd use a web tool. Here, just explain what you'd search for.\n3. Summarize the intended results.\n"
-            }}
-
+            models={MODELS}
+            initialModelId={MODELS[0].id}
+            systemPrompt={systemPrompt}
+            filesystem={realFilesystem}
         />
+
 	</body>
 </html>

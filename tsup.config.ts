@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: ['index.ts'],
   format: ['esm', 'cjs'],
-  dts: false, // Disabling DTS for now to allow dev workflow to proceed
+  dts: true, // Enabling DTS to provide better typing support to consumers
   clean: true,
   minify: true,
   sourcemap: true,

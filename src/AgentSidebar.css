@@ -155,15 +155,15 @@
   padding: 20px;
 }
 
-.chat-footer-wrapper.centered .chat-input-container {
+.chat-footer-wrapper.centered .chat-input-inner-wrapper {
   width: 100%;
   max-width: 340px;
   flex-shrink: 0;
   transition: max-width var(--agent-transition-duration) var(--agent-transition-smooth);
 }
 
-.chat-footer-wrapper.expanding .chat-input-container,
-.chat-footer-wrapper.bottom .chat-input-container {
+.chat-footer-wrapper.expanding .chat-input-inner-wrapper,
+.chat-footer-wrapper.bottom .chat-input-inner-wrapper {
   width: 100%;
   max-width: 100%;
   flex-shrink: 0;

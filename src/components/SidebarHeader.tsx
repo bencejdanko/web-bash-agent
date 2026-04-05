@@ -1,16 +1,21 @@
-import React from 'react';
-import { ChevronRight, PlusIcon, HistoryIcon } from './Icons';
+import { ChevronRight, PlusIcon, HistoryIcon, HammerIcon, MCPIcon, EllipsisIcon } from './Icons';
 
 interface SidebarHeaderProps {
   onCollapse: () => void;
   onNewChat: () => void;
   onToggleHistory: () => void;
+  onToggleTools: () => void;
+  onToggleRegistry: () => void;
+  onToggleSystem: () => void;
 }
 
 export const SidebarHeader: React.FC<SidebarHeaderProps> = ({ 
   onCollapse, 
   onNewChat, 
-  onToggleHistory 
+  onToggleHistory,
+  onToggleTools,
+  onToggleRegistry,
+  onToggleSystem
 }) => {
   return (
     <header 
@@ -76,6 +81,84 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
               title="Past conversations"
           >
               <HistoryIcon />
+          </button>
+          <button 
+              onClick={onToggleTools}
+              style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  color: 'var(--agent-text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '6px',
+                  transition: 'all 0.2s',
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--agent-bg-subtle)';
+                e.currentTarget.style.color = 'var(--agent-text-subtle)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = 'var(--agent-text-muted)';
+              }}
+              title="Agent Tools & Skills"
+          >
+              <HammerIcon size={18} />
+          </button>
+          <button 
+              onClick={onToggleRegistry}
+              style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  color: 'var(--agent-text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '6px',
+                  transition: 'all 0.2s',
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--agent-bg-subtle)';
+                e.currentTarget.style.color = 'var(--agent-text-subtle)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = 'var(--agent-text-muted)';
+              }}
+              title="MCP"
+          >
+              <MCPIcon size={18} />
+          </button>
+          <button 
+              onClick={onToggleSystem}
+              style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  color: 'var(--agent-text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '6px',
+                  transition: 'all 0.2s',
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--agent-bg-subtle)';
+                e.currentTarget.style.color = 'var(--agent-text-subtle)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = 'var(--agent-text-muted)';
+              }}
+              title="System Information"
+          >
+              <EllipsisIcon size={18} />
           </button>
           <button 
               onClick={onCollapse}

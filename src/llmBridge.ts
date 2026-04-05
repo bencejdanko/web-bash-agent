@@ -4,88 +4,61 @@ import { AgentSkill } from './types';
 export class LlmBridge {
   private openai: OpenAI;
   private model: string;
-  public skills: AgentSkill[] = [];
 
 
-  constructor(options: any, model: string = 'openai/gpt-4o-mini') {
-    this.openai = new OpenAI(options);
+  private systemPromptOverride: string | null = null;
+
+  public tools: any[] = []; // Can hold full AgentTool objects
+
+  constructor(options: { 
+    apiKey: string; 
+    baseURL?: string; 
+    dangerouslyAllowBrowser?: boolean;
+    model: string;
+    systemPrompt: string;
+    tools?: any[];
+  }) {
+    this.openai = new OpenAI({
+      apiKey: options.apiKey,
+      baseURL: options.baseURL,
+      dangerouslyAllowBrowser: options.dangerouslyAllowBrowser,
+    });
+    this.model = options.model;
+    this.systemPromptOverride = options.systemPrompt;
+    this.tools = options.tools || [];
+  }
+
+  updateConfig(config: { apiKey: string; endpoint: string; model: string }) {
+    this.openai = new OpenAI({
+      apiKey: config.apiKey,
+      baseURL: config.endpoint,
+      dangerouslyAllowBrowser: true,
+    });
+    this.model = config.model;
+  }
+
+  setModel(model: string) {
     this.model = model;
   }
 
-  setSkills(skills: AgentSkill[]) {
-    this.skills = skills;
+  setTools(tools: any[]) {
+    this.tools = tools;
+  }
+
+  setSystemPrompt(prompt: string) {
+    this.systemPromptOverride = prompt;
   }
 
   getToolDefinitions() {
-    const tools: any[] = [
-      {
-        type: 'function',
-        function: {
-          name: 'bash',
-          description: [
-            'Run a bash command in the virtual shell environment.',
-            'The site content is in /site/. You start in /site/.',
-            'All standard bash commands are available: ls, cat, grep, find, head, tail, jq, wc, sort, awk, sed, etc.',
-            'Pipes (|), redirections (>, >>), globs (*.json), and chaining (&&, ||) all work.',
-            'Use `search "query"` for full-text search across the entire site via Pagefind.',
-          ].join(' '),
-          parameters: {
-            type: 'object',
-            properties: {
-              command: {
-                type: 'string',
-                description: 'The bash command to execute.',
-              },
-            },
-            required: ['command'],
-          },
-        },
-      },
-    ];
-
-    if (this.skills.length > 0) {
-      tools.push({
-        type: 'function',
-        function: {
-          name: 'load_skill',
-          description: 'Load the full instructions and documentation for a specific skill.',
-          parameters: {
-            type: 'object',
-            properties: {
-              skill_name: {
-                type: 'string',
-                enum: this.skills.map(s => s.name),
-                description: 'The name of the skill to load.',
-              },
-            },
-            required: ['skill_name'],
-          },
-        },
-      });
-    }
-
-    return tools;
+    // OpenAI ONLY wants the definition part.
+    return this.tools.map(t => t.definition || t);
   }
 
   getSystemPrompt() {
-    let skillContext = '';
-    if (this.skills.length > 0) {
-      skillContext = `\n\nAvailable Skills:\n` + this.skills.map(s => `- ${s.name}: ${s.description}`).join('\n') + `\n\nIf the user types a slash command like '/skill-name', it means they want you to use that specific skill. You MUST call 'load_skill' immediately to get the instructions for that skill.`;
+    if (!this.systemPromptOverride) {
+        throw new Error('System prompt not configured');
     }
-
-
-    return `You are a helpful assistant that explores a website's content through a bash shell.
-
-You have access to a full bash environment. The site's files are available under /site/ (your starting directory).
-
-Quick reference:
-- ls, find: discover files and directories
-- cat, head, tail: read file contents
-- grep -r "term" .: search within files
-- jq: parse and query JSON files
-- search "query": full-text search across the entire site (powered by Pagefind)${skillContext}
-
-Explore the filesystem to answer user questions. Be concise and helpful.`;
+    return this.systemPromptOverride;
   }
 
   async *streamChat(messages: any[], options: { reasoning_effort?: 'low' | 'medium' | 'high', include_thinking?: boolean, signal?: AbortSignal } = {}) {
