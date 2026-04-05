@@ -1,19 +1,28 @@
 {
   "name": "pagefind-bash-agent-astro",
   "version": "1.0.0",
-  "description": "",
+  "type": "module",
+  "description": "True Astro Integration for Pagefind Bash Agent",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
-    }
+      "import": "./dist/index.js"
+    },
+    "./integration": {
+      "types": "./dist/integration.d.ts",
+      "import": "./dist/integration.js"
+    },
+    "./AgentIsland": {
+      "import": "./dist/AgentIsland.js"
+    },
+    "./dist/*": "./dist/*"
   },
   "files": [
-    "dist"
+    "dist",
+    "integration.ts"
   ],
   "scripts": {
     "build": "tsup",
@@ -21,9 +30,6 @@
     "test": "vitest run",
     "lint": "tsc --noEmit"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "packageManager": "pnpm@10.28.0",
   "dependencies": {
     "@chenglou/pretext": "^0.0.4",
@@ -37,7 +43,10 @@
     "react-resizable-panels": "^4.9.0",
     "remark-gfm": "^4.0.1"
   },
+  "peerDependencies": {},
   "devDependencies": {
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

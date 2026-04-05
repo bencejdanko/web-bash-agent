@@ -85,6 +85,7 @@
   pointer-events: none;
   z-index: 9998;
   transition: transform var(--agent-transition-duration-slide) var(--agent-transition-smooth);
+  font-family: 'Inter', sans-serif;
 }
 
 .agent-sidebar-layout-container.collapsed {
@@ -99,6 +100,7 @@
   display: flex;
   flex-direction: column;
   overflow: visible !important;
+  font-family: 'Inter', sans-serif;
 }
 
 .agent-panel-inner {
@@ -118,6 +120,7 @@
   height: 100%;
   box-sizing: border-box;
   z-index: 1;
+  font-family: 'Inter', sans-serif;
 }
 
 .agent-panel-inner.padded {

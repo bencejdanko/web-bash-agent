@@ -1,13 +1,19 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['index.ts'],
-  format: ['esm', 'cjs'],
-  dts: true, // Enabling DTS to provide better typing support to consumers
-  clean: true,
-  minify: true,
+  entry: {
+    index: 'index.ts',
+    integration: 'integration.ts',
+    AgentIsland: 'src/AgentIsland.tsx',
+  },
+  format: ['esm'],
+  dts: true, 
+  splitting: false,
+  clean: false,
+  minify: false,
   sourcemap: true,
-  external: ['react', 'react-dom', 'astro', 'just-bash', 'react-resizable-panels'],
+  external: ['react', 'react-dom', 'astro', 'just-bash', 'react-resizable-panels', 'openai'],
   treeshake: true,
   injectStyle: true,
+  outDir: 'dist',
 });
