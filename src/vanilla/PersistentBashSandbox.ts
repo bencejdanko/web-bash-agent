@@ -3,6 +3,7 @@ import {
     type ExecResult,
     type IFileSystem,
 } from 'just-bash/browser';
+export type { ExecResult, IFileSystem };
 import { createSearchCommand } from '../commands/search';
 import { createFetchInternalCommand } from '../commands/fetch-internal';
 
@@ -122,8 +123,7 @@ export class PersistentBashSandbox {
     }
 
     getCwd(): string {
-        // Return the actual shell's CWD
-        return this.bash.getCwd();
+        return this.currentCwd;
     }
 
     getEnv(): Record<string, string> {
