@@ -124,7 +124,8 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
                 command: activeTerminal.command || 'bash',
                 output: activeTerminal.output,
                 bashSandbox: this.props.bashSandbox,
-                isMinimal: false
+                isMinimal: false,
+                hideHeader: true
             };
 
             if (!termBox) {

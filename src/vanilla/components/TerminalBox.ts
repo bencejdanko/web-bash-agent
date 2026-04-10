@@ -13,6 +13,7 @@ interface TerminalBoxProps {
   startTime?: number;
   onOpenExternal?: () => void;
   isMinimal?: boolean;
+  hideHeader?: boolean;
 }
 
 export class TerminalBox extends BaseComponent<TerminalBoxProps> {
@@ -246,7 +247,7 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
     render() {
         if (!this.initialized) {
             this.element.innerHTML = `
-                ${!this.props.isMinimal ? `
+                ${(!this.props.isMinimal && !this.props.hideHeader) ? `
                     <div class="terminal-header">
                         <div style="display: flex; align-items: center; gap: 8px">
                             <span>${this.props.isPending ? 'Running command...' : 'Ran command'}</span>
