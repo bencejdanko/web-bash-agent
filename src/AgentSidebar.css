@@ -130,26 +130,42 @@
   background-color: var(--agent-bg-dark);
   z-index: 10001;
   pointer-events: auto;
-}
-
-.top-accent-icon-container {
-  position: absolute;
-  top: 0;
-  right: 12px;
-  width: var(--agent-top-header-height);
-  height: var(--agent-top-header-height);
-  cursor: pointer;
-  color: var(--agent-text-on-dark);
-  z-index: 10002;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.8;
-  transition: opacity 0.2s ease;
 }
 
-.top-accent-icon-container:hover {
+.top-accent-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+  height: 100%;
+  padding: 0 12px;
+}
+
+.top-accent-toggle:hover {
   opacity: 1;
+}
+
+.top-accent-text {
+  color: var(--agent-text-on-dark);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  user-select: none;
+}
+
+.top-accent-icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--agent-top-header-icon-size);
+  height: var(--agent-top-header-icon-size);
+  color: var(--agent-text-on-dark);
 }
 
 .gutter {

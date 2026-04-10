@@ -122,8 +122,11 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         // Initial setup of structural elements
         this.element.innerHTML = `
             <div id="top-accent-header" class="top-accent-header">
-                <div class="top-accent-icon-container">
-                    ${SidePanelRightIcon('var(--agent-top-header-icon-size)')}
+                <div id="top-accent-toggle" class="top-accent-toggle">
+                    <span class="top-accent-text">Toggle Agent</span>
+                    <div class="top-accent-icon-container">
+                        ${SidePanelRightIcon('var(--agent-top-header-icon-size)')}
+                    </div>
                 </div>
             </div>
             <div class="agent-sidebar-container">
@@ -139,8 +142,8 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             </div>
         `;
 
-        // Add click listener for the top accent icon
-        this.query('.top-accent-icon-container')?.addEventListener('click', () => {
+        // Add click listener for the top accent toggle control
+        this.query('#top-accent-toggle')?.addEventListener('click', () => {
             this.store.setState({ isCollapsed: !this.store.getState().isCollapsed });
         });
 
