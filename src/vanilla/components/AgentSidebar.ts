@@ -233,7 +233,7 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
 
         // Overlays
         const overlayRoot = this.query<HTMLElement>('#overlay-root')!;
-
+        
         // Handle History Panel
         if (state.showHistory) {
             const historyProps = {

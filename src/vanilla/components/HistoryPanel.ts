@@ -45,7 +45,7 @@ export class HistoryPanel extends BaseComponent<HistoryPanelProps> {
 
     init() {
         this.element.innerHTML = `
-            <div class="history-overlay-content" style="width: 100%; height: 100%; display: flex; flex-direction: column; background-color: transparent; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)">
+            <div class="history-overlay-content" style="display: flex; flex-direction: column; background-color: transparent; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); height: 100%">
                 <header style="padding: 16px 20px; border-bottom: 1px solid var(--agent-bg-subtle); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background: var(--agent-header-glass)">
                     <span style="font-weight: 600; font-size: 15px; color: var(--agent-text-main)">Past conversations</span>
                     <button id="history-close" style="background: none; border: none; cursor: pointer; font-size: 22px; color: var(--agent-text-muted); display: flex; align-items: center; justify-content: center; padding: 4px; line-height: 1">&times;</button>
@@ -54,13 +54,6 @@ export class HistoryPanel extends BaseComponent<HistoryPanelProps> {
             </div>
         `;
 
-        const handleClickOutside = (e: MouseEvent) => {
-            const target = e.target as HTMLElement;
-            if (!target.closest('.history-overlay-content')) {
-                this.props.onClose();
-            }
-        };
-        this.element.addEventListener('mousedown', handleClickOutside);
         this.query('#history-close')?.addEventListener('click', this.props.onClose);
         this.render();
     }
