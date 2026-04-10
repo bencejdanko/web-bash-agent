@@ -516,14 +516,6 @@
     flex-direction: column;
 }
 
-.terminal-list-header {
-    padding: 10px 12px;
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--agent-text-muted);
-    letter-spacing: 0.05em;
-}
-
 .terminal-list {
     flex: 1;
     overflow-y: auto;

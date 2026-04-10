@@ -88,7 +88,6 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
                         <div id="active-terminal-root" style="height: 100%"></div>
                     </div>
                     <div class="terminal-window-right">
-                        <div class="terminal-list-header">SESSIONS</div>
                         <div class="terminal-list agent-scrollbar">
                             ${this.props.terminals.map(t => `
                                 <div class="terminal-list-item ${t.id === this.props.activeTerminalId ? 'active' : ''}" data-id="${t.id}">
