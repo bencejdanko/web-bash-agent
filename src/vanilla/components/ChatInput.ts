@@ -53,7 +53,7 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
                 <div id="suggestion-popup" style="display: none; position: absolute; bottom: 100%; left: 0; right: 0; margin-bottom: 8px; background: var(--agent-bg-main); border: 1px solid var(--agent-border-main); border-radius: 12px; box-shadow: var(--agent-shadow-float); z-index: 2000; overflow: hidden; color: var(--agent-text-main); font-family: inherit">
                 </div>
                 <div class="chat-input-container">
-                    <textarea id="chat-textarea" aria-label="Message assistant..." placeholder="${this.props.placeholder || 'Ask anything, @ to mention, / for skills'}" style="width: 100%; box-sizing: border-box; padding: var(--agent-input-padding); padding-bottom: 8px; border: none; background-color: transparent; color: var(--agent-text-main); font-size: 14px; outline: none; resize: none; min-height: 48px; max-height: 200px; line-height: 1.5; font-family: inherit; overflow-y: auto"></textarea>
+                    <textarea id="chat-textarea" aria-label="Message assistant..." placeholder="${this.props.placeholder || 'Ask anything, @ to mention, / for skills'}" style="width: 100%; box-sizing: border-box; padding: var(--agent-input-padding); border: none; background-color: transparent; color: var(--agent-text-main); font-size: 13px; outline: none; resize: none; min-height: 48px; max-height: 200px; line-height: 1.5; font-family: inherit; overflow-y: auto"></textarea>
                     <div id="input-controls" style="position: absolute; right: 10px; bottom: 10px; display: flex; align-items: center; gap: 8px">
                     </div>
                 </div>

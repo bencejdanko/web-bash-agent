@@ -44,7 +44,7 @@
   /* Layout & Spacing */
   --agent-panel-padding: 20px;
   --agent-input-gap: 16px;
-  --agent-input-padding: 16px;
+  --agent-input-padding: 12px 16px;
   --agent-header-height: 56px;
   --agent-radius-tiny: 4px;
   --agent-radius-small: 8px;
@@ -297,6 +297,27 @@
   height: 100%;
 }
 
+.message-list-wrapper {
+  position: relative;
+}
+
+.message-list-wrapper::before {
+  content: "";
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(to bottom, 
+    var(--agent-bg-main) 0%, 
+    var(--agent-bg-main) 50px, 
+    transparent 100%);
+  z-index: 40;
+  pointer-events: none;
+  flex-shrink: 0;
+  margin-bottom: -120px;
+}
+
 .terminal-header {
   background: #ffffff;
   padding: 6px 12px;
@@ -316,14 +337,14 @@
   padding: var(--agent-input-padding);
   border-radius: var(--agent-radius-large);
   color: var(--agent-text-main);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.5;
   width: 100%;
   box-sizing: border-box;
   position: sticky;
-  top: 12px;
-  z-index: 30;
-  margin-bottom: 16px;
+  top: 8px;
+  z-index: 50;
+  margin-bottom: 12px;
 }
 
 .chat-turn {
@@ -373,7 +394,7 @@
 }
 
 .markdown-output {
-    font-size: 14px;
+    font-size: 13px;
     line-height: 1.6;
     color: var(--agent-text-main);
 }
