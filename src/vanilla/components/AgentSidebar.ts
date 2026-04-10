@@ -165,7 +165,6 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         });
 
         this.header = new SidebarHeader({
-            onCollapse: () => this.store.setState({ isCollapsed: true }),
             onNewChat: () => this.historyLogic.handleNewChat(),
             onToggleHistory: () => this.store.setState(s => ({ showHistory: !s.showHistory, activeInfoPanel: null })),
             onToggleTools: () => this.store.setState(s => ({ activeInfoPanel: s.activeInfoPanel === 'tools' ? null : 'tools', showHistory: false })),

@@ -2,7 +2,6 @@ import { BaseComponent } from '../BaseComponent';
 import { ChevronRight, PlusIcon, HistoryIcon, HammerIcon, MCPIcon, EllipsisIcon } from './Icons';
 
 interface SidebarHeaderProps {
-  onCollapse: () => void;
   onNewChat: () => void;
   onToggleHistory: () => void;
   onToggleTools: () => void;
@@ -31,7 +30,6 @@ export class SidebarHeader extends BaseComponent<SidebarHeaderProps> {
                 <button id="btn-tools" title="Agent Tools & Skills" class="header-btn">${HammerIcon(18)}</button>
                 <button id="btn-mcp" title="MCP" class="header-btn">${MCPIcon(18)}</button>
                 <button id="btn-system" title="System Information" class="header-btn">${EllipsisIcon(18)}</button>
-                <button id="btn-collapse" aria-label="Collapse sidebar" class="header-btn">${ChevronRight()}</button>
             </div>
         `;
 
@@ -63,6 +61,5 @@ export class SidebarHeader extends BaseComponent<SidebarHeaderProps> {
         this.query('#btn-tools')?.addEventListener('click', this.props.onToggleTools);
         this.query('#btn-mcp')?.addEventListener('click', this.props.onToggleRegistry);
         this.query('#btn-system')?.addEventListener('click', this.props.onToggleSystem);
-        this.query('#btn-collapse')?.addEventListener('click', this.props.onCollapse);
     }
 }

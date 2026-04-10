@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
   /* Backgrounds */
@@ -154,7 +154,7 @@
 .top-accent-text {
   color: var(--agent-text-on-dark);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 300;
   letter-spacing: 0.05em;
   user-select: none;
 }
