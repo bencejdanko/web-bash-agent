@@ -8,9 +8,11 @@ import { AgentSidebarProps } from '../../types';
 import { SidebarHeader } from './SidebarHeader';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
-import { SidePanelRightIcon } from './Icons';
+import { SidePanelRightIcon, PlusIcon } from './Icons';
 import { InfoPanel } from './InfoPanel';
 import { HistoryPanel } from './HistoryPanel';
+import { TerminalWindow } from './TerminalWindow';
+import { TerminalBox } from './TerminalBox';
 
 
 // Import CSS to ensure it's bundled
@@ -31,6 +33,7 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
     private chatInput: ChatInput | null = null;
     private historyPanel: HistoryPanel | null = null;
     private infoPanel: InfoPanel | null = null;
+    private terminalWindow: TerminalWindow | null = null;
     private splitInstance: any = null;
 
     private bashSandbox: any = null;
@@ -61,7 +64,8 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             isInitializing: true,
             isCollapsed: savedState.isCollapsed !== undefined ? savedState.isCollapsed : true,
             sidebarSizes: savedState.sidebarSizes || [70, 30],
-            skills: props.skills || []
+            skills: props.skills || [],
+            showTerminalWindow: false
         };
 
         this.store = new Store(initialState);
@@ -122,10 +126,19 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         // Initial setup of structural elements
         this.element.innerHTML = `
             <div id="top-accent-header" class="top-accent-header">
-                <div id="top-accent-toggle" class="top-accent-toggle">
-                    <span class="top-accent-text">Toggle Agent</span>
-                    <div class="top-accent-icon-container">
-                        ${SidePanelRightIcon('var(--agent-top-header-icon-size)')}
+                <div style="display: flex; align-items: center; gap: 0">
+                    <div id="top-accent-toggle" class="top-accent-toggle">
+                        <span class="top-accent-text">Toggle Agent</span>
+                        <div class="top-accent-icon-container">
+                            ${SidePanelRightIcon('var(--agent-top-header-icon-size)')}
+                        </div>
+                    </div>
+                    <div class="header-divider" style="width: 1px; height: 16px; background: rgba(255,255,255,0.1); margin: 0 4px"></div>
+                    <div id="terminal-window-toggle" class="top-accent-toggle">
+                        <span class="top-accent-text">New Terminal</span>
+                        <div class="top-accent-icon-container">
+                            ${PlusIcon(14)}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -140,11 +153,20 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
                     <div id="overlay-root" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 100"></div>
                 </div>
             </div>
+            <div id="global-overlay-root" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 10002"></div>
         `;
 
         // Add click listener for the top accent toggle control
         this.query('#top-accent-toggle')?.addEventListener('click', () => {
             this.store.setState({ isCollapsed: !this.store.getState().isCollapsed });
+        });
+
+        this.query('#terminal-window-toggle')?.addEventListener('click', () => {
+            const state = this.store.getState();
+            if (!state.showTerminalWindow && state.terminals.length === 0) {
+                this.handleAddTerminal();
+            }
+            this.store.setState({ showTerminalWindow: !state.showTerminalWindow });
         });
 
         // Initialize Split.js
@@ -202,6 +224,19 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
 
         // Initial render to reflect state
         this.render();
+    }
+
+    private handleAddTerminal() {
+        const id = `term-${Date.now()}`;
+        this.store.setState(s => ({
+            terminals: [...s.terminals, { id, command: 'bash' }],
+            activeTerminalId: id,
+            showTerminalWindow: true
+        }));
+    }
+
+    private handleSelectTerminal(id: string) {
+        this.store.setState({ activeTerminalId: id });
     }
 
     render() {
@@ -335,6 +370,30 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         } else if (this.infoPanel) {
             this.infoPanel.getElement().remove();
             this.infoPanel = null;
+        }
+
+        // Handle Terminal Window
+        const globalOverlayRoot = this.query<HTMLElement>('#global-overlay-root')!;
+        if (state.showTerminalWindow) {
+            const termProps = {
+                terminals: state.terminals,
+                activeTerminalId: state.activeTerminalId,
+                onSelectTerminal: (id: string) => this.handleSelectTerminal(id),
+                onAddTerminal: () => this.handleAddTerminal(),
+                onClose: () => this.store.setState({ showTerminalWindow: false }),
+                bashSandbox: this.bashSandbox
+            };
+
+            if (!this.terminalWindow) {
+                this.terminalWindow = new TerminalWindow(termProps);
+                this.terminalWindow.init();
+                globalOverlayRoot.appendChild(this.terminalWindow.getElement());
+            } else {
+                this.terminalWindow.update(termProps);
+            }
+        } else if (this.terminalWindow) {
+            this.terminalWindow.getElement().remove();
+            this.terminalWindow = null;
         }
 
         // Sidebar is now always docked

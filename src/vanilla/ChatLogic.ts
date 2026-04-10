@@ -21,6 +21,7 @@ export interface AgentState {
     isCollapsed: boolean;
     sidebarSizes: number[];
     skills: any[];
+    showTerminalWindow: boolean;
 }
 
 export class ChatLogic {
