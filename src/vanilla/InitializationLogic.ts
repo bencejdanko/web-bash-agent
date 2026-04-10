@@ -1,4 +1,4 @@
-import { BashSandbox } from '../bashSandbox';
+import { PersistentBashSandbox } from './PersistentBashSandbox';
 import { LlmBridge } from '../llmBridge';
 import { AgentSidebarProps, ModelConfig } from '../types';
 import { discoverSkills } from '../skills';
@@ -9,7 +9,7 @@ import { AgentState } from './ChatLogic';
 export class InitializationLogic {
     private store: Store<AgentState>;
     private props: AgentSidebarProps;
-    private bashSandbox: BashSandbox | null = null;
+    private bashSandbox: PersistentBashSandbox | null = null;
     private llmBridge: LlmBridge | null = null;
 
     constructor(store: Store<AgentState>, props: AgentSidebarProps) {
@@ -45,10 +45,11 @@ export class InitializationLogic {
                 else if (cmd) customCommands.push(cmd);
             }
 
-            this.bashSandbox = this.props.bashSandbox || new BashSandbox({
+            this.bashSandbox = this.props.bashSandbox as any || new PersistentBashSandbox({
                 files: this.props.filesystem || {},
                 pagefind: pagefindContext.pagefind,
-                customCommands
+                customCommands,
+                normalizePaths: true
             });
 
             const defaultHeaders: Record<string, string> = {};
@@ -69,10 +70,12 @@ export class InitializationLogic {
                 defaultHeaders
             });
 
-            this.store.setState({ 
-                isInitializing: false,
-                actualFilesystem: this.bashSandbox.getFilesystem()
-            });
+            if (this.bashSandbox) {
+                this.store.setState({ 
+                    isInitializing: false,
+                    actualFilesystem: this.bashSandbox.getFilesystem()
+                });
+            }
 
             return {
                 bashSandbox: this.bashSandbox,

@@ -3,25 +3,33 @@ import {
     type ExecResult,
     type IFileSystem,
 } from 'just-bash/browser';
+import { createSearchCommand } from '../commands/search';
+import { createFetchInternalCommand } from '../commands/fetch-internal';
 
 // Internal types from just-bash 
 export interface BashExecResult extends ExecResult {
     env: Record<string, string>;
 }
 
-// Internal types from just-bash (manually mapped since they might not be exported in the browser bundle)
-// We'll try to use the ones from 'just-bash' if available, or just use 'any' for the complex state for now.
-
 export interface PersistentBashOptions {
     files?: Record<string, string>;
+    fs?: IFileSystem;
     cwd?: string;
     env?: Record<string, string>;
     customCommands?: any[];
+    pagefind?: any;
+    normalizePaths?: boolean;
+}
+
+export function normalizeSitePath(path: string): string {
+    if (path.startsWith('/site/')) return path;
+    if (path === '/site') return '/site/';
+    return `/site${path.startsWith('/') ? '' : '/'}${path}`;
 }
 
 /**
- * A stateful version of BashSandbox that preserves CWD, variables, and functions 
- * between executions.
+ * A unified, stateful version of BashSandbox that preserves CWD, variables, 
+ * and functions between executions.
  */
 export class PersistentBashSandbox {
     private bash: Bash;
@@ -39,12 +47,45 @@ export class PersistentBashSandbox {
             ...options.env 
         };
 
+        // Prepare files (with optional normalization)
+        let initialFiles = options.files || {};
+        if (options.normalizePaths) {
+            const normalized: Record<string, string> = {};
+            for (const [path, content] of Object.entries(initialFiles)) {
+                normalized[normalizeSitePath(path)] = content;
+            }
+            initialFiles = normalized;
+        }
+
+        // Build core commands (Pagefind + Internal Fetch)
+        const coreCommands = [
+            createSearchCommand(options.pagefind),
+            createFetchInternalCommand(),
+        ];
+        const allCommands = [...coreCommands, ...(options.customCommands || [])];
+
         this.bash = new Bash({
-            files: options.files,
+            files: initialFiles,
+            fs: options.fs,
             cwd: this.currentCwd,
             env: this.currentEnv,
-            customCommands: options.customCommands,
+            customCommands: allCommands,
         });
+    }
+
+    private decode(val: any): string {
+        if (!val) return '';
+        if (typeof val === 'string') return val;
+        
+        // Handle Uint8Array, Buffer, or array of numbers
+        if (val instanceof Uint8Array || (val && val.constructor && val.constructor.name === 'Uint8Array') || Array.isArray(val)) {
+            try {
+                return new TextDecoder().decode(Uint8Array.from(val));
+            } catch (e) {
+                return String(val);
+            }
+        }
+        return String(val);
     }
 
     /**
@@ -52,8 +93,6 @@ export class PersistentBashSandbox {
      */
     async exec(command: string): Promise<ExecResult> {
         try {
-            // We use the standard Bash.exec but pass the current state
-            // and capture the new state returned in BashExecResult.
             const result = await (this.bash.exec(command, {
                 cwd: this.currentCwd,
                 env: this.currentEnv
@@ -61,52 +100,62 @@ export class PersistentBashSandbox {
 
             // Update persistent state
             if (result.env) {
-                this.currentEnv = { ...result.env };
-                // Capture new CWD from PWD env var which bash updates automatically
+                this.currentEnv = { ...this.currentEnv, ...result.env };
+                // Capture new CWD from PWD env var
                 if (result.env.PWD) {
                     this.currentCwd = result.env.PWD;
                 }
             }
 
             return {
-                stdout: result.stdout,
-                stderr: result.stderr,
-                exitCode: result.exitCode
+                stdout: this.decode(result.stdout),
+                stderr: this.decode(result.stderr),
+                exitCode: result.exitCode ?? 0
             };
         } catch (e: any) {
             return {
                 stdout: '',
-                stderr: `Error: ${e.message || e}\n`,
+                stderr: `Runtime Error: ${e.message || e}\n`,
                 exitCode: 127
             };
         }
     }
 
     getCwd(): string {
-        return this.currentCwd;
+        // Return the actual shell's CWD
+        return this.bash.getCwd();
     }
 
     getEnv(): Record<string, string> {
         return { ...this.currentEnv };
     }
 
-    getFilesystem(): IFileSystem {
+    getFilesystem(): Record<string, string> {
+        // Compatibility snapshot for agent mentions
+        const fs = this.bash.fs as any;
+        if (typeof fs.getAllPaths === 'function') {
+            const paths = fs.getAllPaths();
+            const result: Record<string, string> = {};
+            paths.forEach((p: string) => { result[p] = '[file]'; });
+            return result;
+        }
+        return {};
+    }
+
+    get fs(): IFileSystem {
         return this.bash.fs;
     }
 
     /**
      * Basic tab completion for files in the current directory.
-     * In a more advanced version, we'd use 'just-bash' internal completion logic.
      */
     async getCompletions(line: string): Promise<string[]> {
         const parts = line.split(/\s+/);
         const lastPart = parts[parts.length - 1] || '';
         
-        // Very basic: just list files in CWD matching the prefix
         try {
-            const files = await this.bash.exec(`ls -a`, { cwd: this.currentCwd, env: this.currentEnv });
-            const allFiles = files.stdout.split('\n').map(f => f.trim()).filter(f => f && f !== '.' && f !== '..');
-            return allFiles.filter(f => f.startsWith(lastPart));
+            const entries = await this.bash.fs.readdir(this.currentCwd);
+            return entries.filter(e => e.startsWith(lastPart));
         } catch {
             return [];
         }

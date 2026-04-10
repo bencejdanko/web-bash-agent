@@ -40,9 +40,14 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
 
         // For interactive sessions, we need a persistent sandbox
         if (!this.props.isMinimal && !this.persistentSandbox) {
+            const sandbox = this.props.bashSandbox;
+            const fs = sandbox?.fs; 
+            const files = sandbox?.getFilesystem?.();
+            
             this.persistentSandbox = new PersistentBashSandbox({
                 env: { TERM: 'xterm-256color' },
-                files: this.props.bashSandbox?.getFilesystem?.() || {}
+                fs: (fs && typeof fs.exists === 'function') ? fs : undefined,
+                files: (files && typeof files === 'object' && !files.exists) ? files : {}
             });
         }
 
