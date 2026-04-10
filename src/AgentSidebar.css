@@ -229,6 +229,12 @@
   flex-shrink: 0;
 }
 
+.chat-footer-wrapper.centered {
+  flex: 1;
+  padding: var(--agent-panel-padding);
+  justify-content: center;
+}
+
 .chat-footer-wrapper.bottom {
   flex-grow: 0;
   flex-shrink: 0;

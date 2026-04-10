@@ -341,7 +341,15 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         const panelInner = this.query<HTMLElement>('.agent-panel-inner')!;
         panelInner.classList.remove('padded');
 
+        const messageListRoot = this.query<HTMLElement>('#message-list-root')!;
         const footerWrapper = this.query<HTMLElement>('#chat-input-root')!;
-        footerWrapper.className = 'chat-footer-wrapper bottom';
+        
+        if (state.messages.length === 0) {
+            messageListRoot.style.display = 'none';
+            footerWrapper.className = 'chat-footer-wrapper centered';
+        } else {
+            messageListRoot.style.display = 'block';
+            footerWrapper.className = 'chat-footer-wrapper bottom';
+        }
     }
 }
