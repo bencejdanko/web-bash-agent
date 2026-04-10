@@ -98,7 +98,7 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
     }
 
     private async handleKey(data: string) {
-        if (!this.terminal) return;
+        if (!this.terminal || this.isExecuting || this.props.isMinimal) return;
 
         if (data === '\r') { // Enter
             this.terminal.write('\r\n');
@@ -108,7 +108,7 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
                 this.historyIndex = -1;
                 await this.executeManualCommand(cmd);
             } else {
-                this.terminal.write(this.getPrompt());
+                this.writePrompt();
             }
             this.inputBuffer = '';
             this.cursorPosition = 0;
@@ -118,7 +118,6 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
                 const after = this.inputBuffer.slice(this.cursorPosition);
                 this.inputBuffer = before + after;
                 this.cursorPosition--;
-                
                 this.terminal.write('\b');
                 this.terminal.write(after + ' '); 
                 for (let i = 0; i < after.length + 1; i++) this.terminal.write('\b');
@@ -169,7 +168,7 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
             this.inputBuffer = '';
             this.cursorPosition = 0;
             this.historyIndex = -1;
-            this.terminal.write(this.getPrompt());
+            this.writePrompt();
         } else { // Handle printable chars (including multi-char pastes)
             for (const char of data) {
                 if (char.charCodeAt(0) >= 32) {
@@ -177,9 +176,8 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
                     const after = this.inputBuffer.slice(this.cursorPosition);
                     this.inputBuffer = before + char + after;
                     this.cursorPosition += char.length;
-                    
                     this.terminal.write(char + after);
-                    for (let i = 0; i < after.length; i++) this.terminal.write('\b');
+                    for (let n = 0; n < after.length; n++) this.terminal.write('\b');
                 }
             }
         }
@@ -203,27 +201,41 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
         const cmd = command.trim();
         if (cmd === 'clear') {
             this.terminal.clear();
-            this.terminal.write(this.getPrompt());
+            this.writePrompt();
             return;
         }
 
         this.isExecuting = true;
         try {
             const result = await sandbox.exec(command);
-            if (result.stdout) this.terminal.write(result.stdout.replace(/\n/g, '\r\n'));
-            if (result.stderr) this.terminal.write(`\x1b[31m${result.stderr.replace(/\n/g, '\r\n')}\x1b[0m`);
+            if (result.stdout) this.writeOutput(result.stdout);
+            if (result.stderr) this.writeOutput(result.stderr, true);
             if (result.stdout && !result.stdout.endsWith('\n')) this.terminal.write('\r\n');
         } catch (e: any) {
-            this.terminal.write(`\x1b[31mError: ${e.message || e}\x1b[0m\r\n`);
+            this.writeOutput(`Error: ${e.message || e}`, true);
         }
         this.isExecuting = false;
-        this.terminal.write(this.getPrompt());
+        this.writePrompt();
     }
 
     private getPrompt() {
-        const cwd = this.persistentSandbox?.getCwd() || this.props.bashSandbox?.getCwd?.() || '/site';
+        const sandbox = this.persistentSandbox || this.props.bashSandbox;
+        const cwd = sandbox?.getCwd?.() || '/site';
         const displayCwd = cwd === '/site' ? '~' : cwd.replace('/site', '~').replace(/\/$/, '');
         return `\x1b[32muser@agent\x1b[0m:\x1b[34m${displayCwd}\x1b[0m$ `;
+    }
+
+    private writePrompt() {
+        this.terminal?.write(this.getPrompt());
+    }
+
+    private writeOutput(text: string, isError = false) {
+        const formatted = text.replace(/\n/g, '\r\n');
+        this.terminal?.write(isError ? `\x1b[31m${formatted}\x1b[0m` : formatted);
+    }
+
+    private writeCommandLine(command: string) {
+        this.terminal?.writeln(`${this.getPrompt().trim()} ${command}`);
     }
 
     render() {
@@ -260,39 +272,50 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
         const term = this.terminal;
         if (!term) return;
 
-        if (this.props.isMinimal || !this.persistentSandbox) {
+        // Determine if we need to full-reset or just show initial state
+        const isInteractive = !this.props.isMinimal && this.persistentSandbox;
+        
+        if (!isInteractive) {
             if (this.props.output !== this.lastOutput || this.props.isPending) {
-                term.reset();
-                if (this.props.command && this.props.command !== 'bash') {
-                    term.writeln(`\x1b[32m$\x1b[0m ${this.props.command}`);
-                }
-                if (this.props.isPending) {
-                    term.write('\r\n\x1b[2mProcessing...\x1b[0m');
-                } else if (this.props.output) {
-                    const outputLines = this.props.output.split('\n');
-                    outputLines.forEach((line, idx) => {
-                        const prefix = idx === outputLines.length - 1 ? '\x1b[2m└\x1b[0m ' : '\x1b[2m│\x1b[0m ';
-                        term.writeln(`${prefix} ${line}`);
-                    });
-                    term.write(this.getPrompt());
-                } else {
-                    term.write(this.getPrompt());
-                }
+                this.refreshStaticContent();
                 this.lastOutput = this.props.output;
             }
-        } else {
-            if (this.lastOutput === undefined) {
-                term.reset();
-                if (this.props.command && this.props.command !== 'bash') {
-                    term.writeln(`\x1b[32m$\x1b[0m ${this.props.command}`);
-                    if (this.props.output) {
-                        term.write(this.props.output.replace(/\n/g, '\r\n'));
-                        if (!this.props.output.endsWith('\n')) term.write('\r\n');
-                    }
-                }
-                term.write(this.getPrompt());
-                this.lastOutput = this.props.output || '';
+        } else if (this.lastOutput === undefined) {
+             this.refreshStaticContent();
+             this.lastOutput = this.props.output || '';
+        }
+    }
+
+    private refreshStaticContent() {
+        const term = this.terminal;
+        if (!term) return;
+
+        term.reset();
+        
+        // 1. Initial Command
+        if (this.props.command && this.props.command !== 'bash') {
+            this.writeCommandLine(this.props.command);
+        }
+
+        // 2. Output or Pending State
+        if (this.props.isPending) {
+            term.write('\r\n\x1b[2mProcessing...\x1b[0m');
+        } else if (this.props.output) {
+            if (this.props.isMinimal) {
+                // Historical view with decorative prefixes
+                const lines = this.props.output.split('\n');
+                lines.forEach((line, idx) => {
+                    const prefix = idx === lines.length - 1 ? '\x1b[2m└\x1b[0m ' : '\x1b[2m│\x1b[0m ';
+                    term.writeln(`${prefix} ${line}`);
+                });
+            } else {
+                // Interactive starting view
+                this.writeOutput(this.props.output);
+                if (!this.props.output.endsWith('\n')) term.write('\r\n');
             }
+            this.writePrompt();
+        } else {
+            this.writePrompt();
         }
     }
 
