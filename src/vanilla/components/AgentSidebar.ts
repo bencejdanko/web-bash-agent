@@ -15,6 +15,7 @@ import { TerminalBox } from './TerminalBox';
 
 // Import CSS to ensure it's bundled
 import '../../AgentSidebar.css';
+import Split from 'split.js';
 
 
 export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
@@ -29,6 +30,7 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
     private messageList: MessageList | null = null;
     private chatInput: ChatInput | null = null;
     private toggleBtn: FloatingToggleButton | null = null;
+    private splitInstance: any = null;
 
     private bashSandbox: any = null;
     private llmBridge: any = null;
@@ -88,19 +90,36 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
     init() {
         // Initial setup of structural elements
         this.element.innerHTML = `
-            <div class="agent-sidebar-container" style="pointer-events: auto; display: flex; flex-direction: column; height: 100%; position: relative">
-                <div class="agent-panel-inner" style="flex-grow: 1; z-index: 1; display: flex; flex-direction: column; overflow: hidden">
+            <div class="agent-sidebar-container" style="pointer-events: auto; display: flex; flex-direction: row; width: 100vw; height: 100vh; position: relative">
+                <div id="sidebar-spacer" style="flex-grow: 1; pointer-events: none"></div>
+                <div id="sidebar-main" class="agent-panel-inner" style="z-index: 1; display: flex; flex-direction: column; overflow: hidden; position: relative">
                     <div id="header-root"></div>
                     <div id="content-root" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative">
-
                         <div id="message-list-root" style="flex: 1; overflow: hidden"></div>
                         <div id="chat-input-root"></div>
                     </div>
+                    <div id="overlay-root" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 100"></div>
                 </div>
             </div>
-            <div id="overlay-root"></div>
             <div id="floating-btn-root" style="position: fixed; right: 24px; bottom: 24px; z-index: 9999"></div>
         `;
+
+        // Initialize Split.js
+        const spacer = this.query('#sidebar-spacer')!;
+        const main = this.query('#sidebar-main')!;
+
+        this.splitInstance = Split([spacer, main], {
+            sizes: [70, 30],
+            minSize: [0, 320],
+            gutterSize: 8,
+            cursor: 'col-resize',
+            direction: 'horizontal',
+            onDrag: () => {
+                // Update message list width if needed
+                const width = main.getBoundingClientRect().width;
+                this.messageList?.update({ sidebarWidth: width });
+            }
+        });
 
         this.header = new SidebarHeader({
             onCollapse: () => this.store.setState({ isCollapsed: true }),
@@ -152,10 +171,14 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
 
         const state = this.store.getState();
 
+        const gutter = this.query('.gutter');
         if (state.isCollapsed) {
             this.element.classList.add('collapsed');
+            if (gutter) (gutter as HTMLElement).style.display = 'none';
         } else {
             this.element.classList.remove('collapsed');
+            // Only show gutter if it's not in the "padded" introductory state
+            if (gutter) (gutter as HTMLElement).style.display = state.hasStarted ? 'block' : 'none';
         }
 
         // Update subcomponents

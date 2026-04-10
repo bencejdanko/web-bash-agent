@@ -39,7 +39,8 @@
     "just-bash": "^2.14.0",
     "marked": "12.0.0",
     "marked-highlight": "2.2.1",
-    "openai": "^6.33.0"
+    "openai": "^6.33.0",
+    "split.js": "^1.6.5"
   },
   "devDependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
