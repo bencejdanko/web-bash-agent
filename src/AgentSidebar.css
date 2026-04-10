@@ -510,7 +510,7 @@
 }
 
 .terminal-window-right {
-    width: 180px;
+    width: 150px;
     background-color: var(--agent-bg-subtle);
     display: flex;
     flex-direction: column;
@@ -519,19 +519,20 @@
 .terminal-list {
     flex: 1;
     overflow-y: auto;
-    padding: 0 4px 8px 4px;
+    padding: 0;
 }
 
 .terminal-list-item {
-    padding: 8px 10px;
+    padding: 6px 12px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     cursor: pointer;
     border-radius: 0;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
     white-space: nowrap;
     overflow: hidden;
+    border-bottom: 1px solid rgba(0,0,0,0.03);
 }
 
 .terminal-window-container .terminal-box {
@@ -544,8 +545,7 @@
 
 .terminal-list-item.active {
     background-color: var(--agent-bg-main);
-    border: 1px solid var(--agent-border-main);
-    box-shadow: var(--agent-shadow-subtle);
+    box-shadow: inset 2px 0 0 var(--agent-accent);
 }
 
 .terminal-name {

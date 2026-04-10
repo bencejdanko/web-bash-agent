@@ -92,13 +92,12 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
                         <div class="terminal-list agent-scrollbar">
                             ${this.props.terminals.map(t => `
                                 <div class="terminal-list-item ${t.id === this.props.activeTerminalId ? 'active' : ''}" data-id="${t.id}">
-                                    <div style="display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden">
-                                        ${CubeIcon(12)}
-                                        <span class="terminal-name">bash</span>
-                                        <span class="terminal-id">[${t.id.slice(0, 8)}]</span>
+                                    <div style="display: flex; align-items: center; gap: 4px; flex: 1; overflow: hidden; opacity: 0.8">
+                                        <span class="terminal-name" style="font-family: 'JetBrains Mono'; font-size: 11px">bash</span>
+                                        <span class="terminal-id" style="font-size: 10px; opacity: 0.6">[${t.id.slice(0, 4)}]</span>
                                     </div>
                                     <button class="delete-terminal-btn" data-id="${t.id}" title="Delete session">
-                                        ${XIcon(12)}
+                                        ${XIcon(10)}
                                     </button>
                                 </div>
                             `).join('')}
