@@ -26,7 +26,7 @@ export function getFilesystem(baseDir: string, skip: string[] = ['node_modules',
                 } else if (entry.isFile()) {
                     // Include text files and Pagefind metadata
                     const ext = path.extname(entry.name).toLowerCase();
-                    const textExtensions = ['.md', '.mdx', '.json', '.txt', '.astro', '.ts', '.tsx', '.js', '.jsx', '.pf_meta', '.pf_fragment'];
+                    const textExtensions = ['.md', '.mdx', '.json', '.txt', '.astro', '.ts', '.tsx', '.js', '.jsx', '.yaml', '.yml'];
                     
                     if (textExtensions.includes(ext)) {
                         try {

@@ -1,4 +1,4 @@
-export { AgentSidebar } from './src/AgentSidebar';
+export { AgentSidebar } from './src/vanilla/components/AgentSidebar';
 export { BashSandbox } from './src/bashSandbox';
 export { LlmBridge } from './src/llmBridge';
 export { getFilesystem, getAgentContextFilesystem } from './src/filesystem';

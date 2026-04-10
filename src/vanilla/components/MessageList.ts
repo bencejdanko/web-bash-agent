@@ -1,0 +1,150 @@
+import { BaseComponent } from '../BaseComponent';
+import { Message } from '../../types';
+import { renderMarkdown } from '../markdown';
+import { Collapsible } from './Collapsible';
+import { TerminalBox } from './TerminalBox';
+import { BotIcon } from './Icons';
+
+interface MessageListProps {
+    messages: Message[];
+    isProcessing: boolean;
+    turnStartTime: number | null;
+    collapsedTurnIds: string[];
+    collapsedThoughtIds: string[];
+    onToggleTurn: (id: string) => void;
+    onToggleThought: (id: string) => void;
+    onOpenInTerminal: (cmd?: string, out?: string) => void;
+    bashSandbox?: any;
+    sidebarWidth: number;
+}
+
+export class MessageList extends BaseComponent<MessageListProps> {
+    private turnComponents: Map<string, HTMLElement> = new Map();
+
+    protected createRootElement(): HTMLElement {
+        const div = document.createElement('div');
+        div.className = 'message-list-wrapper agent-scrollbar';
+        div.style.display = 'flex';
+        div.style.flexDirection = 'column';
+        div.style.gap = '24px';
+        div.style.overflowY = 'auto';
+        div.style.padding = '12px 16px';
+        return div;
+    }
+
+    render() {
+        // Group messages into turns
+        const turns: { id: string, user: Message; responses: Message[] }[] = [];
+        this.props.messages.forEach((m, i) => {
+            if (m.role === 'user') {
+                const id = m.turnId || `turn-${turns.length}`;
+                turns.push({ id, user: m, responses: [] });
+            } else if (turns.length > 0) {
+                turns[turns.length - 1].responses.push(m);
+            }
+        });
+
+        // Simplified rendering: just rebuild for now to ensure consistency
+        // In a more optimized version, we'd use the turnComponents map to only update what changed
+        this.element.innerHTML = '';
+
+        turns.forEach((turn, idx) => {
+            const isLastTurn = idx === turns.length - 1;
+            
+            // User message
+            const userBubble = document.createElement('div');
+            userBubble.className = 'user-bubble';
+            userBubble.innerHTML = renderMarkdown(turn.user.content || '');
+            this.element.appendChild(userBubble);
+
+            // Assistant responses
+            if (turn.responses.length > 0) {
+                const assistantTurnContainer = document.createElement('div');
+                assistantTurnContainer.className = 'assistant-turn-container';
+                assistantTurnContainer.style.display = 'flex';
+                assistantTurnContainer.style.flexDirection = 'column';
+                assistantTurnContainer.style.gap = '8px';
+
+                // Handle "Work" (Thinking + Tool Calls)
+                const totalThinkingTime = turn.responses.reduce((sum, m) => sum + (m.thinkingTime || 0), 0);
+                const hasWork = totalThinkingTime > 0 || turn.responses.some(m => m.tool_calls) || (isLastTurn && this.props.isProcessing);
+                
+                if (hasWork) {
+                    const workIsOpen = !this.props.collapsedTurnIds.includes(turn.id);
+                    const workContent = document.createElement('div');
+                    
+                    turn.responses.forEach((m, mIdx) => {
+                        if (m.role === 'assistant') {
+                            const tId = m.iterationId || `thought-${idx}-${mIdx}`;
+                            
+                            // Reasoning
+                            if (m.reasoning_content) {
+                                const thoughtIsOpen = !this.props.collapsedThoughtIds.includes(tId);
+                                const thoughtCollapsible = new Collapsible({
+                                    title: `Thought ${m.thinkingTime ? `for ${m.thinkingTime}s` : ''}`,
+                                    isOpen: thoughtIsOpen,
+                                    onToggle: () => this.props.onToggleThought(tId),
+                                    content: `<div class="thinking-block">${m.reasoning_content}</div>`
+                                });
+                                thoughtCollapsible.render();
+                                workContent.appendChild(thoughtCollapsible.getElement());
+                            }
+
+                            // Tool Calls
+                            m.tool_calls?.forEach((tc, tcIdx) => {
+                                let args: any = {};
+                                try { args = JSON.parse(tc.function.arguments); } catch {}
+                                const toolOutput = turn.responses.find(tm => tm.role === 'tool' && tm.tool_call_id === tc.id && tm.iterationId === m.iterationId);
+                                const commandText = args.command || tc.function.arguments;
+
+                                const termBox = new TerminalBox({
+                                    command: commandText,
+                                    output: toolOutput?.content || undefined,
+                                    bashSandbox: this.props.bashSandbox,
+                                    isPending: toolOutput?.isPending,
+                                    startTime: toolOutput?.startTime,
+                                    onOpenExternal: () => this.props.onOpenInTerminal(commandText, toolOutput?.content || undefined)
+                                });
+                                termBox.init();
+                                workContent.appendChild(termBox.getElement());
+                            });
+                        }
+                    });
+
+                    const workCollapsible = new Collapsible({
+                        title: `Worked for ${turn.user.turnDuration || totalThinkingTime}s`,
+                        isOpen: workIsOpen,
+                        onToggle: () => this.props.onToggleTurn(turn.id),
+                        content: workContent
+                    });
+                    workCollapsible.render();
+                    assistantTurnContainer.appendChild(workCollapsible.getElement());
+                }
+
+                // Main Assistant Content
+                turn.responses.forEach(m => {
+                    if (m.role === 'assistant' && m.content) {
+                        const contentDiv = document.createElement('div');
+                        contentDiv.className = 'markdown-output';
+                        contentDiv.innerHTML = renderMarkdown(m.content);
+                        assistantTurnContainer.appendChild(contentDiv);
+                    }
+                });
+
+                this.element.appendChild(assistantTurnContainer);
+            } else if (isLastTurn && this.props.isProcessing) {
+                // Initial thinking indicator
+                const indicator = document.createElement('div');
+                indicator.style.marginLeft = '12px';
+                indicator.style.marginTop = '16px';
+                indicator.innerHTML = `<div class="thinking-indicator">Thinking...</div>`;
+                this.element.appendChild(indicator);
+            }
+        });
+
+        // Scroll to bottom
+        setTimeout(() => {
+            this.element.scrollTop = this.element.scrollHeight;
+        }, 10);
+    }
+}

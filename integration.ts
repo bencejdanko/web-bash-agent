@@ -49,14 +49,11 @@ export function pagefindAgent(options: IntegrationOptions): AstroIntegration {
                 // 3. Inject Island hydration script from the pre-built bundle
                 injectScript('page', 'import "pagefind-bash-agent-astro/AgentIsland";');
 
-                // 4. Vite optimization settings - Essential for linked packages
+                // 4. Vite optimization settings
                 updateConfig({
                   vite: {
                     optimizeDeps: {
                       exclude: ['pagefind-bash-agent-astro']
-                    },
-                    ssr: {
-                      external: ['react', 'react-dom']
                     }
                   }
                 });
