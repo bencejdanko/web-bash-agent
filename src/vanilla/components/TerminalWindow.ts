@@ -6,6 +6,7 @@ interface TerminalWindowProps {
     terminals: { id: string; command?: string; output?: string }[];
     activeTerminalId: string | null;
     onSelectTerminal: (id: string) => void;
+    onDeleteTerminal: (id: string) => void;
     onAddTerminal: () => void;
     onClose: () => void;
     bashSandbox: any;
@@ -91,9 +92,14 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
                         <div class="terminal-list agent-scrollbar">
                             ${this.props.terminals.map(t => `
                                 <div class="terminal-list-item ${t.id === this.props.activeTerminalId ? 'active' : ''}" data-id="${t.id}">
-                                    ${CubeIcon(12)}
-                                    <span class="terminal-name">bash</span>
-                                    <span class="terminal-id">[${t.id.slice(0, 8)}]</span>
+                                    <div style="display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden">
+                                        ${CubeIcon(12)}
+                                        <span class="terminal-name">bash</span>
+                                        <span class="terminal-id">[${t.id.slice(0, 8)}]</span>
+                                    </div>
+                                    <button class="delete-terminal-btn" data-id="${t.id}" title="Delete session">
+                                        ${XIcon(12)}
+                                    </button>
                                 </div>
                             `).join('')}
                         </div>
@@ -114,10 +120,27 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
             });
         });
 
+        this.element.querySelectorAll('.delete-terminal-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-id');
+                if (id) this.props.onDeleteTerminal(id);
+            });
+        });
+
         // Initialize/Update TerminalBox
         const activeTerminal = this.props.terminals.find(t => t.id === this.props.activeTerminalId);
         const root = this.query('#active-terminal-root');
         
+        // Sync cache: Remove terminals that no longer exist
+        const activeIds = new Set(this.props.terminals.map(t => t.id));
+        for (const [id, box] of this.terminalCache.entries()) {
+            if (!activeIds.has(id)) {
+                box.destroy();
+                this.terminalCache.delete(id);
+            }
+        }
+
         if (activeTerminal && root) {
             let termBox = this.terminalCache.get(activeTerminal.id);
             const boxProps = {
@@ -125,7 +148,8 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
                 output: activeTerminal.output,
                 bashSandbox: this.props.bashSandbox,
                 isMinimal: false,
-                hideHeader: true
+                hideHeader: true,
+                onExit: () => this.props.onDeleteTerminal(activeTerminal.id)
             };
 
             if (!termBox) {

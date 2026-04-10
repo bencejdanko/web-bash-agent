@@ -559,3 +559,28 @@
     color: var(--agent-text-muted);
     font-family: 'JetBrains Mono', monospace;
 }
+
+.delete-terminal-btn {
+    opacity: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--agent-text-dim);
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.terminal-list-item:hover .delete-terminal-btn {
+    opacity: 0.5;
+}
+
+.delete-terminal-btn:hover {
+    opacity: 1 !important;
+    background-color: var(--agent-error-bg);
+    color: var(--agent-error);
+}

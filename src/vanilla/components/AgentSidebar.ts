@@ -246,6 +246,21 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         this.store.setState({ activeTerminalId: id });
     }
 
+    private handleDeleteTerminal(id: string) {
+        const state = this.store.getState();
+        const newTerminals = state.terminals.filter(t => t.id !== id);
+        let newActiveId = state.activeTerminalId;
+
+        if (state.activeTerminalId === id) {
+            newActiveId = newTerminals.length > 0 ? newTerminals[newTerminals.length - 1].id : null;
+        }
+
+        this.store.setState({
+            terminals: newTerminals,
+            activeTerminalId: newActiveId
+        });
+    }
+
     render() {
         if (!this.header) return;
 
@@ -386,6 +401,7 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
                 terminals: state.terminals,
                 activeTerminalId: state.activeTerminalId,
                 onSelectTerminal: (id: string) => this.handleSelectTerminal(id),
+                onDeleteTerminal: (id: string) => this.handleDeleteTerminal(id),
                 onAddTerminal: () => this.handleAddTerminal(),
                 onClose: () => this.store.setState({ showTerminalWindow: false }),
                 bashSandbox: this.bashSandbox

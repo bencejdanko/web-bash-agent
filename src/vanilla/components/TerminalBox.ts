@@ -12,6 +12,7 @@ interface TerminalBoxProps {
   isPending?: boolean;
   startTime?: number;
   onOpenExternal?: () => void;
+  onExit?: () => void;
   isMinimal?: boolean;
   hideHeader?: boolean;
 }
@@ -208,6 +209,11 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
         if (cmd === 'clear') {
             this.terminal.clear();
             this.writePrompt();
+            return;
+        }
+
+        if (cmd === 'exit') {
+            this.props.onExit?.();
             return;
         }
 
