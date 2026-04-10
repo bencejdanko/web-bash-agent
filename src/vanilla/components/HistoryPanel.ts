@@ -44,17 +44,6 @@ export class HistoryPanel extends BaseComponent<HistoryPanelProps> {
     }
 
     init() {
-        const handleClickOutside = (e: MouseEvent) => {
-            const target = e.target as HTMLElement;
-            if (!target.closest('.history-overlay-content')) {
-                this.props.onClose();
-            }
-        };
-        this.element.addEventListener('mousedown', handleClickOutside);
-        this.render();
-    }
-
-    render() {
         this.element.innerHTML = `
             <div class="history-overlay-content" style="width: 100%; height: 100%; display: flex; flex-direction: column; background-color: transparent; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)">
                 <header style="padding: 16px 20px; border-bottom: 1px solid var(--agent-bg-subtle); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background: var(--agent-header-glass)">
@@ -65,7 +54,22 @@ export class HistoryPanel extends BaseComponent<HistoryPanelProps> {
             </div>
         `;
 
+        const handleClickOutside = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            if (!target.closest('.history-overlay-content')) {
+                this.props.onClose();
+            }
+        };
+        this.element.addEventListener('mousedown', handleClickOutside);
+        this.query('#history-close')?.addEventListener('click', this.props.onClose);
+        this.render();
+    }
+
+    render() {
         const list = this.query<HTMLElement>('.history-list')!;
+        if (!list) return;
+
+        list.innerHTML = '';
         
         if (this.props.conversations.length === 0) {
             list.innerHTML = `<div style="padding: 48px 20px; text-align: center; color: var(--agent-text-muted); font-size: 14px">No conversations yet</div>`;
@@ -111,7 +115,5 @@ export class HistoryPanel extends BaseComponent<HistoryPanelProps> {
                     list.appendChild(item);
                 });
         }
-
-        this.query('#history-close')?.addEventListener('click', this.props.onClose);
     }
 }

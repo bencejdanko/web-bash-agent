@@ -28,6 +28,16 @@ export class InfoPanel extends BaseComponent<InfoPanelProps> {
     }
 
     init() {
+        this.element.innerHTML = `
+            <div class="info-overlay-content" style="width: 100%; height: 100%; display: flex; flex-direction: column; background-color: transparent; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)">
+                <header style="padding: 16px 20px; border-bottom: 1px solid var(--agent-bg-subtle); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background: var(--agent-header-glass)">
+                    <span id="info-header-title" style="font-weight: 600; font-size: 15px; color: var(--agent-text-main)">${this.props.title}</span>
+                    <button id="info-close" style="background: none; border: none; cursor: pointer; color: var(--agent-text-muted); display: flex; align-items: center; justify-content: center; padding: 4px; transition: color 0.2s">${XIcon(20)}</button>
+                </header>
+                <div class="info-list agent-scrollbar" style="flex: 1; overflow-y: auto; padding: 16px 20px"></div>
+            </div>
+        `;
+
         const handleClickOutside = (e: MouseEvent) => {
             const target = e.target as HTMLElement;
             if (!target.closest('.info-overlay-content')) {
@@ -35,27 +45,22 @@ export class InfoPanel extends BaseComponent<InfoPanelProps> {
             }
         };
         this.element.addEventListener('mousedown', handleClickOutside);
+        this.query('#info-close')?.addEventListener('click', this.props.onClose);
         this.render();
     }
 
     render() {
-        this.element.innerHTML = `
-            <div class="info-overlay-content" style="width: 100%; height: 100%; display: flex; flex-direction: column; background-color: transparent; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)">
-                <header style="padding: 16px 20px; border-bottom: 1px solid var(--agent-bg-subtle); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background: var(--agent-header-glass)">
-                    <span style="font-weight: 600; font-size: 15px; color: var(--agent-text-main)">${this.props.title}</span>
-                    <button id="info-close" style="background: none; border: none; cursor: pointer; color: var(--agent-text-muted); display: flex; align-items: center; justify-content: center; padding: 4px; transition: color 0.2s">${XIcon(20)}</button>
-                </header>
-                <div class="info-list agent-scrollbar" style="flex: 1; overflow-y: auto; padding: 16px 20px"></div>
-            </div>
-        `;
+        const titleEl = this.query<HTMLElement>('#info-header-title')!;
+        if (titleEl) titleEl.textContent = this.props.title;
 
         const list = this.query<HTMLElement>('.info-list')!;
+        if (!list) return;
+
+        list.innerHTML = '';
         if (Array.isArray(this.props.content)) {
             this.props.content.forEach(c => list.appendChild(c));
         } else {
             list.appendChild(this.props.content);
         }
-
-        this.query('#info-close')?.addEventListener('click', this.props.onClose);
     }
 }

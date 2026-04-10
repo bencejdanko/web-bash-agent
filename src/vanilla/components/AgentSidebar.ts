@@ -29,6 +29,8 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
 
     private messageList: MessageList | null = null;
     private chatInput: ChatInput | null = null;
+    private historyPanel: HistoryPanel | null = null;
+    private infoPanel: InfoPanel | null = null;
     private toggleBtn: FloatingToggleButton | null = null;
     private splitInstance: any = null;
 
@@ -231,20 +233,33 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
 
         // Overlays
         const overlayRoot = this.query<HTMLElement>('#overlay-root')!;
-        overlayRoot.innerHTML = '';
 
+        // Handle History Panel
         if (state.showHistory) {
-            const historyPanel = new HistoryPanel({
+            const historyProps = {
                 conversations: state.conversations,
                 currentConversationId: state.currentConversationId,
-                onSelectConversation: (id) => this.historyLogic.handleSelectConversation(id),
-                onDeleteConversation: (id) => this.historyLogic.handleDeleteConversation(id),
+                onSelectConversation: (id: string) => {
+                    this.historyLogic.handleSelectConversation(id);
+                    this.store.setState({ showHistory: false });
+                },
+                onDeleteConversation: (id: string) => this.historyLogic.handleDeleteConversation(id),
                 onClose: () => this.store.setState({ showHistory: false })
-            });
-            historyPanel.init();
-            overlayRoot.appendChild(historyPanel.getElement());
+            };
+
+            if (!this.historyPanel) {
+                this.historyPanel = new HistoryPanel(historyProps);
+                this.historyPanel.init();
+                overlayRoot.appendChild(this.historyPanel.getElement());
+            } else {
+                this.historyPanel.update(historyProps);
+            }
+        } else if (this.historyPanel) {
+            this.historyPanel.getElement().remove();
+            this.historyPanel = null;
         }
 
+        // Handle Info Panel
         if (state.activeInfoPanel) {
             let title = '';
             let content: HTMLElement | HTMLElement[] = document.createElement('div');
@@ -295,13 +310,22 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
                 content = div;
             }
 
-            const infoPanel = new InfoPanel({
+            const infoProps = {
                 title,
                 onClose: () => this.store.setState({ activeInfoPanel: null }),
                 content
-            });
-            infoPanel.init();
-            overlayRoot.appendChild(infoPanel.getElement());
+            };
+
+            if (!this.infoPanel) {
+                this.infoPanel = new InfoPanel(infoProps);
+                this.infoPanel.init();
+                overlayRoot.appendChild(this.infoPanel.getElement());
+            } else {
+                this.infoPanel.update(infoProps);
+            }
+        } else if (this.infoPanel) {
+            this.infoPanel.getElement().remove();
+            this.infoPanel = null;
         }
 
         // Sidebar is now always docked
