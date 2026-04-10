@@ -53,21 +53,21 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
                 <div id="suggestion-popup" style="display: none; position: absolute; bottom: 100%; left: 0; right: 0; margin-bottom: 8px; background: var(--agent-bg-main); border: 1px solid var(--agent-border-main); border-radius: 12px; box-shadow: var(--agent-shadow-float); z-index: 2000; overflow: hidden; color: var(--agent-text-main); font-family: inherit">
                 </div>
                 <div class="chat-input-container">
-                    <textarea id="chat-textarea" aria-label="Message assistant..." placeholder="${this.props.placeholder || 'Ask anything, @ to mention, / for skills'}" style="width: 100%; box-sizing: border-box; padding: var(--agent-input-padding); border: none; background-color: transparent; color: var(--agent-text-main); font-size: 13px; outline: none; resize: none; min-height: 48px; max-height: 200px; line-height: 1.5; font-family: inherit; overflow-y: auto"></textarea>
+                    <textarea id="chat-textarea" aria-label="Message assistant..." placeholder="${this.props.placeholder || 'Ask anything, @ to mention, / for skills'}" style="width: 100%; box-sizing: border-box; padding: var(--agent-input-padding); border: none; background-color: transparent; color: var(--agent-text-main); font-size: var(--agent-font-main); outline: none; resize: none; min-height: 48px; max-height: 200px; line-height: var(--agent-line-height-main); font-family: inherit; overflow-y: auto"></textarea>
                     <div id="input-controls" style="position: absolute; right: 10px; bottom: 10px; display: flex; align-items: center; gap: 8px">
                     </div>
                 </div>
 
                 <div style="width: 100%; display: flex; justify-content: flex-start; padding: 0 4px; gap: 12px; alignItems: center">
                     ${this.props.onOpenTerminal ? `
-                        <button id="btn-open-terminal" style="background: transparent; border: none; cursor: pointer; font-size: 11px; color: var(--agent-text-muted); display: flex; align-items: center; gap: 4px; padding: 4px 0; opacity: 0.7; transition: opacity 0.2s">
+                        <button id="btn-open-terminal" style="background: transparent; border: none; cursor: pointer; font-size: var(--agent-font-small); color: var(--agent-text-muted); display: flex; align-items: center; gap: 4px; padding: 4px 0; opacity: 0.7; transition: opacity 0.2s">
                             ${CubeIcon(14)}
                             <span>Open terminal</span>
                         </button>
                     ` : ''}
                     
                     <div style="position: relative">
-                        <button id="btn-model-selector" style="background: transparent; border: none; cursor: pointer; font-size: 11px; color: var(--agent-text-muted); display: flex; align-items: center; gap: 4px; padding: 4px 0; opacity: 0.7; transition: opacity 0.2s">
+                        <button id="btn-model-selector" style="background: transparent; border: none; cursor: pointer; font-size: var(--agent-font-small); color: var(--agent-text-muted); display: flex; align-items: center; gap: 4px; padding: 4px 0; opacity: 0.7; transition: opacity 0.2s">
                             <div style="width: 6px; height: 6px; border-radius: 50%; background-color: var(--agent-accent)"></div>
                             <span id="current-model-name">${currentModel?.name || 'Select Model'}</span>
                         </button>
@@ -177,7 +177,7 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
 
         if (modelContainer) {
             modelContainer.innerHTML = this.props.models.map(m => `
-                <div class="model-option" data-id="${m.id}" style="padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; color: ${m.id === this.props.currentModelId ? 'var(--agent-accent)' : 'var(--agent-text-main)'}; background-color: ${m.id === this.props.currentModelId ? 'var(--agent-bg-subtle)' : 'transparent'}; display: flex; align-items: center; gap: 8px; transition: all 0.15s ease">
+                <div class="model-option" data-id="${m.id}" style="padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: var(--agent-font-main); color: ${m.id === this.props.currentModelId ? 'var(--agent-accent)' : 'var(--agent-text-main)'}; background-color: ${m.id === this.props.currentModelId ? 'var(--agent-bg-subtle)' : 'transparent'}; display: flex; align-items: center; gap: 8px; transition: all 0.15s ease">
                     <div style="width: 6px; height: 6px; border-radius: 50%; background-color: ${m.id === this.props.currentModelId ? 'var(--agent-accent)' : 'transparent'}; border: ${m.id === this.props.currentModelId ? 'none' : '1px solid var(--agent-border-main)'}"></div>
                     <div style="flex-grow: 1">${m.name}</div>
                 </div>
@@ -256,8 +256,8 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
             <div id="suggestion-list" style="max-height: 200px; overflow-y: auto" class="agent-scrollbar">
                 ${items.map((item, i) => `
                     <div class="suggestion-item" data-index="${i}" style="padding: 8px 12px; cursor: pointer; display: flex; flex-direction: row; align-items: center; gap: 8px; background: ${i === this.selectedSuggestionIndex ? 'var(--agent-bg-subtle)' : 'transparent'}; border-left: 2px solid ${i === this.selectedSuggestionIndex ? 'var(--agent-accent)' : 'transparent'}">
-                        <div style="font-weight: 500; font-size: 12px; color: ${i === this.selectedSuggestionIndex ? 'var(--agent-text-main)' : 'var(--agent-text-subtle)'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1">${item.label}</div>
-                        ${item.detail ? `<div style="font-size: 11px; color: var(--agent-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50%">${item.detail}</div>` : ''}
+                        <div style="font-weight: 500; font-size: var(--agent-font-main); color: ${i === this.selectedSuggestionIndex ? 'var(--agent-text-main)' : 'var(--agent-text-subtle)'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1">${item.label}</div>
+                        ${item.detail ? `<div style="font-size: var(--agent-font-small); color: var(--agent-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50%">${item.detail}</div>` : ''}
                     </div>
                 `).join('')}
             </div>

@@ -12,7 +12,7 @@ interface SidebarHeaderProps {
 export class SidebarHeader extends BaseComponent<SidebarHeaderProps> {
     protected createRootElement(): HTMLElement {
         const header = document.createElement('header');
-        header.style.padding = '12px 16px';
+        header.style.padding = 'var(--agent-input-padding)';
         header.style.display = 'flex';
         header.style.justifyContent = 'space-between';
         header.style.alignItems = 'center';
@@ -23,7 +23,7 @@ export class SidebarHeader extends BaseComponent<SidebarHeaderProps> {
 
     render() {
         this.element.innerHTML = `
-            <span style="font-weight: 300; font-size: 15px; color: var(--agent-text-main); letter-spacing: -0.02em">Agent</span>
+            <span style="font-weight: 300; font-size: var(--agent-font-header); color: var(--agent-text-main); letter-spacing: -0.02em">Agent</span>
             <div style="display: flex; align-items: center; gap: 4px">
                 <button id="btn-new-chat" title="New Chat" class="header-btn">${PlusIcon()}</button>
                 <button id="btn-history" title="Past conversations" class="header-btn">${HistoryIcon()}</button>

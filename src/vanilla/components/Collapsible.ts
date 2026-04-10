@@ -35,7 +35,7 @@ export class Collapsible extends BaseComponent<CollapsibleProps> {
         
         const titleContainer = document.createElement('div');
         titleContainer.className = 'collapsible-title';
-        titleContainer.style.fontSize = '12px';
+        titleContainer.style.fontSize = 'var(--agent-font-main)';
         titleContainer.style.fontWeight = '500';
         titleContainer.style.color = 'var(--agent-text-dim)';
         if (typeof this.props.title === 'string') {
