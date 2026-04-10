@@ -21,6 +21,7 @@ interface MessageListProps {
 
 export class MessageList extends BaseComponent<MessageListProps> {
     private turnComponents: Map<string, HTMLElement> = new Map();
+    private terminalBoxCache: Map<string, TerminalBox> = new Map();
     private thinkingIndicator: ThinkingIndicator | null = null;
 
     protected createRootElement(): HTMLElement {
@@ -102,15 +103,26 @@ export class MessageList extends BaseComponent<MessageListProps> {
                             const toolOutput = turn.responses.find(tm => tm.role === 'tool' && tm.tool_call_id === tc.id && tm.iterationId === m.iterationId);
                             const commandText = args.command || tc.function.arguments;
 
-                            const termBox = new TerminalBox({
+                            const terminalId = `${m.iterationId}-${tc.id || tcIdx}`;
+                            let termBox = this.terminalBoxCache.get(terminalId);
+                            
+                            const termProps = {
                                 command: commandText,
                                 output: toolOutput?.content || undefined,
                                 bashSandbox: this.props.bashSandbox,
                                 isPending: toolOutput?.isPending,
                                 startTime: toolOutput?.startTime,
                                 onOpenExternal: () => this.props.onOpenInTerminal(commandText, toolOutput?.content || undefined)
-                            });
-                            termBox.init();
+                            };
+
+                            if (!termBox) {
+                                termBox = new TerminalBox(termProps);
+                                termBox.init();
+                                this.terminalBoxCache.set(terminalId, termBox);
+                            } else {
+                                termBox.update(termProps);
+                            }
+                            
                             workContent.appendChild(termBox.getElement());
                         });
                     }
