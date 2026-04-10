@@ -166,7 +166,7 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
         if (this.props.output !== this.lastOutput || this.props.isPending) {
             term.reset();
             if (this.props.command && this.props.command !== 'bash') {
-                term.writeln(`\x1b[1;32m$\x1b[0m ${this.props.command}`);
+                term.writeln(`\x1b[32m$\x1b[0m ${this.props.command}`);
             }
             
             if (this.props.isPending) {
