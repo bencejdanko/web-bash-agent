@@ -15,10 +15,8 @@ export class Store<T> {
     setState(update: Partial<T> | ((state: T) => Partial<T>)) {
         const nextState = typeof update === 'function' ? { ...this.state, ...update(this.state) } : { ...this.state, ...update };
         
-        if (JSON.stringify(this.state) !== JSON.stringify(nextState)) {
-            this.state = nextState;
-            this.notify();
-        }
+        this.state = nextState;
+        this.notify();
     }
 
     subscribe(listener: Listener<T>) {

@@ -1,4 +1,4 @@
-import { defineCommand } from "just-bash";
+import { defineCommand } from "just-bash/browser";
 
 /**
  * Command: search "query"

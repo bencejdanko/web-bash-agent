@@ -70,17 +70,14 @@ export class InitializationLogic {
                 defaultHeaders
             });
 
-            // Ensure tools are set even if bridge was provided externally
-            if (this.props.llmBridge) {
-                this.llmBridge.setTools(finalTools);
+            if (!this.bashSandbox || !this.llmBridge) {
+                throw new Error('Initialization failed: bashSandbox or llmBridge is null');
             }
 
-            if (this.bashSandbox) {
-                this.store.setState({ 
-                    isInitializing: false,
-                    actualFilesystem: this.bashSandbox.getFilesystem()
-                });
-            }
+            this.store.setState({ 
+                isInitializing: false,
+                actualFilesystem: this.bashSandbox.getFilesystem()
+            });
 
             return {
                 bashSandbox: this.bashSandbox,

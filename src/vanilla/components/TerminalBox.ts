@@ -22,6 +22,7 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
     private fitAddon: FitAddon | null = null;
     private initialized = false;
     private lastOutput: string | undefined = undefined;
+    private lastPending: boolean | undefined = undefined;
     private persistentSandbox: PersistentBashSandbox | null = null;
 
     // REPL State
@@ -275,20 +276,10 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
     }
 
     private updateContent() {
-        const term = this.terminal;
-        if (!term) return;
-
-        // Determine if we need to full-reset or just show initial state
-        const isInteractive = !this.props.isMinimal && this.persistentSandbox;
-        
-        if (!isInteractive) {
-            if (this.props.output !== this.lastOutput || this.props.isPending) {
-                this.refreshStaticContent();
-                this.lastOutput = this.props.output;
-            }
-        } else if (this.lastOutput === undefined) {
-             this.refreshStaticContent();
-             this.lastOutput = this.props.output || '';
+        if (this.props.output !== this.lastOutput || this.props.isPending !== this.lastPending) {
+            this.refreshStaticContent();
+            this.lastOutput = this.props.output;
+            this.lastPending = this.props.isPending;
         }
     }
 
@@ -299,14 +290,14 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
         term.reset();
         
         // 1. Initial Command
-        if (this.props.command && this.props.command !== 'bash') {
+        if (this.props.command) {
             this.writeCommandLine(this.props.command);
         }
 
         // 2. Output or Pending State
         if (this.props.isPending) {
             term.write('\r\n\x1b[2mProcessing...\x1b[0m');
-        } else if (this.props.output) {
+        } else if (this.props.output !== undefined) {
             if (this.props.isMinimal) {
                 // Historical view with decorative prefixes
                 const lines = this.props.output.split('\n');

@@ -101,7 +101,7 @@ export class MessageList extends BaseComponent<MessageListProps> {
                             let args: any = {};
                             try { args = JSON.parse(tc.function.arguments); } catch {}
                             const toolOutput = turn.responses.find(tm => tm.role === 'tool' && tm.tool_call_id === tc.id && tm.iterationId === m.iterationId);
-                            const commandText = args.command || tc.function.arguments;
+                            const commandText = args.command || (tc.function.name + ': ' + tc.function.arguments);
 
                             const terminalId = `${m.iterationId}-${tc.id || tcIdx}`;
                             let termBox = this.terminalBoxCache.get(terminalId);
