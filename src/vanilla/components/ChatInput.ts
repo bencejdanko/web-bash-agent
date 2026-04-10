@@ -52,7 +52,7 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
             <div class="chat-input-inner-wrapper" style="display: flex; flex-direction: column; gap: 8px; width: 100%; position: relative">
                 <div id="suggestion-popup" style="display: none; position: absolute; bottom: 100%; left: 0; right: 0; margin-bottom: 8px; background: var(--agent-bg-main); border: 1px solid var(--agent-border-main); border-radius: 12px; box-shadow: var(--agent-shadow-float); z-index: 2000; overflow: hidden; color: var(--agent-text-main); font-family: inherit">
                 </div>
-                <div class="chat-input-container" style="position: relative; width: 100%; display: flex; flex-direction: column; border: 1px solid var(--agent-border-main); border-radius: 16px; background-color: var(--agent-bg-main); transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: var(--agent-card-shadow); overflow: hidden; padding-bottom: 32px">
+                <div class="chat-input-container">
                     <textarea id="chat-textarea" aria-label="Message assistant..." placeholder="${this.props.placeholder || 'Ask anything, @ to mention, / for skills'}" style="width: 100%; box-sizing: border-box; padding: var(--agent-input-padding); padding-bottom: 8px; border: none; background-color: transparent; color: var(--agent-text-main); font-size: 14px; outline: none; resize: none; min-height: 48px; max-height: 200px; line-height: 1.5; font-family: inherit; overflow-y: auto"></textarea>
                     <div id="input-controls" style="position: absolute; right: 10px; bottom: 10px; display: flex; align-items: center; gap: 8px">
                     </div>
