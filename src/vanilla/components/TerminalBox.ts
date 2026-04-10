@@ -1,7 +1,7 @@
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { BaseComponent } from '../BaseComponent';
-import { ExternalLinkIcon } from './Icons';
+import { RelocateIcon } from './Icons';
 import '@xterm/xterm/css/xterm.css';
 
 interface TerminalBoxProps {
@@ -140,7 +140,7 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
                         </div>
                         ${this.props.onOpenExternal ? `
                             <button class="terminal-external-btn" title="Open in standalone terminal">
-                                <span>Relocate</span>${ExternalLinkIcon(12)}
+                                <span>Relocate</span>${RelocateIcon(12)}
                             </button>
                         ` : ''}
                     </div>
