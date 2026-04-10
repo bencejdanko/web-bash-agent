@@ -3,6 +3,7 @@ import { Message } from '../../types';
 import { renderMarkdown } from '../markdown';
 import { Collapsible } from './Collapsible';
 import { TerminalBox } from './TerminalBox';
+import { ThinkingIndicator } from './ThinkingIndicator';
 
 
 interface MessageListProps {
@@ -20,6 +21,7 @@ interface MessageListProps {
 
 export class MessageList extends BaseComponent<MessageListProps> {
     private turnComponents: Map<string, HTMLElement> = new Map();
+    private thinkingIndicator: ThinkingIndicator | null = null;
 
     protected createRootElement(): HTMLElement {
         const div = document.createElement('div');
@@ -134,21 +136,31 @@ export class MessageList extends BaseComponent<MessageListProps> {
                 });
 
                 this.element.appendChild(assistantTurnContainer);
-            } else if (isLastTurn && this.props.isProcessing) {
-                // Initial thinking indicator
-                const indicator = document.createElement('div');
-                indicator.style.marginLeft = '12px';
-                indicator.style.marginTop = '16px';
-                indicator.innerHTML = `
-                    <div class="thinking-indicator">
-                        <div class="thinking-dot"></div>
-                        <div class="thinking-dot"></div>
-                        <div class="thinking-dot"></div>
-                    </div>
-                `;
-                this.element.appendChild(indicator);
             }
         });
+
+        // Add temporary thinking indicator if processing
+        if (this.props.isProcessing) {
+            const latestMessage = this.props.messages[this.props.messages.length - 1];
+            const effectiveStartTime = (latestMessage && latestMessage.startTime) ? latestMessage.startTime : this.props.turnStartTime;
+
+            if (!this.thinkingIndicator) {
+                this.thinkingIndicator = new ThinkingIndicator({
+                    isProcessing: true,
+                    turnStartTime: effectiveStartTime
+                });
+                this.thinkingIndicator.init();
+            } else {
+                this.thinkingIndicator.update({
+                    isProcessing: true,
+                    turnStartTime: effectiveStartTime
+                });
+            }
+            this.element.appendChild(this.thinkingIndicator.getElement());
+        } else if (this.thinkingIndicator) {
+            this.thinkingIndicator.destroy();
+            this.thinkingIndicator = null;
+        }
 
         // Scroll to bottom
         // Scroll to bottom with a slight delay

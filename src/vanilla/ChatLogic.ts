@@ -93,6 +93,7 @@ export class ChatLogic {
 
                 const callStartTime = Date.now();
                 let toolCallsAccumulator: any[] = [];
+                let hasStartedContent = false;
 
                 try {
                     const stream = this.llmBridge.streamChat(currentMessages, { 
@@ -113,6 +114,10 @@ export class ChatLogic {
                         }
 
                         if (delta.content) {
+                            if (!hasStartedContent) {
+                                hasStartedContent = true;
+                                assistantMessage.startTime = Date.now();
+                            }
                             assistantMessage.content = (assistantMessage.content || '') + delta.content;
                             updated = true;
                         }
