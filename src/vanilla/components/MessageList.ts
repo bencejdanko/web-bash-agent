@@ -29,6 +29,8 @@ export class MessageList extends BaseComponent<MessageListProps> {
         div.style.gap = '24px';
         div.style.overflowY = 'auto';
         div.style.padding = '12px 16px';
+        div.style.height = '100%';
+        div.style.boxSizing = 'border-box';
         return div;
     }
 
@@ -137,14 +139,27 @@ export class MessageList extends BaseComponent<MessageListProps> {
                 const indicator = document.createElement('div');
                 indicator.style.marginLeft = '12px';
                 indicator.style.marginTop = '16px';
-                indicator.innerHTML = `<div class="thinking-indicator">Thinking...</div>`;
+                indicator.innerHTML = `
+                    <div class="thinking-indicator">
+                        <div class="thinking-dot"></div>
+                        <div class="thinking-dot"></div>
+                        <div class="thinking-dot"></div>
+                    </div>
+                `;
                 this.element.appendChild(indicator);
             }
         });
 
         // Scroll to bottom
+        // Scroll to bottom with a slight delay
         setTimeout(() => {
-            this.element.scrollTop = this.element.scrollHeight;
-        }, 10);
+            const isNearBottom = this.element.scrollHeight - this.element.scrollTop - this.element.clientHeight < 100;
+            if (isNearBottom || this.props.isProcessing) {
+                this.element.scrollTo({
+                    top: this.element.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }
+        }, 50);
     }
 }

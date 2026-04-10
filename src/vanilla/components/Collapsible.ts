@@ -26,7 +26,6 @@ export class Collapsible extends BaseComponent<CollapsibleProps> {
         header.style.cursor = 'pointer';
         header.style.padding = '4px 8px';
         header.style.borderRadius = '4px';
-        header.style.transition = 'background-color 0.2s';
         
         const icon = document.createElement('span');
         icon.className = 'collapsible-icon';
@@ -49,13 +48,11 @@ export class Collapsible extends BaseComponent<CollapsibleProps> {
         header.appendChild(titleContainer);
         header.addEventListener('click', this.props.onToggle);
 
-        header.onmouseover = () => { header.style.backgroundColor = 'var(--agent-bg-subtle)'; };
-        header.onmouseout = () => { header.style.backgroundColor = 'transparent'; };
 
         const contentContainer = document.createElement('div');
         contentContainer.className = 'collapsible-content';
         contentContainer.style.display = this.props.isOpen ? 'block' : 'none';
-        contentContainer.style.padding = '8px 0 8px 22px';
+        contentContainer.style.padding = '8px 0';
 
         if (typeof this.props.content === 'string') {
             contentContainer.innerHTML = this.props.content;
