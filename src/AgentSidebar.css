@@ -459,7 +459,7 @@
     height: 400px;
     background-color: var(--agent-bg-main);
     border: 1px solid var(--agent-border-main);
-    border-radius: var(--agent-radius-large);
+    border-radius: 0;
     box-shadow: var(--agent-shadow-float);
     display: flex;
     flex-direction: column;
@@ -536,10 +536,14 @@
     align-items: center;
     gap: 8px;
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: 0;
     transition: background-color 0.2s;
     white-space: nowrap;
     overflow: hidden;
+}
+
+.terminal-window-container .terminal-box {
+    border-radius: 0;
 }
 
 .terminal-list-item:hover {
