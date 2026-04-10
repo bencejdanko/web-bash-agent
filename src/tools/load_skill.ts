@@ -7,7 +7,7 @@ export const createLoadSkillTool = (skills: AgentSkill[]): AgentTool => ({
     type: 'function',
     function: {
       name: 'load_skill',
-      description: 'Load the full instructions and documentation for a specific skill.',
+      description: 'Load the instructions for a skill. Use this if a user message contains with /skill:<name>.',
       parameters: {
         type: 'object',
         properties: {
