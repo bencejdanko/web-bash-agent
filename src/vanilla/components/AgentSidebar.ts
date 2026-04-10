@@ -11,7 +11,7 @@ import { ChatInput } from './ChatInput';
 import { FloatingToggleButton } from './FloatingToggleButton';
 import { InfoPanel } from './InfoPanel';
 import { HistoryPanel } from './HistoryPanel';
-import { TerminalBox } from './TerminalBox';
+
 
 // Import CSS to ensure it's bundled
 import '../../AgentSidebar.css';
@@ -46,7 +46,7 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             isProcessing: false,
             turnStartTime: null,
             hasStarted: false,
-            isExpanding: false,
+
             collapsedTurnIds: [],
             collapsedThoughtIds: [],
             currentModelId: props.initialModelId || props.models[0]?.id,

@@ -1,5 +1,5 @@
 import type { AstroIntegration } from 'astro';
-import { getAgentContextFilesystem } from './src/filesystem.js';
+import { getAgentContextFilesystem } from './src/filesystem';
 import path from 'node:path';
 
 export interface IntegrationOptions {

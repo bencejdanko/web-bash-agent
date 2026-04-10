@@ -6,7 +6,7 @@ export interface AgentState {
     isProcessing: boolean;
     turnStartTime: number | null;
     hasStarted: boolean;
-    isExpanding: boolean;
+
     collapsedTurnIds: string[];
     collapsedThoughtIds: string[];
     currentModelId: string;
@@ -52,10 +52,7 @@ export class ChatLogic {
         if (!text.trim() || state.isProcessing) return;
 
         if (!state.hasStarted) {
-            this.store.setState({ hasStarted: true, isExpanding: true });
-            setTimeout(() => {
-                this.store.setState({ isExpanding: false });
-            }, 800);
+            this.store.setState({ hasStarted: true });
         }
 
         const turnId = `turn-${Date.now()}`;

@@ -3,7 +3,7 @@ import { Message } from '../../types';
 import { renderMarkdown } from '../markdown';
 import { Collapsible } from './Collapsible';
 import { TerminalBox } from './TerminalBox';
-import { BotIcon } from './Icons';
+
 
 interface MessageListProps {
     messages: Message[];
