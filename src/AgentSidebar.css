@@ -192,12 +192,11 @@
 .thinking-indicator {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
-  background: var(--agent-bg-subtle);
-  border-radius: 12px;
+  gap: 6px;
+  padding: 8px 0;
+  background: none;
   width: fit-content;
-  margin-top: 8px;
+  border-radius: 0;
 }
 
 .thinking-dot {
@@ -205,25 +204,28 @@
   height: 6px;
   background-color: var(--agent-text-dim);
   border-radius: 50%;
-  opacity: 0.4;
-  animation: thinking-bounce 1.4s infinite ease-in-out both;
+  animation: thinking-color-wave 1.8s infinite ease-in-out;
 }
 
 .thinking-dot:nth-child(1) {
-  animation-delay: -0.32s;
+  animation-delay: 0s;
 }
 
 .thinking-dot:nth-child(2) {
-  animation-delay: -0.16s;
+  animation-delay: 0.3s;
 }
 
-@keyframes thinking-bounce {
-  0%, 80%, 100% { 
-    transform: scale(0);
-    opacity: 0.4;
+.thinking-dot:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+@keyframes thinking-color-wave {
+  0%, 60%, 100% { 
+    background-color: var(--agent-text-dim);
+    opacity: 0.3;
   } 
-  40% { 
-    transform: scale(1.0);
+  30% { 
+    background-color: var(--agent-accent);
     opacity: 1;
   }
 }
