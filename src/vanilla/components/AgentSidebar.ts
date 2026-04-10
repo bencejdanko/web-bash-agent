@@ -61,7 +61,8 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             currentConversationId: null,
             isInitializing: true,
             isCollapsed: savedState.isCollapsed !== undefined ? savedState.isCollapsed : true,
-            sidebarSizes: savedState.sidebarSizes || [70, 30]
+            sidebarSizes: savedState.sidebarSizes || [70, 30],
+            skills: props.skills || []
         };
 
         this.store = new Store(initialState);
@@ -76,10 +77,14 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
 
     private async setup() {
         this.historyLogic.loadHistory();
-        const { bashSandbox, llmBridge } = await this.initLogic.init();
+        const { bashSandbox, llmBridge, skills } = await this.initLogic.init();
         this.bashSandbox = bashSandbox;
         this.llmBridge = llmBridge;
         this.chatLogic.setDependencies(bashSandbox, llmBridge);
+
+        if (skills) {
+            this.store.setState({ skills });
+        }
 
         // Sync history whenever messages change
         this.store.subscribe((state) => {
@@ -178,7 +183,9 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             onCancel: () => this.chatLogic.handleCancel(),
             models: this.props.models,
             currentModelId: this.store.getState().currentModelId,
-            onModelChange: (id) => this.initLogic.updateModel(id)
+            onModelChange: (id) => this.initLogic.updateModel(id),
+            skills: this.props.skills,
+            filesystem: this.store.getState().actualFilesystem
         });
         this.query('#chat-input-root')?.appendChild(this.chatInput.getElement());
         this.chatInput.init();
@@ -219,7 +226,9 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
 
         this.chatInput?.update({
             isProcessing: state.isProcessing,
-            currentModelId: state.currentModelId
+            currentModelId: state.currentModelId,
+            skills: state.skills,
+            filesystem: state.actualFilesystem
         });
 
         // Toggle button visibility
