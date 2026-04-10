@@ -200,6 +200,13 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
         const sandbox = this.persistentSandbox || this.props.bashSandbox;
         if (!sandbox) return;
 
+        const cmd = command.trim();
+        if (cmd === 'clear') {
+            this.terminal.clear();
+            this.terminal.write(this.getPrompt());
+            return;
+        }
+
         this.isExecuting = true;
         try {
             const result = await sandbox.exec(command);
