@@ -19,6 +19,7 @@ export interface AgentState {
     conversations: any[];
     currentConversationId: string | null;
     isCollapsed: boolean;
+    sidebarSizes: number[];
 }
 
 export class ChatLogic {

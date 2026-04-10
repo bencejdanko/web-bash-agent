@@ -38,6 +38,9 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
     constructor(props: AgentSidebarProps) {
         super(props);
         
+        const storageKey = 'agent-sidebar-state';
+        const savedState = JSON.parse(localStorage.getItem(storageKey) || '{}');
+
         const initialState: AgentState = {
             messages: [],
             isProcessing: false,
@@ -55,7 +58,8 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             conversations: [],
             currentConversationId: null,
             isInitializing: true,
-            isCollapsed: true
+            isCollapsed: savedState.isCollapsed !== undefined ? savedState.isCollapsed : true,
+            sidebarSizes: savedState.sidebarSizes || [70, 30]
         };
 
         this.store = new Store(initialState);
@@ -78,12 +82,33 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         // Sync history whenever messages change
         this.store.subscribe((state) => {
             this.historyLogic.saveCurrentChat(state.messages);
+            
+            // Persist UI state
+            localStorage.setItem('agent-sidebar-state', JSON.stringify({
+                isCollapsed: state.isCollapsed,
+                sidebarSizes: state.sidebarSizes
+            }));
         });
+
+        this.store.setState({ isInitializing: false });
     }
 
     protected createRootElement(): HTMLElement {
         const div = document.createElement('div');
-        div.className = 'agent-sidebar-layout-container collapsed';
+        div.className = 'agent-sidebar-layout-container';
+        
+        // Apply saved collapsed state immediately to avoid flicker
+        try {
+            const saved = JSON.parse(localStorage.getItem('agent-sidebar-state') || '{}');
+            if (saved.isCollapsed === false) {
+                div.classList.remove('collapsed');
+            } else {
+                div.classList.add('collapsed');
+            }
+        } catch (e) {
+            div.classList.add('collapsed');
+        }
+
         return div;
     }
 
@@ -109,14 +134,14 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         const main = this.query('#sidebar-main')!;
 
         this.splitInstance = Split([spacer, main], {
-            sizes: [70, 30],
+            sizes: this.store.getState().sidebarSizes,
             minSize: [0, 320],
             gutterSize: 8,
             cursor: 'col-resize',
             direction: 'horizontal',
-            onDrag: () => {
-                // Update message list width if needed
+            onDrag: (sizes) => {
                 const width = main.getBoundingClientRect().width;
+                this.store.setState({ sidebarSizes: sizes });
                 this.messageList?.update({ sidebarWidth: width });
             }
         });
@@ -177,8 +202,7 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             if (gutter) (gutter as HTMLElement).style.display = 'none';
         } else {
             this.element.classList.remove('collapsed');
-            // Only show gutter if it's not in the "padded" introductory state
-            if (gutter) (gutter as HTMLElement).style.display = state.hasStarted ? 'block' : 'none';
+            if (gutter) (gutter as HTMLElement).style.display = 'block';
         }
 
         // Update subcomponents
@@ -280,19 +304,11 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             overlayRoot.appendChild(infoPanel.getElement());
         }
 
-        // Handle "hasStarted" padding
+        // Sidebar is now always docked
         const panelInner = this.query<HTMLElement>('.agent-panel-inner')!;
-        if (state.hasStarted) {
-            panelInner.classList.remove('padded');
-        } else {
-            panelInner.classList.add('padded');
-        }
+        panelInner.classList.remove('padded');
 
         const footerWrapper = this.query<HTMLElement>('#chat-input-root')!;
-        if (state.hasStarted) {
-            footerWrapper.className = 'chat-footer-wrapper bottom';
-        } else {
-            footerWrapper.className = 'chat-footer-wrapper centered';
-        }
+        footerWrapper.className = 'chat-footer-wrapper bottom';
     }
 }
