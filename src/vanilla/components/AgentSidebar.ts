@@ -8,7 +8,7 @@ import { AgentSidebarProps } from '../../types';
 import { SidebarHeader } from './SidebarHeader';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
-import { FloatingToggleButton } from './FloatingToggleButton';
+import { SidePanelRightIcon } from './Icons';
 import { InfoPanel } from './InfoPanel';
 import { HistoryPanel } from './HistoryPanel';
 
@@ -31,7 +31,6 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
     private chatInput: ChatInput | null = null;
     private historyPanel: HistoryPanel | null = null;
     private infoPanel: InfoPanel | null = null;
-    private toggleBtn: FloatingToggleButton | null = null;
     private splitInstance: any = null;
 
     private bashSandbox: any = null;
@@ -122,7 +121,12 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
     init() {
         // Initial setup of structural elements
         this.element.innerHTML = `
-            <div class="agent-sidebar-container" style="pointer-events: auto; display: flex; flex-direction: row; width: 100vw; height: 100vh; position: relative">
+            <div id="top-accent-header" class="top-accent-header">
+                <div class="top-accent-icon-container">
+                    ${SidePanelRightIcon('var(--agent-top-header-icon-size)')}
+                </div>
+            </div>
+            <div class="agent-sidebar-container">
                 <div id="sidebar-spacer" style="flex-grow: 1; pointer-events: none"></div>
                 <div id="sidebar-main" class="agent-panel-inner" style="z-index: 1; display: flex; flex-direction: column; overflow: hidden; position: relative">
                     <div id="header-root"></div>
@@ -133,8 +137,12 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
                     <div id="overlay-root" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 100"></div>
                 </div>
             </div>
-            <div id="floating-btn-root" style="position: fixed; right: 24px; bottom: 24px; z-index: 9999"></div>
         `;
+
+        // Add click listener for the top accent icon
+        this.query('.top-accent-icon-container')?.addEventListener('click', () => {
+            this.store.setState({ isCollapsed: !this.store.getState().isCollapsed });
+        });
 
         // Initialize Split.js
         const spacer = this.query('#sidebar-spacer')!;
@@ -190,12 +198,6 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         this.query('#chat-input-root')?.appendChild(this.chatInput.getElement());
         this.chatInput.init();
 
-        this.toggleBtn = new FloatingToggleButton({
-            onClick: () => this.store.setState({ isCollapsed: false })
-        });
-        this.query('#floating-btn-root')?.appendChild(this.toggleBtn.getElement());
-        this.toggleBtn.render();
-
         // Initial render to reflect state
         this.render();
     }
@@ -230,10 +232,6 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             skills: state.skills,
             filesystem: state.actualFilesystem
         });
-
-        // Toggle button visibility
-        const floatingRoot = this.query<HTMLElement>('#floating-btn-root')!;
-        floatingRoot.style.display = state.isCollapsed ? 'block' : 'none';
 
         if (state.isInitializing) {
             // Show loading state if needed

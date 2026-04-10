@@ -60,6 +60,11 @@
   --agent-scrollbar-thumb-hover: #9ca3af;
   --agent-terminal-scrollbar-thumb: #3f3f46;
   --agent-terminal-scrollbar-thumb-hover: #52525b;
+
+  /* Header & Panel Configuration */
+  --agent-top-header-height: 24px;
+  --agent-sidebar-width: 450px;
+  --agent-top-header-icon-size: 20px;
 }
 
 .agent-sidebar-layout-container {
@@ -85,9 +90,14 @@
 
 .agent-sidebar-container {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  width: 100vw;
+  height: calc(100vh - var(--agent-top-header-height));
+  margin-top: var(--agent-top-header-height);
+  position: relative;
   overflow: visible !important;
   font-family: 'Inter', sans-serif;
+  pointer-events: auto;
 }
 
 .agent-panel-inner {
@@ -101,7 +111,7 @@
   top: 0;
   right: 0;
   bottom: 0;
-  width: 450px; /* Default sidebar width */
+  width: var(--agent-sidebar-width);
   max-width: 90vw;
   min-width: 320px;
   height: 100%;
@@ -109,6 +119,37 @@
   z-index: 1;
   font-family: 'Inter', sans-serif;
   pointer-events: auto;
+}
+
+.top-accent-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--agent-top-header-height);
+  background-color: var(--agent-bg-dark);
+  z-index: 10001;
+  pointer-events: auto;
+}
+
+.top-accent-icon-container {
+  position: absolute;
+  top: 0;
+  right: 12px;
+  width: var(--agent-top-header-height);
+  height: var(--agent-top-header-height);
+  cursor: pointer;
+  color: var(--agent-text-on-dark);
+  z-index: 10002;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.top-accent-icon-container:hover {
+  opacity: 1;
 }
 
 .gutter {
@@ -270,27 +311,7 @@
   gap: 8px;
 }
 
-.floating-control-button {
-  width: 56px;
-  height: 56px;
-  border-radius: 28px;
-  background-color: var(--agent-bg-dark);
-  border: none;
-  box-shadow: var(--agent-shadow-float);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--agent-text-white);
-  transition: all 0.2s var(--agent-transition-smooth);
-  padding: 0;
-  pointer-events: auto;
-}
-
-.floating-control-button:hover {
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.25);
-}
+/* Removed chunky floating button */
 
 @keyframes fadeIn {
   from { opacity: 0; }
