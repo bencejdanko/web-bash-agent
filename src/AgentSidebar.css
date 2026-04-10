@@ -111,7 +111,7 @@
   position: relative;
   overflow: visible !important;
   font-family: 'Inter', sans-serif;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .agent-panel-inner {
@@ -143,7 +143,7 @@
   height: var(--agent-top-header-height);
   background-color: var(--agent-bg-dark);
   z-index: 10001;
-  pointer-events: auto;
+  pointer-events: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -159,6 +159,7 @@
   transition: opacity 0.2s ease;
   height: 100%;
   padding: 0 12px;
+  pointer-events: auto;
 }
 
 .top-accent-toggle:hover {
