@@ -52,6 +52,8 @@ export class PersistentBashSandbox {
         let initialFiles = options.files || {};
         if (options.normalizePaths) {
             const normalized: Record<string, string> = {};
+            // Ensure root directory exists
+            normalized['/site/'] = '';
             for (const [path, content] of Object.entries(initialFiles)) {
                 normalized[normalizeSitePath(path)] = content;
             }
@@ -108,12 +110,16 @@ export class PersistentBashSandbox {
                 }
             }
 
+            const stdout = this.decode(result.stdout);
+            const stderr = this.decode(result.stderr);
+
             return {
-                stdout: this.decode(result.stdout),
-                stderr: this.decode(result.stderr),
+                stdout: stdout,
+                stderr: stderr,
                 exitCode: result.exitCode ?? 0
             };
         } catch (e: any) {
+            console.error('Bash Sandbox Runtime Error:', e);
             return {
                 stdout: '',
                 stderr: `Runtime Error: ${e.message || e}\n`,

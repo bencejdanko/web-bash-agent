@@ -70,6 +70,11 @@ export class InitializationLogic {
                 defaultHeaders
             });
 
+            // Ensure tools are set even if bridge was provided externally
+            if (this.props.llmBridge) {
+                this.llmBridge.setTools(finalTools);
+            }
+
             if (this.bashSandbox) {
                 this.store.setState({ 
                     isInitializing: false,
