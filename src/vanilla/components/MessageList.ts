@@ -4,6 +4,7 @@ import { renderMarkdown } from '../markdown';
 import { Collapsible } from './Collapsible';
 import { TerminalBox } from './TerminalBox';
 import { ThinkingIndicator } from './ThinkingIndicator';
+import { ClipBoardIcon, ThumbsUpIcon, ThumbsDownIcon, CheckIcon } from './Icons';
 
 
 interface MessageListProps {
@@ -34,6 +35,28 @@ export class MessageList extends BaseComponent<MessageListProps> {
         div.style.padding = '0';
         div.style.height = '100%';
         div.style.boxSizing = 'border-box';
+
+        // Add event delegation for copy buttons
+        div.addEventListener('click', (e) => {
+            const btn = (e.target as HTMLElement).closest('.copy-button') as HTMLElement;
+            if (!btn) return;
+
+            const content = (btn as any)._copyContent;
+            if (content) {
+                navigator.clipboard.writeText(content);
+                
+                // Visual feedback
+                const originalInner = btn.innerHTML;
+                btn.innerHTML = CheckIcon(14);
+                btn.classList.add('copied');
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalInner;
+                    btn.classList.remove('copied');
+                }, 2000);
+            }
+        });
+
         return div;
     }
 
@@ -61,6 +84,17 @@ export class MessageList extends BaseComponent<MessageListProps> {
             const userBubble = document.createElement('div');
             userBubble.className = 'user-bubble';
             userBubble.innerHTML = renderMarkdown(turn.user.content || '');
+            
+            const userActions = document.createElement('div');
+            userActions.className = 'message-actions';
+            const userCopyBtn = document.createElement('button');
+            userCopyBtn.className = 'action-button copy-button';
+            userCopyBtn.title = 'Copy message';
+            userCopyBtn.innerHTML = ClipBoardIcon(14);
+            (userCopyBtn as any)._copyContent = turn.user.content || '';
+            userActions.appendChild(userCopyBtn);
+            userBubble.appendChild(userActions);
+
             turnDiv.appendChild(userBubble);
 
             // Assistant responses container
@@ -145,6 +179,32 @@ export class MessageList extends BaseComponent<MessageListProps> {
                     contentDiv.className = 'markdown-output';
                     contentDiv.innerHTML = renderMarkdown(m.content);
                     assistantTurnContainer.appendChild(contentDiv);
+
+                    // Bot actions at the bottom right
+                    const botActions = document.createElement('div');
+                    botActions.className = 'bot-actions';
+                    
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'action-button copy-button';
+                    copyBtn.title = 'Copy response';
+                    copyBtn.innerHTML = ClipBoardIcon(14);
+                    (copyBtn as any)._copyContent = m.content;
+                    
+                    const upBtn = document.createElement('button');
+                    upBtn.className = 'action-button thumb-up-button';
+                    upBtn.title = 'Thumbs up';
+                    upBtn.innerHTML = ThumbsUpIcon(14);
+                    
+                    const downBtn = document.createElement('button');
+                    downBtn.className = 'action-button thumb-down-button';
+                    downBtn.title = 'Thumbs down';
+                    downBtn.innerHTML = ThumbsDownIcon(14);
+                    
+                    botActions.appendChild(copyBtn);
+                    botActions.appendChild(upBtn);
+                    botActions.appendChild(downBtn);
+                    
+                    assistantTurnContainer.appendChild(botActions);
                 }
             });
 
@@ -179,7 +239,6 @@ export class MessageList extends BaseComponent<MessageListProps> {
         }
 
         // Scroll to bottom
-        // Scroll to bottom with a slight delay
         setTimeout(() => {
             const isNearBottom = this.element.scrollHeight - this.element.scrollTop - this.element.clientHeight < 100;
             if (isNearBottom || this.props.isProcessing) {
