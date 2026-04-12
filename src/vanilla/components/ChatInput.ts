@@ -485,18 +485,27 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         }
 
         const selected = items[this.selectedSuggestionIndex];
-        if (!selected) return;
+        if (!selected || this.suggestionType === null) return;
 
         const val = textarea.value;
         const before = val.substring(0, this.suggestionAnchorPos);
-        const after = val.substring(textarea.selectionStart);
-        
-        textarea.value = before + this.suggestionType + selected.label + ' ' + after;
+        const after = val.substring(textarea.selectionEnd);
+
+        const type = this.suggestionType;
+        const prefix = type === '@' ? 'file:' : 'skill:';
+        textarea.value = before + type + prefix + selected.label + ' ' + after;
         this.inputValue = textarea.value;
+
         this.closeSuggestions();
         this.render();
         textarea.focus();
+
+        const newCursorPos = before.length + type.length + prefix.length + selected.label.length + 1; 
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+
     }
+
+
 
     private moveSuggestionSelection(direction: number) {
         const count = 10; 
