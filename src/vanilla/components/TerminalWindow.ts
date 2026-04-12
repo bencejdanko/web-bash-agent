@@ -144,6 +144,9 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
                                 </div>
                             `).join('')}
                         </div>
+                        <div style="padding: 12px 8px;  display: flex; justify-content: center; align-items: center">
+                            <span style="font-size: 13px; opacity: 0.4; font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase"><code style="font-family: 'JetBrains Mono', monospace; font-size: 9px; opacity: 1; margin-left: 4px; color: var(--agent-text-main)">[SHIFT+ARROW]</code></span>
+                        </div>
                     </div>
                 </div>
             </div>

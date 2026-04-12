@@ -176,7 +176,7 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             this.handleTerminalToggle();
         });
 
-        // Add global keyboard shortcuts
+        // Add global keyboard shortcuts - Using capturing phase 'true' to ensure we can override component listeners like xterm.js
         window.addEventListener('keydown', (e) => {
             // Agent Toggle: Ctrl+Alt+B
             if (e.ctrlKey && e.altKey && e.code === 'KeyB') {
@@ -196,7 +196,34 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
                 this.saveTerminalStates();
                 this.store.setState({ showTerminalWindow: false });
             }
-        });
+
+            // Switch Terminal Session: Shift + Up/Down - Override even when in terminal
+            if (e.shiftKey && (e.code === 'ArrowUp' || e.code === 'ArrowDown')) {
+                const state = this.store.getState();
+                if (state.showTerminalWindow && state.terminals.length > 1) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation(); // Prevent event from reaching subcomponents like xterm.js
+
+                    const currentIndex = state.terminals.findIndex(t => t.id === state.activeTerminalId);
+                    if (currentIndex === -1) return;
+
+                    let nextIndex = currentIndex;
+                    if (e.code === 'ArrowUp') {
+                        nextIndex = (currentIndex - 1 + state.terminals.length) % state.terminals.length;
+                    } else {
+                        nextIndex = (currentIndex + 1) % state.terminals.length;
+                    }
+                    
+                    const nextId = state.terminals[nextIndex].id;
+                    this.store.setState({ activeTerminalId: nextId });
+                    
+                    // Focus the newly active terminal
+                    requestAnimationFrame(() => {
+                        this.terminalWindow?.focusActiveTerminal(false);
+                    });
+                }
+            }
+        }, true);
 
         // Initialize Split.js
         const spacer = this.query('#sidebar-spacer')!;
@@ -266,12 +293,17 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         const state = this.store.getState();
         
         if (!state.showTerminalWindow) {
-            // If closed, open it. If no terminals exist, create the first one.
             if (state.terminals.length === 0) {
                 this.handleAddTerminal();
+                // First terminal ever: Focus and Enter
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        this.terminalWindow?.focusActiveTerminal(true);
+                    }, 150); // Give extra time for first initialization
+                });
             } else {
                 this.store.setState({ showTerminalWindow: true });
-                // When reopening, focus without pressing Enter to avoid disrupting session
+                // Reopening: Focus but don't disrupt with Enter
                 requestAnimationFrame(() => {
                     setTimeout(() => {
                         this.terminalWindow?.focusActiveTerminal(false);
@@ -279,7 +311,7 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
                 });
             }
         } else {
-            // If already open, clicking "New Terminal" should initialize a new session
+            // Already open: Create new session
             this.handleAddTerminal();
             // Focus with Enter for the new session
             requestAnimationFrame(() => {
@@ -327,6 +359,15 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             terminals: newTerminals,
             activeTerminalId: newActiveId
         });
+
+        // Autofocus the next terminal if one exists
+        if (newActiveId) {
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    this.terminalWindow?.focusActiveTerminal(false);
+                }, 50);
+            });
+        }
     }
 
     render() {
