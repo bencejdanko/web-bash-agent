@@ -10,23 +10,29 @@ interface TerminalWindowProps {
     onAddTerminal: () => void;
     onClose: () => void;
     bashSandbox: any;
+    position: { x: number, y: number } | null;
+    onPositionChange: (pos: { x: number, y: number }) => void;
 }
 
 export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
     private isDragging = false;
     private offset = { x: 0, y: 0 };
-    private position = { x: (window.innerWidth / 2) - 325, y: (window.innerHeight / 2) - 200 };
+    private position = { x: 0, y: 0 };
     private terminalCache: Map<string, TerminalBox> = new Map();
 
+    constructor(props: TerminalWindowProps) {
+        super(props);
+        const initialPos = props.position || { x: (window.innerWidth / 2) - 325, y: (window.innerHeight / 2) - 200 };
+        this.position = { ...initialPos };
+    }
+
     protected createRootElement(): HTMLElement {
-        if (!this.position) {
-            this.position = { x: (window.innerWidth / 2) - 325, y: (window.innerHeight / 2) - 200 };
-        }
+        const pos = this.props.position || { x: (window.innerWidth / 2) - 325, y: (window.innerHeight / 2) - 200 };
         const div = document.createElement('div');
         div.className = 'terminal-window-overlay';
         div.style.position = 'fixed';
-        div.style.top = `${this.position.y}px`;
-        div.style.left = `${this.position.x}px`;
+        div.style.top = `${pos.y}px`;
+        div.style.left = `${pos.x}px`;
         div.style.zIndex = '10002';
         div.style.pointerEvents = 'auto';
         return div;
@@ -35,6 +41,25 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
     init() {
         this.render();
         this.setupDragging();
+    }
+
+    public focusActiveTerminal(withEnter = true) {
+        if (!this.props.activeTerminalId) return;
+        const box = this.terminalCache.get(this.props.activeTerminalId);
+        if (box) {
+            box.focus();
+            if (withEnter) {
+                box.pressEnter();
+            }
+        }
+    }
+
+    public getStates(): Record<string, string> {
+        const states: Record<string, string> = {};
+        for (const [id, box] of this.terminalCache.entries()) {
+            states[id] = box.getContent();
+        }
+        return states;
     }
 
     private setupDragging() {
@@ -63,8 +88,19 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
                 this.isDragging = false;
                 const header = this.query<HTMLElement>('.terminal-window-header');
                 if (header) header.style.cursor = 'grab';
+                this.props.onPositionChange(this.position);
             }
         });
+    }
+
+    update(props: TerminalWindowProps) {
+        super.update(props);
+        // If the position prop changed and we are not dragging, update our local position
+        if (props.position && !this.isDragging && (props.position.x !== this.position.x || props.position.y !== this.position.y)) {
+            this.position = { ...props.position };
+            this.element.style.left = `${this.position.x}px`;
+            this.element.style.top = `${this.position.y}px`;
+        }
     }
 
     render() {
@@ -76,12 +112,18 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
                         <span style="font-weight: 600; font-size: 13px">Terminal Manager</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px">
-                         <button class="add-terminal-btn" title="New Terminal Session">
-                            ${PlusIcon(14)}
-                        </button>
-                        <button class="close-window-btn">
-                            ${XIcon(14)}
-                        </button>
+                         <div class="top-accent-toggle add-terminal-btn" style="cursor: pointer; padding: 4px 8px; height: auto">
+                            <span class="top-accent-text" style="font-size: 10px">New Terminal <code style="font-family: 'JetBrains Mono', monospace; font-size: 9px; opacity: 0.5; margin-left: 2px">[CTRL+SHIFT+\`]</code></span>
+                            <div class="top-accent-icon-container">
+                                ${PlusIcon(12)}
+                            </div>
+                        </div>
+                        <div class="top-accent-toggle close-window-btn" style="cursor: pointer; padding: 4px 8px; height: auto">
+                             <span class="top-accent-text" style="font-size: 10px">Hide <code style="font-family: 'JetBrains Mono', monospace; font-size: 9px; opacity: 0.5; margin-left: 2px">[CTRL+J]</code></span>
+                             <div class="top-accent-icon-container">
+                                 ${XIcon(12)}
+                             </div>
+                        </div>
                     </div>
                 </div>
                 <div class="terminal-window-body">

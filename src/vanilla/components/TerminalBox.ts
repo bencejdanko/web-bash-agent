@@ -99,6 +99,29 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
         resizeObserver.observe(container);
     }
 
+    public focus() {
+        this.terminal?.focus();
+    }
+
+    public async pressEnter() {
+        await this.handleKey('\r');
+    }
+
+    public getContent(): string {
+        if (!this.terminal) return '';
+        const buffer = this.terminal.buffer.active;
+        let lines: string[] = [];
+        for (let i = 0; i < buffer.length; i++) {
+            const line = buffer.getLine(i);
+            if (line) lines.push(line.translateToString(true));
+        }
+        // Remove trailing empty lines
+        while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
+            lines.pop();
+        }
+        return lines.join('\n');
+    }
+
     private async handleKey(data: string) {
         if (!this.terminal || this.isExecuting || this.props.isMinimal) return;
 

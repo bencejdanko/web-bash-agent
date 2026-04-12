@@ -60,8 +60,6 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             collapsedThoughtIds: [],
             currentModelId: initialModelId || props.initialModelId || props.models[0]?.id,
             actualFilesystem: props.filesystem || {},
-            terminals: [],
-            activeTerminalId: null,
             activeInfoPanel: null,
             showHistory: false,
             conversations: [],
@@ -70,7 +68,10 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             isCollapsed: savedState.isCollapsed !== undefined ? savedState.isCollapsed : true,
             sidebarSizes: savedState.sidebarSizes || [70, 30],
             skills: props.skills || [],
-            showTerminalWindow: false
+            showTerminalWindow: savedState.showTerminalWindow || false,
+            terminalPosition: savedState.terminalPosition || null,
+            terminals: savedState.terminals || [],
+            activeTerminalId: savedState.activeTerminalId || null
         };
 
         this.store = new Store(initialState);
@@ -102,7 +103,11 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             localStorage.setItem('agent-sidebar-state', JSON.stringify({
                 isCollapsed: state.isCollapsed,
                 sidebarSizes: state.sidebarSizes,
-                currentModelId: state.currentModelId
+                currentModelId: state.currentModelId,
+                showTerminalWindow: state.showTerminalWindow,
+                terminalPosition: state.terminalPosition,
+                terminals: state.terminals,
+                activeTerminalId: state.activeTerminalId
             }));
         });
 
@@ -168,11 +173,7 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         });
 
         this.query('#terminal-window-toggle')?.addEventListener('click', () => {
-            const state = this.store.getState();
-            if (!state.showTerminalWindow && state.terminals.length === 0) {
-                this.handleAddTerminal();
-            }
-            this.store.setState({ showTerminalWindow: !state.showTerminalWindow });
+            this.handleTerminalToggle();
         });
 
         // Add global keyboard shortcuts
@@ -186,11 +187,14 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             // Terminal Toggle: Ctrl+Shift+`
             if (e.ctrlKey && e.shiftKey && e.code === 'Backquote') {
                 e.preventDefault();
-                const state = this.store.getState();
-                if (!state.showTerminalWindow && state.terminals.length === 0) {
-                    this.handleAddTerminal();
-                }
-                this.store.setState({ showTerminalWindow: !state.showTerminalWindow });
+                this.handleTerminalToggle();
+            }
+
+            // Hide Terminal: Ctrl+J
+            if (e.ctrlKey && e.code === 'KeyJ') {
+                e.preventDefault();
+                this.saveTerminalStates();
+                this.store.setState({ showTerminalWindow: false });
             }
         });
 
@@ -256,6 +260,45 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
 
         // Initial render to reflect state
         this.render();
+    }
+
+    private handleTerminalToggle() {
+        const state = this.store.getState();
+        
+        if (!state.showTerminalWindow) {
+            // If closed, open it. If no terminals exist, create the first one.
+            if (state.terminals.length === 0) {
+                this.handleAddTerminal();
+            } else {
+                this.store.setState({ showTerminalWindow: true });
+                // When reopening, focus without pressing Enter to avoid disrupting session
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        this.terminalWindow?.focusActiveTerminal(false);
+                    }, 50);
+                });
+            }
+        } else {
+            // If already open, clicking "New Terminal" should initialize a new session
+            this.handleAddTerminal();
+            // Focus with Enter for the new session
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    this.terminalWindow?.focusActiveTerminal(true);
+                }, 50);
+            });
+        }
+    }
+
+    private saveTerminalStates() {
+        if (!this.terminalWindow) return;
+        const states = this.terminalWindow.getStates();
+        const currentTerminals = this.store.getState().terminals;
+        const updatedTerminals = currentTerminals.map(t => ({
+            ...t,
+            output: states[t.id] || t.output
+        }));
+        this.store.setState({ terminals: updatedTerminals });
     }
 
     private handleAddTerminal() {
@@ -419,17 +462,22 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             this.infoPanel = null;
         }
 
-        // Handle Terminal Window
-        const globalOverlayRoot = this.query<HTMLElement>('#global-overlay-root')!;
-        if (state.showTerminalWindow) {
+        // Handle Terminal Window - Keep alive even when hidden
+        const globalOverlayRoot = this.query<HTMLElement>('#global-overlay-root');
+        if (globalOverlayRoot) {
             const termProps = {
                 terminals: state.terminals,
                 activeTerminalId: state.activeTerminalId,
                 onSelectTerminal: (id: string) => this.handleSelectTerminal(id),
                 onDeleteTerminal: (id: string) => this.handleDeleteTerminal(id),
                 onAddTerminal: () => this.handleAddTerminal(),
-                onClose: () => this.store.setState({ showTerminalWindow: false }),
-                bashSandbox: this.bashSandbox
+                onClose: () => {
+                    this.saveTerminalStates();
+                    this.store.setState({ showTerminalWindow: false });
+                },
+                bashSandbox: this.bashSandbox,
+                position: state.terminalPosition,
+                onPositionChange: (pos: { x: number, y: number }) => this.store.setState({ terminalPosition: pos })
             };
 
             if (!this.terminalWindow) {
@@ -439,9 +487,9 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             } else {
                 this.terminalWindow.update(termProps);
             }
-        } else if (this.terminalWindow) {
-            this.terminalWindow.getElement().remove();
-            this.terminalWindow = null;
+            
+            // Toggle visibility instead of destroying
+            this.terminalWindow.getElement().style.display = state.showTerminalWindow ? 'block' : 'none';
         }
 
         // Sidebar is now always docked

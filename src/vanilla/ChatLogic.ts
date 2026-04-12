@@ -22,6 +22,7 @@ export interface AgentState {
     sidebarSizes: number[];
     skills: any[];
     showTerminalWindow: boolean;
+    terminalPosition: { x: number, y: number } | null;
 }
 
 export class ChatLogic {
