@@ -23,6 +23,7 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
     private suggestionQuery: string = '';
     private selectedSuggestionIndex: number = 0;
     private suggestionAnchorPos: number = -1;
+    private selectedModelIndex: number = 0;
 
     protected createRootElement(): HTMLElement {
         const div = document.createElement('div');
@@ -52,6 +53,10 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
             <div class="chat-input-inner-wrapper" style="display: flex; flex-direction: column; gap: 8px; width: 100%; position: relative">
                 <div id="suggestion-popup" style="display: none; position: absolute; bottom: 100%; left: 0; right: 0; margin-bottom: 8px; background: var(--agent-bg-main); border: 1px solid var(--agent-border-main); border-radius: 12px; box-shadow: var(--agent-shadow-float); z-index: 2000; overflow: hidden; color: var(--agent-text-main); font-family: inherit">
                 </div>
+                <div id="model-menu" style="display: none; position: absolute; bottom: 100%; left: 0; right: 0; margin-bottom: 8px; background-color: var(--agent-bg-main); border: 1px solid var(--agent-border-main); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden; z-index: 1000">
+                    <div id="model-options-container" style="max-height: 200px; overflow-y: auto; padding: 4px">
+                    </div>
+                </div>
                 <div class="chat-input-container">
                     <textarea id="chat-textarea" aria-label="Message assistant..." placeholder="${this.props.placeholder || 'Ask anything, @ to mention, / for skills'}" style="width: 100%; box-sizing: border-box; padding: var(--agent-input-padding); border: none; background-color: transparent; color: var(--agent-text-main); font-size: var(--agent-font-main); outline: none; resize: none; min-height: 48px; max-height: 200px; line-height: var(--agent-line-height-main); font-family: inherit; overflow-y: auto"></textarea>
                     <div id="input-controls" style="position: absolute; right: 10px; bottom: 10px; display: flex; align-items: center; gap: 8px">
@@ -70,11 +75,8 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
                         <button id="btn-model-selector" style="background: transparent; border: none; cursor: pointer; font-size: var(--agent-font-small); color: var(--agent-text-muted); display: flex; align-items: center; gap: 4px; padding: 4px 0; opacity: 0.7; transition: opacity 0.2s">
                             <div style="width: 6px; height: 6px; border-radius: 50%; background-color: var(--agent-accent)"></div>
                             <span id="current-model-name">${currentModel?.name || 'Select Model'}</span>
+                            <code style="font-family: 'JetBrains Mono', monospace; font-size: 10px; opacity: 0.5; margin-left: 4px; vertical-align: middle">[CTRL+SHIFT+M]</code>
                         </button>
-                        <div id="model-menu" style="display: none; position: absolute; bottom: 100%; left: 0; margin-bottom: 8px; width: 220px; background-color: var(--agent-bg-main); border: 1px solid var(--agent-border-main); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden; z-index: 1000">
-                            <div id="model-options-container" style="max-height: 200px; overflow-y: auto; padding: 4px">
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -96,6 +98,30 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         });
 
         textarea.addEventListener('keydown', (e) => {
+            if (this.isModelMenuOpen) {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    this.moveModelSelection(1);
+                    return;
+                }
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    this.moveModelSelection(-1);
+                    return;
+                }
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.applySelectedModel();
+                    return;
+                }
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    this.isModelMenuOpen = false;
+                    this.render();
+                    return;
+                }
+            }
+
             if (this.showSuggestions) {
                 if (e.key === 'ArrowDown') {
                     e.preventDefault();
@@ -130,15 +156,48 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         btnModelSelector?.addEventListener('click', (e) => {
             e.stopPropagation();
             this.isModelMenuOpen = !this.isModelMenuOpen;
-            modelMenu.style.display = this.isModelMenuOpen ? 'block' : 'none';
+            if (this.isModelMenuOpen) {
+                this.selectedModelIndex = this.props.models.findIndex(m => m.id === this.props.currentModelId);
+                if (this.selectedModelIndex === -1) this.selectedModelIndex = 0;
+                // Autofocus the textarea so keyboard events (Up/Down/Enter) are captured immediately
+                textarea.focus();
+            }
+            this.render();
+        });
+
+        btnModelSelector?.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') {
+                e.preventDefault();
+                if (!this.isModelMenuOpen) {
+                    this.isModelMenuOpen = true;
+                    this.selectedModelIndex = this.props.models.findIndex(m => m.id === this.props.currentModelId);
+                    if (this.selectedModelIndex === -1) this.selectedModelIndex = 0;
+                    this.render();
+                }
+                textarea.focus();
+            }
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.shiftKey && e.code === 'KeyM') {
+                e.preventDefault();
+                this.isModelMenuOpen = !this.isModelMenuOpen;
+                if (this.isModelMenuOpen) {
+                    this.selectedModelIndex = this.props.models.findIndex(m => m.id === this.props.currentModelId);
+                    if (this.selectedModelIndex === -1) this.selectedModelIndex = 0;
+                    textarea.focus();
+                }
+                this.render();
+            }
         });
 
         document.addEventListener('click', (e) => {
             const isInside = this.element.contains(e.target as Node);
             if (!isInside) {
+                let shouldRender = this.isModelMenuOpen || this.showSuggestions;
                 this.isModelMenuOpen = false;
-                modelMenu.style.display = 'none';
                 this.closeSuggestions();
+                if (shouldRender) this.render();
             }
         });
     }
@@ -175,13 +234,29 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         const currentModel = this.props.models.find(m => m.id === this.props.currentModelId) || this.props.models[0];
         if (modelName) modelName.textContent = currentModel?.name || 'Select Model';
 
+        const modelMenu = this.query<HTMLElement>('#model-menu')!;
+        modelMenu.style.display = this.isModelMenuOpen ? 'block' : 'none';
+
         if (modelContainer) {
-            modelContainer.innerHTML = this.props.models.map(m => `
-                <div class="model-option" data-id="${m.id}" style="padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: var(--agent-font-main); color: ${m.id === this.props.currentModelId ? 'var(--agent-accent)' : 'var(--agent-text-main)'}; background-color: ${m.id === this.props.currentModelId ? 'var(--agent-bg-subtle)' : 'transparent'}; display: flex; align-items: center; gap: 8px; transition: all 0.15s ease">
-                    <div style="width: 6px; height: 6px; border-radius: 50%; background-color: ${m.id === this.props.currentModelId ? 'var(--agent-accent)' : 'transparent'}; border: ${m.id === this.props.currentModelId ? 'none' : '1px solid var(--agent-border-main)'}"></div>
-                    <div style="flex-grow: 1">${m.name}</div>
-                </div>
-            `).join('');
+            modelContainer.innerHTML = this.props.models.map((m, i) => {
+                const isCurrent = m.id === this.props.currentModelId;
+                const isFocused = i === this.selectedModelIndex;
+                const bgColor = isFocused ? 'var(--agent-bg-subtle)' : 'transparent';
+                const textColor = isCurrent ? 'var(--agent-accent)' : 'var(--agent-text-main)';
+                const dotColor = isCurrent ? 'var(--agent-accent)' : (isFocused ? 'var(--agent-border-main)' : 'transparent');
+                
+                return `
+                    <div class="model-option" data-id="${m.id}" data-index="${i}" style="padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: var(--agent-font-main); color: ${textColor}; background-color: ${bgColor}; display: flex; align-items: center; gap: 8px; transition: all 0.15s ease">
+                        <div style="width: 6px; height: 6px; border-radius: 50%; background-color: ${dotColor}; border: ${isCurrent ? 'none' : '1px solid var(--agent-border-main)'}"></div>
+                        <div style="flex-grow: 1">${m.name}</div>
+                    </div>
+                `;
+            }).join('');
+
+            if (this.isModelMenuOpen) {
+                const focusedItem = modelContainer.querySelector(`[data-index="${this.selectedModelIndex}"]`) as HTMLElement;
+                if (focusedItem) focusedItem.scrollIntoView({ block: 'nearest' });
+            }
 
             modelContainer.querySelectorAll('.model-option').forEach(opt => {
                 opt.addEventListener('click', (e) => {
@@ -194,6 +269,22 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
                     }
                 });
             });
+        }
+    }
+
+    private moveModelSelection(direction: number) {
+        const count = this.props.models.length;
+        if (count === 0) return;
+        this.selectedModelIndex = (this.selectedModelIndex + direction + count) % count;
+        this.render();
+    }
+
+    private applySelectedModel() {
+        const model = this.props.models[this.selectedModelIndex];
+        if (model) {
+            this.props.onModelChange(model.id);
+            this.isModelMenuOpen = false;
+            this.render();
         }
     }
 
