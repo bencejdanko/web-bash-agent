@@ -198,21 +198,17 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
                 e.preventDefault();
                 this.handleTerminalToggle();
             }
-            if (e.altKey && e.code === 'KeyH') {
+            if (e.ctrlKey && e.altKey && e.code === 'KeyH') {
                 e.preventDefault();
                 this.store.setState(s => ({ showHistory: !s.showHistory, activeInfoPanel: null }));
             }
-            if (e.altKey && e.code === 'KeyT') {
+            if (e.ctrlKey && e.altKey && e.code === 'KeyT') {
                 e.preventDefault();
                 this.store.setState(s => ({ activeInfoPanel: s.activeInfoPanel === 'tools' ? null : 'tools', showHistory: false }));
             }
-            if (e.altKey && e.code === 'KeyM') {
+            if (e.ctrlKey && e.altKey && e.code === 'KeyM') {
                 e.preventDefault();
                 this.store.setState(s => ({ activeInfoPanel: s.activeInfoPanel === 'mcp' ? null : 'mcp', showHistory: false }));
-            }
-            if (e.altKey && e.code === 'KeyI') {
-                e.preventDefault();
-                this.store.setState(s => ({ activeInfoPanel: s.activeInfoPanel === 'system' ? null : 'system', showHistory: false }));
             }
             if (e.ctrlKey && e.code === 'KeyJ') {
                 e.preventDefault();
@@ -272,7 +268,6 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             onToggleHistory: () => this.store.setState(s => ({ showHistory: !s.showHistory, activeInfoPanel: null })),
             onToggleTools: () => this.store.setState(s => ({ activeInfoPanel: s.activeInfoPanel === 'tools' ? null : 'tools', showHistory: false })),
             onToggleRegistry: () => this.store.setState(s => ({ activeInfoPanel: s.activeInfoPanel === 'mcp' ? null : 'mcp', showHistory: false })),
-            onToggleSystem: () => this.store.setState(s => ({ activeInfoPanel: s.activeInfoPanel === 'system' ? null : 'system', showHistory: false })),
             onClose: () => this.store.setState({ isCollapsed: true })
         });
         this.query('#header-root')?.appendChild(this.header.getElement());

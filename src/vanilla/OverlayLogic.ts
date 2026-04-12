@@ -67,13 +67,7 @@ export class OverlayLogic {
         let title = '';
         let content: HTMLElement | HTMLElement[] = document.createElement('div');
         
-        if (state.activeInfoPanel === 'system') {
-            title = 'System Information';
-            const pre = document.createElement('pre');
-            pre.className = 'info-panel-system-prompt';
-            pre.textContent = systemPrompt;
-            content = pre;
-        } else if (state.activeInfoPanel === 'tools') {
+        if (state.activeInfoPanel === 'tools') {
             title = 'Agent Tools & Skills';
             const div = document.createElement('div');
             div.className = 'info-panel-tools-list';
