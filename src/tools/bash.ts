@@ -8,12 +8,9 @@ export function createBashTool(customDescription?: string): AgentTool {
         name: 'bash',
         description: customDescription || [
           'Run a bash command in the virtual shell environment.',
-          'The site and its metadata are mounted in `/site/`.',
-          'Check `/site/.agents/README.md` for capabilities and usage.',
-          'THE ENTIRE SITE IS NOT MOUNTED in /site/. You must use tools.',
-          'USE CLI-STYLE BASH COMMANDS ONLY. NO JSON IN THE TERMINAL.',
-          'All standard bash commands are available: ls, cat, grep, find, head, tail, jq, wc, sort, awk, sed, etc.',
-          'Pipes (|), redirections (>, >>), globs (*.json), and chaining (&&, ||) all work.',
+          'THE ONLY WAY TO RUN SHELL COMMANDS IS BY CALLING THIS BASH TOOL.',
+          'Specialized: `search "query"`, `navigate "/url"`, `fetch_internal "/path"`.',
+          'Standard: ls, cat, grep, find, head, tail, jq, etc. are all available.',
         ].join(' '),
         parameters: {
           type: 'object',
@@ -27,12 +24,15 @@ export function createBashTool(customDescription?: string): AgentTool {
         },
       },
     },
-    handler: async ({ command }, { bashSandbox }) => {
-      const result = await bashSandbox.exec(command);
-      let output = '';
-      if (result.stdout) output += result.stdout;
-      if (result.stderr) output += result.stderr;
-      return output || '(no output)';
+    handler: async ({ command }, { iterationId, toolCallId }) => {
+      const manager = (window as any).terminalSessionManager;
+      if (manager && iterationId && toolCallId) {
+        const sessionId = `${iterationId}-${toolCallId}`;
+        return await manager.runCommand(sessionId, command);
+      }
+      
+      // Fallback if manager is missing (unlikely in this architecture)
+      return '(error: session manager unavailable)';
     },
   };
 }

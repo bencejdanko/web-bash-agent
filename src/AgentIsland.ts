@@ -13,12 +13,6 @@ export async function initAgentIsland() {
         const config = JSON.parse(configText);
         const { models, systemPrompt, filesystem, initialModelId } = config;
 
-        // 0. Dynamic import React and React-DOM/client
-        const [React, { createRoot }] = await Promise.all([
-            import('react'),
-            import('react-dom/client')
-        ]);
-
         // 1. Resolve Pagefind Base URL
         const astroBase = document.documentElement.getAttribute('data-astro-base') || '/';
         const base = astroBase.endsWith('/') ? astroBase : astroBase + '/';
@@ -31,11 +25,10 @@ export async function initAgentIsland() {
             console.warn('Agent Search: Pagefind index not available.');
         }
 
-        // 3. Dynamic Import of the Sidebar UI
-        // We use a relative path to ensure Vite handles the source-to-source compilation
-        const { AgentSidebar } = await import('./AgentSidebar');
+        // 3. Dynamic Import of the Vanilla Sidebar UI
+        const { AgentSidebar } = await import('./vanilla/components/AgentSidebar');
 
-        // 4. Mount React root
+        // 4. Mount Vanilla Sidebar
         let container = document.getElementById('pagefind-agent-island');
         if (!container) {
             container = document.createElement('div');
@@ -43,15 +36,16 @@ export async function initAgentIsland() {
             document.body.appendChild(container);
         }
 
-        const root = createRoot(container);
-        root.render(
-            <AgentSidebar 
-                models={models}
-                initialModelId={initialModelId || models[0]?.id}
-                systemPrompt={systemPrompt}
-                filesystem={filesystem}
-            />
-        );
+        const sidebar = new AgentSidebar({
+            models,
+            initialModelId: initialModelId || models[0]?.id,
+            systemPrompt,
+            filesystem
+        });
+        
+        container.innerHTML = '';
+        container.appendChild(sidebar.getElement());
+        sidebar.init();
 
     } catch (err) {
         console.error('Agent Island failed to initialize:', err);

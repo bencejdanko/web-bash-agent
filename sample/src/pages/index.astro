@@ -48,6 +48,12 @@ const MODELS: ModelConfig[] = [
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
 		<title>Astro Real Test Page (Modular Agent)</title>
+        <script id="pagefind-agent-config" type="application/json" set:html={JSON.stringify({ 
+            models: MODELS, 
+            systemPrompt, 
+            filesystem: realFilesystem, 
+            initialModelId: MODELS[0].id 
+        })} />
         <script is:inline>
             (async () => {
                 try {
@@ -74,13 +80,36 @@ const MODELS: ModelConfig[] = [
             </div>
         </div>
 
-		<AgentSidebar 
-            client:only="react" 
-            models={MODELS}
-            initialModelId={MODELS[0].id}
-            systemPrompt={systemPrompt}
-            filesystem={realFilesystem}
-        />
+        <!-- Container for the Agent Sidebar -->
+        <div id="pagefind-agent-manual-island"></div>
+
+        <script>
+            import { AgentSidebar } from 'pagefind-bash-agent-astro';
+
+            // We can get the config from the hidden div or pass it another way.
+            // For simplicity in this test page, we'll re-use the config injected by the script or passed via props.
+            // Since we are in the same page, we can just grab the config from the script we injected earlier 
+            // OR better, we can just use the variables if they were available.
+            // But Astro scripts don't have access to frontmatter variables directly unless using define:vars.
+            
+            // Let's use the simplest approach for a vanilla mount:
+            const configEl = document.getElementById('pagefind-agent-config');
+            if (configEl) {
+                const config = JSON.parse(configEl.textContent || '{}');
+                const sidebar = new AgentSidebar({
+                    models: config.models,
+                    initialModelId: config.initialModelId || config.models[0]?.id,
+                    systemPrompt: config.systemPrompt,
+                    filesystem: config.filesystem
+                });
+                
+                const container = document.getElementById('pagefind-agent-manual-island');
+                if (container) {
+                    container.appendChild(sidebar.getElement());
+                    sidebar.init();
+                }
+            }
+        </script>
 
 	</body>
 </html>
