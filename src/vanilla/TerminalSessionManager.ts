@@ -11,6 +11,8 @@ export interface TerminalSession {
     serializeAddon: SerializeAddon;
     fitAddon: FitAddon;
     container?: HTMLElement;
+    command?: string;
+    output?: string;
 }
 
 export class TerminalSessionManager {
@@ -89,23 +91,25 @@ export class TerminalSessionManager {
             terminal,
             logic,
             serializeAddon,
-            fitAddon
+            fitAddon,
+            command: options.command,
+            output: options.initialOutput
         };
 
         this.sessions.set(id, session);
 
-        // Rehydrate state if provided
+        // Rehydrate state or initialize
         if (options.initialState) {
             terminal.write(options.initialState);
-        } else if (options.initialOutput) {
-            logic.writeOutput(options.initialOutput);
-            if (!options.initialOutput.endsWith('\n')) terminal.write('\r\n');
         } else {
-            logic.writePrompt();
-        }
-
-        if (options.initialHistory) {
-            // Logic already has it from constructor
+            if (options.initialOutput) {
+                 logic.writeCommandLine(options.command || 'bash');
+                 logic.writeOutput(options.initialOutput);
+                 if (!options.initialOutput.endsWith('\n')) terminal.write('\r\n');
+                 logic.writePrompt();
+            } else {
+                 logic.writePrompt();
+            }
         }
 
         terminal.onData(data => {
@@ -113,6 +117,39 @@ export class TerminalSessionManager {
         });
 
         return session;
+    }
+
+    /**
+     * Executes a command through a new or existing snapshot session.
+     */
+    public async runCommand(id: string, command: string): Promise<string> {
+        if (!this.sandbox) throw new Error('TerminalSessionManager not initialized');
+        
+        const session = this.getOrCreateSession(id, { command });
+        
+        try {
+            // Write the command line just like a user would
+            session.logic.writeCommandLine(command);
+            
+            const result = await this.sandbox.exec(command);
+            const output = (result.stdout || '') + (result.stderr || '') || '(no output)';
+            
+            // Update session state
+            session.output = output;
+            
+            // Write the output and the next prompt
+            session.logic.writeOutput(output);
+            if (!output.endsWith('\n')) session.terminal.write('\r\n');
+            session.logic.writePrompt();
+            
+            this.scheduleSave();
+            return output;
+        } catch (e: any) {
+            const err = `Error: ${e.message || e}`;
+            session.terminal.writeln(`\r\n\x1b[31m${err}\x1b[0m`);
+            session.logic.writePrompt();
+            return err;
+        }
     }
 
     public mount(id: string, container: HTMLElement) {

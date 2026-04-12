@@ -188,7 +188,7 @@ export class TerminalLogic {
     }
 
     public writeCommandLine(command: string) {
-        this.terminal.writeln(`${this.getPrompt().trim()} ${command}`);
+        this.terminal.writeln(`${this.getPrompt()}${command}`);
     }
 
     public pressEnter() {

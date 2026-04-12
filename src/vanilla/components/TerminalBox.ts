@@ -45,60 +45,29 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
         const container = this.query<HTMLElement>('.terminal-xterm-wrapper');
         if (!container) return;
 
-        if (this.props.isMinimal) {
-            // Static/Minimal terminals still create their own instance for isolation
-            this.terminal = new Terminal({
-                cursorBlink: false,
-                fontSize: 12,
-                lineHeight: 1.2,
-                fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                theme: {
-                    background: '#ffffff',
-                    foreground: '#18181b',
-                    cursor: '#18181b',
-                    selectionBackground: 'rgba(24, 24, 27, 0.1)',
-                    black: '#18181b',
-                    red: '#ef4444',
-                    green: '#16a34a',
-                    yellow: '#ca8a04',
-                    blue: '#2563eb',
-                    magenta: '#9333ea',
-                    cyan: '#0891b2',
-                    white: '#ffffff',
-                },
-                convertEol: true,
-                rows: 10,
+        // All terminals (interactive and snapshot) now use the shared session manager
+        const manager = (window as any).terminalSessionManager;
+        if (manager) {
+            const session = manager.getOrCreateSession(this.props.id, {
+                command: this.props.command,
+                initialOutput: this.props.output,
+                initialHistory: this.props.history,
+                initialState: this.props.initialState,
+                onExit: this.props.onExit
             });
-            this.fitAddon = new FitAddon();
-            this.terminal.loadAddon(this.fitAddon);
-            this.terminal.open(container);
-            
-            setTimeout(() => {
-                try { this.fitAddon?.fit(); } catch (e) {}
-            }, 10);
-        } else {
-            // Interactive terminals use the shared session manager
-            const manager = (window as any).terminalSessionManager; // Injected globally or via props
-            if (manager) {
-                const session = manager.getOrCreateSession(this.props.id, {
-                    command: this.props.command,
-                    initialOutput: this.props.output,
-                    initialHistory: this.props.history,
-                    initialState: this.props.initialState,
-                    onExit: this.props.onExit
-                });
-                this.terminal = session.terminal;
-                this.fitAddon = session.fitAddon;
-                this.logic = session.logic;
-                manager.mount(this.props.id, container);
-            }
+            this.terminal = session.terminal;
+            this.fitAddon = session.fitAddon;
+            this.logic = session.logic;
+            manager.mount(this.props.id, container);
         }
 
         this.initialized = true;
         this.updateContent();
 
         const resizeObserver = new ResizeObserver(() => {
-            try { this.fitAddon?.fit(); } catch (e) {}
+            if (this.element.offsetParent !== null) { // Only fit if visible
+                try { this.fitAddon?.fit(); } catch (e) {}
+            }
         });
         resizeObserver.observe(container);
     }
@@ -159,40 +128,20 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
     }
 
     private updateContent() {
-        const outputChanged = this.props.output !== this.lastOutput;
-        const pendingChanged = this.props.isPending !== this.lastPending;
-
-        if (this.props.isMinimal) {
-            if (outputChanged || pendingChanged) {
-                this.refreshStaticContent();
-            }
+        // No manual rehydration needed here anymore.
+        // TerminalSessionManager handles the buffer.
+        
+        // We only need to ensure the layout is correct if props changed.
+        if (this.initialized && this.element.offsetParent !== null) {
+            requestAnimationFrame(() => this.fit());
         }
 
         this.lastOutput = this.props.output;
         this.lastPending = this.props.isPending;
     }
 
-
     private refreshStaticContent() {
-        const term = this.terminal;
-        if (!term) return;
-
-        // Visual reset for static view
-        term.reset();
-        
-        if (this.props.command && this.props.command !== 'bash') {
-            term.writeln(`\x1b[2m$ ${this.props.command}\x1b[0m`);
-        }
-        if (this.props.output) {
-            const lines = this.props.output.split('\n');
-            lines.forEach((line, idx) => {
-                const prefix = idx === lines.length - 1 ? '\x1b[2m└\x1b[0m ' : '\x1b[2m│\x1b[0m ';
-                term.writeln(`${prefix} ${line}`);
-            });
-        }
-        if (this.props.isPending) {
-            term.write('\x1b[2m│ Processing...\x1b[0m');
-        }
+        // Obsolete in Consolidated Pattern
     }
 
     destroy() {

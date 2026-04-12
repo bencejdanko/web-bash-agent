@@ -191,7 +191,12 @@ export class ChatLogic {
                             this.store.setState(s => ({ messages: [...s.messages, pendingToolResult] }));
 
                             try {
-                                const output = await tool.handler(args, { bashSandbox: this.bashSandbox, llmBridge: this.llmBridge });
+                                const output = await tool.handler(args, { 
+                                    bashSandbox: this.bashSandbox, 
+                                    llmBridge: this.llmBridge,
+                                    iterationId: iterId,
+                                    toolCallId: toolCall.id
+                                });
                                 
                                 this.store.setState({ actualFilesystem: this.bashSandbox.getFilesystem() });
 

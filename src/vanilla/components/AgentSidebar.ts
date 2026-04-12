@@ -263,13 +263,22 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             collapsedThoughtIds: [],
             onToggleTurn: (id) => this.store.setState(s => ({ collapsedTurnIds: s.collapsedTurnIds.includes(id) ? s.collapsedTurnIds.filter(x => x !== id) : [...s.collapsedTurnIds, id] })),
             onToggleThought: (id) => this.store.setState(s => ({ collapsedThoughtIds: s.collapsedThoughtIds.includes(id) ? s.collapsedThoughtIds.filter(x => x !== id) : [...s.collapsedThoughtIds, id] })),
-            onOpenInTerminal: (cmd, out) => {
-                const id = `term-${Date.now()}`;
-                this.store.setState(s => ({
-                    terminals: [...s.terminals, { id, command: cmd, output: out }],
-                    activeTerminalId: id,
-                    showTerminalWindow: true
-                }));
+            onOpenInTerminal: (id, cmd, out) => {
+                const state = this.store.getState();
+                const existing = state.terminals.find(t => t.id === id);
+                
+                if (!existing) {
+                    this.store.setState(s => ({
+                        terminals: [...s.terminals, { id, command: cmd, output: out }],
+                        activeTerminalId: id,
+                        showTerminalWindow: true
+                    }));
+                } else {
+                    this.store.setState({
+                        activeTerminalId: id,
+                        showTerminalWindow: true
+                    });
+                }
             },
             sidebarWidth: 500
         });
