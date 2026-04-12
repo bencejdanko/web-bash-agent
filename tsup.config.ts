@@ -12,7 +12,7 @@ export default defineConfig({
   splitting: false,
   clean: false,
   minify: false,
-  sourcemap: true,
+  sourcemap: false,
   external: ['astro'],
   treeshake: true,
   injectStyle: true,

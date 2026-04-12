@@ -45,6 +45,11 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         const storageKey = 'agent-sidebar-state';
         const savedState = JSON.parse(localStorage.getItem(storageKey) || '{}');
 
+        let initialModelId = savedState.currentModelId;
+        if (initialModelId && !props.models.some(m => m.id === initialModelId)) {
+            initialModelId = undefined;
+        }
+
         const initialState: AgentState = {
             messages: [],
             isProcessing: false,
@@ -53,7 +58,7 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
 
             collapsedTurnIds: [],
             collapsedThoughtIds: [],
-            currentModelId: props.initialModelId || props.models[0]?.id,
+            currentModelId: initialModelId || props.initialModelId || props.models[0]?.id,
             actualFilesystem: props.filesystem || {},
             terminals: [],
             activeTerminalId: null,
@@ -96,7 +101,8 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             // Persist UI state
             localStorage.setItem('agent-sidebar-state', JSON.stringify({
                 isCollapsed: state.isCollapsed,
-                sidebarSizes: state.sidebarSizes
+                sidebarSizes: state.sidebarSizes,
+                currentModelId: state.currentModelId
             }));
         });
 
