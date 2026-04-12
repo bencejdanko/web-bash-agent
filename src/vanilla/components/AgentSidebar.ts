@@ -134,14 +134,14 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             <div id="top-accent-header" class="top-accent-header">
                 <div style="display: flex; align-items: center; gap: 0">
                     <div id="top-accent-toggle" class="top-accent-toggle">
-                        <span class="top-accent-text">Toggle Agent</span>
+                        <span class="top-accent-text">Toggle Agent <code style="font-family: 'JetBrains Mono', monospace; font-size: 10px; opacity: 0.5; margin-left: 4px; vertical-align: middle">[CTRL+ALT+B]</code></span>
                         <div class="top-accent-icon-container">
                             ${SidePanelRightIcon('var(--agent-top-header-icon-size)')}
                         </div>
                     </div>
                     <div class="header-divider" style="width: 1px; height: 16px; background: rgba(255,255,255,0.1); margin: 0 4px"></div>
                     <div id="terminal-window-toggle" class="top-accent-toggle">
-                        <span class="top-accent-text">New Terminal</span>
+                        <span class="top-accent-text">New Terminal <code style="font-family: 'JetBrains Mono', monospace; font-size: 10px; opacity: 0.5; margin-left: 4px; vertical-align: middle">[CTRL+SHIFT+\`]</code></span>
                         <div class="top-accent-icon-container">
                             ${PlusIcon(14)}
                         </div>
@@ -173,6 +173,25 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
                 this.handleAddTerminal();
             }
             this.store.setState({ showTerminalWindow: !state.showTerminalWindow });
+        });
+
+        // Add global keyboard shortcuts
+        window.addEventListener('keydown', (e) => {
+            // Agent Toggle: Ctrl+Alt+B
+            if (e.ctrlKey && e.altKey && e.code === 'KeyB') {
+                e.preventDefault();
+                this.store.setState({ isCollapsed: !this.store.getState().isCollapsed });
+            }
+            
+            // Terminal Toggle: Ctrl+Shift+`
+            if (e.ctrlKey && e.shiftKey && e.code === 'Backquote') {
+                e.preventDefault();
+                const state = this.store.getState();
+                if (!state.showTerminalWindow && state.terminals.length === 0) {
+                    this.handleAddTerminal();
+                }
+                this.store.setState({ showTerminalWindow: !state.showTerminalWindow });
+            }
         });
 
         // Initialize Split.js
