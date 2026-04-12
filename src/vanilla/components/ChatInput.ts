@@ -1,6 +1,7 @@
 import { BaseComponent } from '../BaseComponent';
 import { StopIcon, ArrowRightIcon, CubeIcon } from './Icons';
 import { ModelConfig } from '../../types';
+import './ChatInput.css';
 
 interface ChatInputProps {
   isProcessing: boolean;
@@ -27,11 +28,7 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
 
     protected createRootElement(): HTMLElement {
         const div = document.createElement('div');
-        div.style.width = '100%';
-        div.style.flexShrink = '0';
-        div.style.display = 'flex';
-        div.style.flexDirection = 'column';
-        div.style.alignItems = 'center';
+        div.className = 'chat-input-wrapper';
         return div;
     }
 
@@ -50,32 +47,29 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         const currentModel = this.props.models.find(m => m.id === this.props.currentModelId) || this.props.models[0];
 
         this.element.innerHTML = `
-            <div class="chat-input-inner-wrapper" style="display: flex; flex-direction: column; gap: 8px; width: 100%; position: relative">
-                <div id="suggestion-popup" style="display: none; position: absolute; bottom: 100%; left: 0; right: 0; margin-bottom: 8px; background: var(--agent-bg-main); border: 1px solid var(--agent-border-main); border-radius: 12px; box-shadow: var(--agent-shadow-float); z-index: 2000; overflow: hidden; color: var(--agent-text-main); font-family: inherit">
-                </div>
-                <div id="model-menu" style="display: none; position: absolute; bottom: 100%; left: 0; right: 0; margin-bottom: 8px; background-color: var(--agent-bg-main); border: 1px solid var(--agent-border-main); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden; z-index: 1000">
-                    <div id="model-options-container" style="max-height: 200px; overflow-y: auto; padding: 4px">
-                    </div>
+            <div class="chat-input-inner-wrapper chat-input-group">
+                <div id="suggestion-popup" class="suggestion-popup"></div>
+                <div id="model-menu" class="model-menu-popup">
+                    <div id="model-options-container" class="model-options-list"></div>
                 </div>
                 <div class="chat-input-container">
-                    <textarea id="chat-textarea" aria-label="Message assistant..." placeholder="${this.props.placeholder || 'Ask anything, @ to mention, / for skills'}" style="width: 100%; box-sizing: border-box; padding: var(--agent-input-padding); border: none; background-color: transparent; color: var(--agent-text-main); font-size: var(--agent-font-main); outline: none; resize: none; min-height: 48px; max-height: 200px; line-height: var(--agent-line-height-main); font-family: inherit; overflow-y: auto"></textarea>
-                    <div id="input-controls" style="position: absolute; right: 10px; bottom: 10px; display: flex; align-items: center; gap: 8px">
-                    </div>
+                    <textarea id="chat-textarea" aria-label="Message assistant..." placeholder="${this.props.placeholder || 'Ask anything, @ to mention, / for skills'}" class="chat-input-textarea"></textarea>
+                    <div id="input-controls" class="input-controls-group"></div>
                 </div>
 
-                <div style="width: 100%; display: flex; justify-content: flex-start; padding: 0 4px; gap: 12px; alignItems: center">
+                <div class="footer-controls-group">
                     ${this.props.onOpenTerminal ? `
-                        <button id="btn-open-terminal" style="background: transparent; border: none; cursor: pointer; font-size: var(--agent-font-small); color: var(--agent-text-muted); display: flex; align-items: center; gap: 4px; padding: 4px 0; opacity: 0.7; transition: opacity 0.2s">
+                        <button id="btn-open-terminal" class="control-btn-secondary">
                             ${CubeIcon(14)}
                             <span>Open terminal</span>
                         </button>
                     ` : ''}
                     
                     <div style="position: relative">
-                        <button id="btn-model-selector" style="background: transparent; border: none; cursor: pointer; font-size: var(--agent-font-small); color: var(--agent-text-muted); display: flex; align-items: center; gap: 4px; padding: 4px 0; opacity: 0.7; transition: opacity 0.2s">
-                            <div style="width: 6px; height: 6px; border-radius: 50%; background-color: var(--agent-accent)"></div>
+                        <button id="btn-model-selector" class="control-btn-secondary">
+                            <div class="model-dot" style="background-color: var(--agent-accent)"></div>
                             <span id="current-model-name">${currentModel?.name || 'Select Model'}</span>
-                            <code style="font-family: 'JetBrains Mono', monospace; font-size: 10px; opacity: 0.5; margin-left: 4px; vertical-align: middle">[CTRL+SHIFT+M]</code>
+                            <code class="terminal-shortcut-hint">[CTRL+SHIFT+M]</code>
                         </button>
                     </div>
                 </div>
@@ -89,7 +83,6 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         const textarea = this.query<HTMLTextAreaElement>('#chat-textarea')!;
         const btnOpenTerminal = this.query<HTMLButtonElement>('#btn-open-terminal');
         const btnModelSelector = this.query<HTMLButtonElement>('#btn-model-selector');
-        const modelMenu = this.query<HTMLElement>('#model-menu')!;
 
         textarea.addEventListener('input', () => {
             this.inputValue = textarea.value;
@@ -159,7 +152,6 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
             if (this.isModelMenuOpen) {
                 this.selectedModelIndex = this.props.models.findIndex(m => m.id === this.props.currentModelId);
                 if (this.selectedModelIndex === -1) this.selectedModelIndex = 0;
-                // Autofocus the textarea so keyboard events (Up/Down/Enter) are captured immediately
                 textarea.focus();
             }
             this.render();
@@ -208,19 +200,17 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         const modelName = this.query<HTMLElement>('#current-model-name')!;
         const modelContainer = this.query<HTMLElement>('#model-options-container')!;
 
-        // Update Textarea
         if (textarea.value !== this.inputValue) {
             textarea.value = this.inputValue;
         }
         textarea.disabled = this.props.isProcessing;
         this.autoResize(textarea);
 
-        // Update Controls (Send/Cancel buttons)
         controls.innerHTML = `
             ${this.props.isProcessing ? `
-                <button id="btn-cancel" style="background-color: var(--agent-bg-subtle); color: var(--agent-error); border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: var(--agent-shadow-button)" title="Cancel processing">${StopIcon()}</button>
+                <button id="btn-cancel" class="btn-cancel-action" title="Cancel processing">${StopIcon()}</button>
             ` : ''}
-            <button id="btn-send" style="background-color: var(--agent-bg-subtle); color: var(--agent-text-muted); border: none; border-radius: 50%; width: 32px; height: 32px; cursor: default; display: flex; align-items: center; justify-content: center; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1)" disabled>${ArrowRightIcon()}</button>
+            <button id="btn-send" class="btn-send-action" disabled>${ArrowRightIcon()}</button>
         `;
 
         const btnSend = this.query<HTMLButtonElement>('#btn-send')!;
@@ -230,7 +220,6 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         btnCancel?.addEventListener('click', () => this.props.onCancel());
         this.updateSendButtonState(this.inputValue, btnSend);
 
-        // Update Model Selector
         const currentModel = this.props.models.find(m => m.id === this.props.currentModelId) || this.props.models[0];
         if (modelName) modelName.textContent = currentModel?.name || 'Select Model';
 
@@ -247,7 +236,7 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
                 
                 return `
                     <div class="model-option" data-id="${m.id}" data-index="${i}" style="padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: var(--agent-font-main); color: ${textColor}; background-color: ${bgColor}; display: flex; align-items: center; gap: 8px; transition: all 0.15s ease">
-                        <div style="width: 6px; height: 6px; border-radius: 50%; background-color: ${dotColor}; border: ${isCurrent ? 'none' : '1px solid var(--agent-border-main)'}"></div>
+                        <div class="model-dot" style="background-color: ${dotColor}; border: ${isCurrent ? 'none' : '1px solid var(--agent-border-main)'}"></div>
                         <div style="flex-grow: 1">${m.name}</div>
                     </div>
                 `;
@@ -292,15 +281,12 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         const value = textarea.value;
         const pos = textarea.selectionStart;
         const textBefore = value.substring(0, pos);
-        
         const lastAt = textBefore.lastIndexOf('@');
         const lastSlash = textBefore.lastIndexOf('/');
-        
         const lastTrigger = Math.max(lastAt, lastSlash);
         
         if (lastTrigger !== -1) {
             const triggerChar = textBefore[lastTrigger] as '@' | '/';
-            // Only trigger if it's at start of string or preceded by whitespace
             if (lastTrigger === 0 || /\s/.test(textBefore[lastTrigger - 1])) {
                 const query = textBefore.substring(lastTrigger + 1);
                 if (!/\s/.test(query)) {
@@ -312,7 +298,6 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
                 }
             }
         }
-        
         this.closeSuggestions();
     }
 
@@ -344,7 +329,7 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
 
         popup.style.display = 'block';
         popup.innerHTML = `
-            <div id="suggestion-list" style="max-height: 200px; overflow-y: auto" class="agent-scrollbar">
+            <div id="suggestion-list" class="suggestion-list-wrapper agent-scrollbar">
                 ${items.map((item, i) => `
                     <div class="suggestion-item" data-index="${i}" style="padding: 8px 12px; cursor: pointer; display: flex; flex-direction: row; align-items: center; gap: 8px; background: ${i === this.selectedSuggestionIndex ? 'var(--agent-bg-subtle)' : 'transparent'}; border-left: 2px solid ${i === this.selectedSuggestionIndex ? 'var(--agent-accent)' : 'transparent'}">
                         <div style="font-weight: 500; font-size: var(--agent-font-main); color: ${i === this.selectedSuggestionIndex ? 'var(--agent-text-main)' : 'var(--agent-text-subtle)'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1">${item.label}</div>
@@ -355,9 +340,7 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         `;
 
         const activeItem = popup.querySelector(`[data-index="${this.selectedSuggestionIndex}"]`) as HTMLElement;
-        if (activeItem) {
-            activeItem.scrollIntoView({ block: 'nearest' });
-        }
+        if (activeItem) activeItem.scrollIntoView({ block: 'nearest' });
 
         popup.querySelectorAll('.suggestion-item').forEach(el => {
             el.addEventListener('click', () => {
@@ -371,7 +354,6 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         const popup = this.query<HTMLElement>('#suggestion-popup')!;
         const items = popup.querySelectorAll('.suggestion-item');
         if (items.length === 0) return;
-
         this.selectedSuggestionIndex = (this.selectedSuggestionIndex + direction + items.length) % items.length;
         this.renderSuggestions();
     }
@@ -395,7 +377,6 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         const newPos = this.suggestionAnchorPos + insertedText.length;
         textarea.setSelectionRange(newPos, newPos);
         textarea.focus();
-        
         this.closeSuggestions();
         this.autoResize(textarea);
     }

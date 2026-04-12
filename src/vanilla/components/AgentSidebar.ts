@@ -3,17 +3,13 @@ import { Store } from '../Store';
 import { AgentState, ChatLogic } from '../ChatLogic';
 import { InitializationLogic } from '../InitializationLogic';
 import { HistoryLogic } from '../HistoryLogic';
+import { OverlayLogic } from '../OverlayLogic';
 import { AgentSidebarProps } from '../../types';
 
 import { SidebarHeader } from './SidebarHeader';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { SidePanelRightIcon, PlusIcon } from './Icons';
-import { InfoPanel } from './InfoPanel';
-import { HistoryPanel } from './HistoryPanel';
-import { TerminalWindow } from './TerminalWindow';
-import { TerminalBox } from './TerminalBox';
-
 
 // Import CSS to ensure it's bundled
 import '../../AgentSidebar.css';
@@ -25,15 +21,12 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
     private chatLogic: ChatLogic;
     private initLogic: InitializationLogic;
     private historyLogic: HistoryLogic;
+    private overlayLogic: OverlayLogic | null = null;
 
     // Components
     private header: SidebarHeader | null = null;
-
     private messageList: MessageList | null = null;
     private chatInput: ChatInput | null = null;
-    private historyPanel: HistoryPanel | null = null;
-    private infoPanel: InfoPanel | null = null;
-    private terminalWindow: TerminalWindow | null = null;
     private splitInstance: any = null;
 
     private bashSandbox: any = null;
@@ -90,6 +83,8 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         this.bashSandbox = bashSandbox;
         this.llmBridge = llmBridge;
         this.chatLogic.setDependencies(bashSandbox, llmBridge);
+        
+        this.overlayLogic = new OverlayLogic(this.store, this.historyLogic, bashSandbox);
 
         if (skills) {
             this.store.setState({ skills });
@@ -137,16 +132,16 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         // Initial setup of structural elements
         this.element.innerHTML = `
             <div id="top-accent-header" class="top-accent-header">
-                <div style="display: flex; align-items: center; gap: 0">
+                <div class="top-accent-group">
                     <div id="top-accent-toggle" class="top-accent-toggle">
-                        <span class="top-accent-text">Toggle Agent <code style="font-family: 'JetBrains Mono', monospace; font-size: 10px; opacity: 0.5; margin-left: 4px; vertical-align: middle">[CTRL+ALT+B]</code></span>
+                        <span class="top-accent-text">Toggle Agent <code class="terminal-shortcut-hint">[CTRL+ALT+B]</code></span>
                         <div class="top-accent-icon-container">
                             ${SidePanelRightIcon('var(--agent-top-header-icon-size)')}
                         </div>
                     </div>
-                    <div class="header-divider" style="width: 1px; height: 16px; background: rgba(255,255,255,0.1); margin: 0 4px"></div>
+                    <div class="header-divider"></div>
                     <div id="terminal-window-toggle" class="top-accent-toggle">
-                        <span class="top-accent-text">New Terminal <code style="font-family: 'JetBrains Mono', monospace; font-size: 10px; opacity: 0.5; margin-left: 4px; vertical-align: middle">[CTRL+SHIFT+\`]</code></span>
+                        <span class="top-accent-text">New Terminal <code class="terminal-shortcut-hint">[CTRL+SHIFT+\`]</code></span>
                         <div class="top-accent-icon-container">
                             ${PlusIcon(14)}
                         </div>
@@ -155,16 +150,16 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             </div>
             <div class="agent-sidebar-container">
                 <div id="sidebar-spacer" style="flex-grow: 1; pointer-events: none"></div>
-                <div id="sidebar-main" class="agent-panel-inner" style="z-index: 1; display: flex; flex-direction: column; overflow: hidden; position: relative">
+                <div id="sidebar-main" class="agent-panel-inner sidebar-main-panel">
                     <div id="header-root"></div>
-                    <div id="content-root" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative">
+                    <div id="content-root" class="sidebar-content-wrapper">
                         <div id="message-list-root" style="flex: 1; overflow: hidden"></div>
                         <div id="chat-input-root"></div>
                     </div>
-                    <div id="overlay-root" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 100"></div>
+                    <div id="overlay-root" class="overlay-container"></div>
                 </div>
             </div>
-            <div id="global-overlay-root" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 10002"></div>
+            <div id="global-overlay-root" class="global-overlay-container"></div>
         `;
 
         // Add click listener for the top accent toggle control
@@ -176,33 +171,26 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             this.handleTerminalToggle();
         });
 
-        // Add global keyboard shortcuts - Using capturing phase 'true' to ensure we can override component listeners like xterm.js
+        // Add global keyboard shortcuts
         window.addEventListener('keydown', (e) => {
-            // Agent Toggle: Ctrl+Alt+B
             if (e.ctrlKey && e.altKey && e.code === 'KeyB') {
                 e.preventDefault();
                 this.store.setState({ isCollapsed: !this.store.getState().isCollapsed });
             }
-            
-            // Terminal Toggle: Ctrl+Shift+`
             if (e.ctrlKey && e.shiftKey && e.code === 'Backquote') {
                 e.preventDefault();
                 this.handleTerminalToggle();
             }
-
-            // Hide Terminal: Ctrl+J
             if (e.ctrlKey && e.code === 'KeyJ') {
                 e.preventDefault();
                 this.saveTerminalStates();
                 this.store.setState({ showTerminalWindow: false });
             }
-
-            // Switch Terminal Session: Shift + Up/Down - Override even when in terminal
             if (e.shiftKey && (e.code === 'ArrowUp' || e.code === 'ArrowDown')) {
                 const state = this.store.getState();
                 if (state.showTerminalWindow && state.terminals.length > 1) {
                     e.preventDefault();
-                    e.stopImmediatePropagation(); // Prevent event from reaching subcomponents like xterm.js
+                    e.stopImmediatePropagation();
 
                     const currentIndex = state.terminals.findIndex(t => t.id === state.activeTerminalId);
                     if (currentIndex === -1) return;
@@ -217,9 +205,8 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
                     const nextId = state.terminals[nextIndex].id;
                     this.store.setState({ activeTerminalId: nextId });
                     
-                    // Focus the newly active terminal
                     requestAnimationFrame(() => {
-                        this.terminalWindow?.focusActiveTerminal(false);
+                        this.overlayLogic?.getTerminalWindow()?.focusActiveTerminal(false);
                     });
                 }
             }
@@ -285,46 +272,41 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         this.query('#chat-input-root')?.appendChild(this.chatInput.getElement());
         this.chatInput.init();
 
-        // Initial render to reflect state
         this.render();
     }
 
     private handleTerminalToggle() {
         const state = this.store.getState();
-        
         if (!state.showTerminalWindow) {
             if (state.terminals.length === 0) {
                 this.handleAddTerminal();
-                // First terminal ever: Focus and Enter
                 requestAnimationFrame(() => {
                     setTimeout(() => {
-                        this.terminalWindow?.focusActiveTerminal(true);
-                    }, 150); // Give extra time for first initialization
+                        this.overlayLogic?.getTerminalWindow()?.focusActiveTerminal(true);
+                    }, 150);
                 });
             } else {
                 this.store.setState({ showTerminalWindow: true });
-                // Reopening: Focus but don't disrupt with Enter
                 requestAnimationFrame(() => {
                     setTimeout(() => {
-                        this.terminalWindow?.focusActiveTerminal(false);
+                        this.overlayLogic?.getTerminalWindow()?.focusActiveTerminal(false);
                     }, 50);
                 });
             }
         } else {
-            // Already open: Create new session
             this.handleAddTerminal();
-            // Focus with Enter for the new session
             requestAnimationFrame(() => {
                 setTimeout(() => {
-                    this.terminalWindow?.focusActiveTerminal(true);
+                    this.overlayLogic?.getTerminalWindow()?.focusActiveTerminal(true);
                 }, 50);
             });
         }
     }
 
     private saveTerminalStates() {
-        if (!this.terminalWindow) return;
-        const states = this.terminalWindow.getStates();
+        const window = this.overlayLogic?.getTerminalWindow();
+        if (!window) return;
+        const states = window.getStates();
         const currentTerminals = this.store.getState().terminals;
         const updatedTerminals = currentTerminals.map(t => ({
             ...t,
@@ -342,39 +324,10 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         }));
     }
 
-    private handleSelectTerminal(id: string) {
-        this.store.setState({ activeTerminalId: id });
-    }
-
-    private handleDeleteTerminal(id: string) {
-        const state = this.store.getState();
-        const newTerminals = state.terminals.filter(t => t.id !== id);
-        let newActiveId = state.activeTerminalId;
-
-        if (state.activeTerminalId === id) {
-            newActiveId = newTerminals.length > 0 ? newTerminals[newTerminals.length - 1].id : null;
-        }
-
-        this.store.setState({
-            terminals: newTerminals,
-            activeTerminalId: newActiveId
-        });
-
-        // Autofocus the next terminal if one exists
-        if (newActiveId) {
-            requestAnimationFrame(() => {
-                setTimeout(() => {
-                    this.terminalWindow?.focusActiveTerminal(false);
-                }, 50);
-            });
-        }
-    }
-
     render() {
-        if (!this.header) return;
+        if (!this.header || !this.overlayLogic) return;
 
         const state = this.store.getState();
-
         const gutter = this.query('.gutter');
         if (state.isCollapsed) {
             this.element.classList.add('collapsed');
@@ -384,7 +337,6 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             if (gutter) (gutter as HTMLElement).style.display = 'block';
         }
 
-        // Update subcomponents
         this.messageList?.update({
             messages: state.messages,
             isProcessing: state.isProcessing,
@@ -401,139 +353,18 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             filesystem: state.actualFilesystem
         });
 
-        if (state.isInitializing) {
-            // Show loading state if needed
-            return;
-        }
+        if (state.isInitializing) return;
 
-        // Overlays
         const overlayRoot = this.query<HTMLElement>('#overlay-root')!;
-        
-        // Handle History Panel
-        if (state.showHistory) {
-            const historyProps = {
-                conversations: state.conversations,
-                currentConversationId: state.currentConversationId,
-                onSelectConversation: (id: string) => {
-                    this.historyLogic.handleSelectConversation(id);
-                    this.store.setState({ showHistory: false });
-                },
-                onDeleteConversation: (id: string) => this.historyLogic.handleDeleteConversation(id),
-                onClose: () => this.store.setState({ showHistory: false })
-            };
-
-            if (!this.historyPanel) {
-                this.historyPanel = new HistoryPanel(historyProps);
-                this.historyPanel.init();
-                overlayRoot.appendChild(this.historyPanel.getElement());
-            } else {
-                this.historyPanel.update(historyProps);
-            }
-        } else if (this.historyPanel) {
-            this.historyPanel.getElement().remove();
-            this.historyPanel = null;
-        }
-
-        // Handle Info Panel
-        if (state.activeInfoPanel) {
-            let title = '';
-            let content: HTMLElement | HTMLElement[] = document.createElement('div');
-            
-            if (state.activeInfoPanel === 'system') {
-                title = 'System Information';
-                const pre = document.createElement('pre');
-                Object.assign(pre.style, {
-                    padding: '12px',
-                    backgroundColor: '#1e1e1e',
-                    color: '#d4d4d4',
-                    borderRadius: '8px',
-                    fontSize: '11px',
-                    fontFamily: 'JetBrains Mono',
-                    lineHeight: '1.6',
-                    whiteSpace: 'pre-wrap',
-                    overflowY: 'auto'
-                });
-                pre.textContent = this.props.systemPrompt;
-                content = pre;
-            } else if (state.activeInfoPanel === 'tools') {
-                title = 'Agent Tools & Skills';
-                const div = document.createElement('div');
-                div.style.display = 'flex';
-                div.style.flexDirection = 'column';
-                div.style.gap = '8px';
-                
-                this.llmBridge?.tools?.forEach((tool: any) => {
-                    const def = tool.definition?.function || tool;
-                    const item = document.createElement('div');
-                    Object.assign(item.style, {
-                        padding: '12px',
-                        backgroundColor: 'var(--agent-bg-subtle)',
-                        borderRadius: '8px',
-                        border: '1px solid var(--agent-border-main)'
-                    });
-                    item.innerHTML = `
-                        <div style="font-weight: 600; font-size: 13px; color: var(--agent-text-main); margin-bottom: 4px; font-family: 'JetBrains Mono'">${def.name}</div>
-                        <div style="font-size: 12px; color: var(--agent-text-muted); line-height: 1.5">${def.description}</div>
-                    `;
-                    div.appendChild(item);
-                });
-                content = div;
-            } else if (state.activeInfoPanel === 'mcp') {
-                title = 'MCP Extensions';
-                const div = document.createElement('div');
-                div.innerHTML = `<div style="font-size: 12px; color: var(--agent-text-muted); font-style: italic">MCP info panel coming soon...</div>`;
-                content = div;
-            }
-
-            const infoProps = {
-                title,
-                onClose: () => this.store.setState({ activeInfoPanel: null }),
-                content
-            };
-
-            if (!this.infoPanel) {
-                this.infoPanel = new InfoPanel(infoProps);
-                this.infoPanel.init();
-                overlayRoot.appendChild(this.infoPanel.getElement());
-            } else {
-                this.infoPanel.update(infoProps);
-            }
-        } else if (this.infoPanel) {
-            this.infoPanel.getElement().remove();
-            this.infoPanel = null;
-        }
-
-        // Handle Terminal Window - Keep alive even when hidden
         const globalOverlayRoot = this.query<HTMLElement>('#global-overlay-root');
-        if (globalOverlayRoot) {
-            const termProps = {
-                terminals: state.terminals,
-                activeTerminalId: state.activeTerminalId,
-                onSelectTerminal: (id: string) => this.handleSelectTerminal(id),
-                onDeleteTerminal: (id: string) => this.handleDeleteTerminal(id),
-                onAddTerminal: () => this.handleAddTerminal(),
-                onClose: () => {
-                    this.saveTerminalStates();
-                    this.store.setState({ showTerminalWindow: false });
-                },
-                bashSandbox: this.bashSandbox,
-                position: state.terminalPosition,
-                onPositionChange: (pos: { x: number, y: number }) => this.store.setState({ terminalPosition: pos })
-            };
+        
+        this.overlayLogic.renderOverlays(
+            overlayRoot, 
+            globalOverlayRoot, 
+            this.llmBridge?.tools, 
+            this.props.systemPrompt
+        );
 
-            if (!this.terminalWindow) {
-                this.terminalWindow = new TerminalWindow(termProps);
-                this.terminalWindow.init();
-                globalOverlayRoot.appendChild(this.terminalWindow.getElement());
-            } else {
-                this.terminalWindow.update(termProps);
-            }
-            
-            // Toggle visibility instead of destroying
-            this.terminalWindow.getElement().style.display = state.showTerminalWindow ? 'block' : 'none';
-        }
-
-        // Sidebar is now always docked
         const panelInner = this.query<HTMLElement>('.agent-panel-inner')!;
         panelInner.classList.remove('padded');
 

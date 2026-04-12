@@ -1,23 +1,30 @@
 import { BaseComponent } from '../BaseComponent';
+import { CubeIcon, PlusIcon, XIcon } from './Icons';
 import { TerminalBox } from './TerminalBox';
-import { CubeIcon, XIcon, PlusIcon } from './Icons';
+import './TerminalWindow.css';
+
+interface TerminalSession {
+    id: string;
+    command?: string;
+    output?: string;
+}
 
 interface TerminalWindowProps {
-    terminals: { id: string; command?: string; output?: string }[];
+    terminals: TerminalSession[];
     activeTerminalId: string | null;
     onSelectTerminal: (id: string) => void;
     onDeleteTerminal: (id: string) => void;
     onAddTerminal: () => void;
     onClose: () => void;
     bashSandbox: any;
-    position: { x: number, y: number } | null;
+    position?: { x: number, y: number };
     onPositionChange: (pos: { x: number, y: number }) => void;
 }
 
 export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
+    private position: { x: number, y: number };
     private isDragging = false;
     private offset = { x: 0, y: 0 };
-    private position = { x: 0, y: 0 };
     private terminalCache: Map<string, TerminalBox> = new Map();
 
     constructor(props: TerminalWindowProps) {
@@ -95,7 +102,6 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
 
     update(props: TerminalWindowProps) {
         super.update(props);
-        // If the position prop changed and we are not dragging, update our local position
         if (props.position && !this.isDragging && (props.position.x !== this.position.x || props.position.y !== this.position.y)) {
             this.position = { ...props.position };
             this.element.style.left = `${this.position.x}px`;
@@ -107,19 +113,19 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
         this.element.innerHTML = `
             <div class="terminal-window-container">
                 <div class="terminal-window-header">
-                    <div style="display: flex; align-items: center; gap: 8px">
+                    <div class="terminal-window-header-left">
                         ${CubeIcon(16)}
-                        <span style="font-weight: 600; font-size: 13px">Terminal Manager</span>
+                        <span class="terminal-window-title">Terminal Manager</span>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 8px">
-                         <div class="top-accent-toggle add-terminal-btn" style="cursor: pointer; padding: 4px 8px; height: auto">
-                            <span class="top-accent-text" style="font-size: 10px">New Terminal <code style="font-family: 'JetBrains Mono', monospace; font-size: 9px; opacity: 0.5; margin-left: 2px">[CTRL+SHIFT+\`]</code></span>
+                    <div class="terminal-window-header-right">
+                         <div class="top-accent-toggle add-terminal-btn terminal-action-btn">
+                            <span class="top-accent-text terminal-action-text">New Terminal <code class="terminal-shortcut-hint">[CTRL+SHIFT+\`]</code></span>
                             <div class="top-accent-icon-container">
                                 ${PlusIcon(12)}
                             </div>
                         </div>
-                        <div class="top-accent-toggle close-window-btn" style="cursor: pointer; padding: 4px 8px; height: auto">
-                             <span class="top-accent-text" style="font-size: 10px">Hide <code style="font-family: 'JetBrains Mono', monospace; font-size: 9px; opacity: 0.5; margin-left: 2px">[CTRL+J]</code></span>
+                        <div class="top-accent-toggle close-window-btn terminal-action-btn">
+                             <span class="top-accent-text terminal-action-text">Hide <code class="terminal-shortcut-hint">[CTRL+J]</code></span>
                              <div class="top-accent-icon-container">
                                  ${XIcon(12)}
                              </div>
@@ -128,15 +134,15 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
                 </div>
                 <div class="terminal-window-body">
                     <div class="terminal-window-left">
-                        <div id="active-terminal-root" style="height: 100%"></div>
+                        <div id="active-terminal-root" class="terminal-active-root"></div>
                     </div>
                     <div class="terminal-window-right">
                         <div class="terminal-list agent-scrollbar">
                             ${this.props.terminals.map(t => `
                                 <div class="terminal-list-item ${t.id === this.props.activeTerminalId ? 'active' : ''}" data-id="${t.id}">
-                                    <div style="display: flex; align-items: center; gap: 4px; flex: 1; overflow: hidden; opacity: 0.8">
-                                        <span class="terminal-name" style="font-family: 'JetBrains Mono'; font-size: 11px">bash</span>
-                                        <span class="terminal-id" style="font-size: 10px; opacity: 0.6">[${t.id.slice(0, 4)}]</span>
+                                    <div class="terminal-item-meta">
+                                        <span class="terminal-item-label">bash</span>
+                                        <span class="terminal-item-id">[${t.id.slice(0, 4)}]</span>
                                     </div>
                                     <button class="delete-terminal-btn" data-id="${t.id}" title="Delete session">
                                         ${XIcon(10)}
@@ -144,19 +150,21 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
                                 </div>
                             `).join('')}
                         </div>
-                        <div style="padding: 12px 8px;  display: flex; justify-content: center; align-items: center">
-                            <span style="font-size: 13px; opacity: 0.4; font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase"><code style="font-family: 'JetBrains Mono', monospace; font-size: 9px; opacity: 1; margin-left: 4px; color: var(--agent-text-main)">[SHIFT+ARROW]</code></span>
+                        <div class="terminal-footer-hint">
+                            <span class="terminal-footer-text"><code class="terminal-footer-shortcut">[SHIFT+ARROW]</code></span>
                         </div>
                     </div>
                 </div>
             </div>
         `;
 
-        // Action Buttons
         this.query('.close-window-btn')?.addEventListener('click', () => this.props.onClose());
+        this.query('#active-terminal-root')?.addEventListener('click', () => {
+             this.focusActiveTerminal(false);
+        });
+        
         this.query('.add-terminal-btn')?.addEventListener('click', () => this.props.onAddTerminal());
 
-        // List Interaction
         this.element.querySelectorAll('.terminal-list-item').forEach(item => {
             item.addEventListener('click', () => {
                 const id = item.getAttribute('data-id');
@@ -172,11 +180,9 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
             });
         });
 
-        // Initialize/Update TerminalBox
         const activeTerminal = this.props.terminals.find(t => t.id === this.props.activeTerminalId);
         const root = this.query('#active-terminal-root');
         
-        // Sync cache: Remove terminals that no longer exist
         const activeIds = new Set(this.props.terminals.map(t => t.id));
         for (const [id, box] of this.terminalCache.entries()) {
             if (!activeIds.has(id)) {
@@ -207,7 +213,7 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
             root.innerHTML = '';
             root.appendChild(termBox.getElement());
         } else if (root) {
-            root.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--agent-text-muted); font-size: 12px">No active session. Create one with + button.</div>';
+            root.innerHTML = '<div class="terminal-empty-state">No active session. Create one with + button.</div>';
         }
     }
 }

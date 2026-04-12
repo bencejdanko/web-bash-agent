@@ -1,0 +1,25 @@
+.terminal-header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.terminal-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.terminal-xterm-wrapper {
+    background-color: #ffffff;
+    overflow: hidden;
+    height: 100%;
+}
+
+.terminal-xterm-wrapper.minimal {
+    padding: 0;
+}
+
+.terminal-xterm-wrapper.full {
+    padding: 12px;
+}
