@@ -13,6 +13,7 @@
 .terminal-xterm-wrapper {
     background-color: #ffffff;
     overflow: hidden;
+    flex: 1;
     height: 100%;
 }
 

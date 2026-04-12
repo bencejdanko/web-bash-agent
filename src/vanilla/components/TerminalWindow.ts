@@ -212,6 +212,11 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
             
             root.innerHTML = '';
             root.appendChild(termBox.getElement());
+            
+            // Critical: Trigger fit after appending to DOM to ensure correct dimensions
+            setTimeout(() => {
+                if (termBox) termBox.fit();
+            }, 0);
         } else if (root) {
             root.innerHTML = '<div class="terminal-empty-state">No active session. Create one with + button.</div>';
         }

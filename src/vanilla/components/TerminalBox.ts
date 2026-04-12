@@ -38,7 +38,7 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
 
         this.render(); // Initial HTML structure
 
-        const container = this.query<HTMLElement>('.xterm-container');
+        const container = this.query<HTMLElement>('.terminal-xterm-wrapper');
         if (!container) return;
 
         this.terminal = new Terminal({
@@ -95,6 +95,10 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
         resizeObserver.observe(container);
     }
 
+    public fit() {
+        try { this.fitAddon?.fit(); } catch (e) {}
+    }
+
     public focus() {
         this.terminal?.focus();
     }
@@ -123,7 +127,7 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
                         ` : ''}
                     </div>
                 ` : ''}
-                <div class="xterm-container ${this.props.isMinimal ? 'minimal' : 'full'}"></div>
+                <div class="terminal-xterm-wrapper ${this.props.isMinimal ? 'minimal' : 'full'}"></div>
             `;
 
             if (this.props.onOpenExternal) {
@@ -173,8 +177,10 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
                 if (!this.props.output.endsWith('\n')) term.write('\r\n');
             }
             this.logic?.writePrompt();
+            this.logic?.restoreInput();
         } else {
             this.logic?.writePrompt();
+            this.logic?.restoreInput();
         }
     }
 
