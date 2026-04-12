@@ -392,6 +392,12 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             if (gutter) (gutter as HTMLElement).style.display = 'block';
         }
 
+        if (!this.overlayLogic || state.isInitializing) {
+            const panelInner = this.query<HTMLElement>('.agent-panel-inner')!;
+            panelInner.classList.remove('padded');
+            return;
+        }
+
         this.messageList?.update({
             messages: state.messages,
             isProcessing: state.isProcessing,
@@ -409,11 +415,6 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             filesystem: state.actualFilesystem
         });
 
-        if (!this.overlayLogic || state.isInitializing) {
-            const panelInner = this.query<HTMLElement>('.agent-panel-inner')!;
-            panelInner.classList.remove('padded');
-            return;
-        }
 
         const overlayRoot = this.query<HTMLElement>('#overlay-root')!;
         const globalOverlayRoot = this.query<HTMLElement>('#global-overlay-root');

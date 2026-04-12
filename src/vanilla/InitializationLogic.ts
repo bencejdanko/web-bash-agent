@@ -43,20 +43,10 @@ export class InitializationLogic {
             // Resolve skills explicitly (isolated per agent)
             const discoveredSkills = this.props.skills || (currentAgent.skillsDir ? discoverSkills(filesystem, currentAgent.skillsDir) : []);
             
-            const skillContext = { skills: discoveredSkills };
             const pagefindContext = { pagefind: typeof window !== 'undefined' ? (window as any).pagefind : null };
 
             // Build Tools
-            const toolConfigs = [{ type: 'bash' }, { type: 'load-skill' }];
-            const finalTools: any[] = [];
-            for (const config of toolConfigs) {
-                const result = await registry.getTool(config, skillContext);
-                if (Array.isArray(result)) {
-                    finalTools.push(...result);
-                } else if (result) {
-                    finalTools.push(result);
-                }
-            }
+            const finalTools = await this.buildTools(discoveredSkills);
 
             // Build Commands
             const customCommands: any[] = [];
@@ -74,7 +64,7 @@ export class InitializationLogic {
                 files: this.props.filesystem || {},
                 pagefind: pagefindContext.pagefind,
                 customCommands,
-                normalizePaths: false, // Changed from true
+                normalizePaths: false,
                 cwd: state.terminalCwd || undefined,
                 env: state.terminalEnv || undefined
             });
@@ -122,6 +112,22 @@ export class InitializationLogic {
         }
     }
 
+    private async buildTools(discoveredSkills: any[]) {
+        const skillContext = { skills: discoveredSkills };
+        const toolConfigs = [{ type: 'bash' }, { type: 'load-skill' }];
+        const finalTools: any[] = [];
+        
+        for (const config of toolConfigs) {
+            const result = await registry.getTool(config, skillContext);
+            if (Array.isArray(result)) {
+                finalTools.push(...result);
+            } else if (result) {
+                finalTools.push(result);
+            }
+        }
+        return finalTools;
+    }
+
     updateModel(modelId: string) {
         const currentModelConfig = this.props.models.find(m => m.id === modelId);
         if (this.llmBridge && currentModelConfig) {
@@ -143,11 +149,9 @@ export class InitializationLogic {
         }
     }
 
-    updateAgent(agentId: string) {
+    async updateAgent(agentId: string) {
         try {
             const agent = this.props.agents.find(a => a.id === agentId);
-            const state = this.store.getState();
-            // ALWAYS use the original props filesystem for reliable prompt resolution
             const filesystem = this.props.filesystem || {};
 
             if (!agent) {
@@ -166,6 +170,10 @@ export class InitializationLogic {
                 // Re-discover skills based on the agent's skillsDir (isolated)
                 const discoveredSkills = agent.skillsDir ? discoverSkills(filesystem, agent.skillsDir) : [];
                 
+                // Re-build and set tools for the new skills
+                const finalTools = await this.buildTools(discoveredSkills);
+                this.llmBridge.setTools(finalTools);
+
                 this.store.setState({ 
                     currentAgentId: agentId, 
                     currentSystemPrompt: systemPrompt,
@@ -177,3 +185,4 @@ export class InitializationLogic {
         }
     }
 }
+
