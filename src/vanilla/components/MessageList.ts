@@ -15,7 +15,6 @@ interface MessageListProps {
     collapsedThoughtIds: string[];
     onToggleTurn: (id: string) => void;
     onToggleThought: (id: string) => void;
-    onOpenInTerminal: (id: string, cmd?: string, out?: string) => void;
     bashSandbox?: any;
     sidebarWidth: number;
 }
@@ -146,8 +145,7 @@ export class MessageList extends BaseComponent<MessageListProps> {
                                 output: toolOutput?.content || undefined,
                                 bashSandbox: this.props.bashSandbox,
                                 isPending: toolOutput?.isPending,
-                                startTime: toolOutput?.startTime,
-                                onOpenExternal: () => this.props.onOpenInTerminal(terminalId, commandText, toolOutput?.content || undefined)
+                                startTime: toolOutput?.startTime
                             };
 
                             if (!termBox) {

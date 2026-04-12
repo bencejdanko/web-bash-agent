@@ -1,7 +1,6 @@
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { BaseComponent } from '../BaseComponent';
-import { RelocateIcon } from './Icons';
 import { PersistentBashSandbox } from '../PersistentBashSandbox';
 import { TerminalLogic } from '../TerminalLogic';
 import '@xterm/xterm/css/xterm.css';
@@ -15,7 +14,6 @@ interface TerminalBoxProps {
   bashSandbox?: any;
   isPending?: boolean;
   startTime?: number;
-  onOpenExternal?: () => void;
   onExit?: () => void;
   isMinimal?: boolean;
   hideHeader?: boolean;
@@ -106,22 +104,10 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
                             <span>${this.props.isPending ? 'Running command...' : 'Ran command'}</span>
                             ${this.props.isPending && this.props.startTime ? `<span class="terminal-status-dot"></span>` : ''}
                         </div>
-                        ${this.props.onOpenExternal ? `
-                            <button class="terminal-external-btn" title="Open in standalone terminal">
-                                <span>Relocate</span>${RelocateIcon(12)}
-                            </button>
-                        ` : ''}
                     </div>
                 ` : ''}
                 <div class="terminal-xterm-wrapper ${this.props.isMinimal ? 'minimal' : 'full'}"></div>
             `;
-
-            if (this.props.onOpenExternal) {
-                this.query('.terminal-external-btn')?.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.props.onOpenExternal?.();
-                });
-            }
         } else {
             this.updateContent();
         }
@@ -151,3 +137,4 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
         }
     }
 }
+

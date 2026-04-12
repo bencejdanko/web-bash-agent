@@ -10,7 +10,7 @@ import { TerminalSessionManager } from '../TerminalSessionManager';
 import { SidebarHeader } from './SidebarHeader';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
-import { SidePanelRightIcon, PlusIcon } from './Icons';
+import { SidePanelRightIcon, CubeIcon } from './Icons';
 
 // Import CSS to ensure it's bundled
 import '../../AgentSidebar.css';
@@ -153,7 +153,7 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
                     <div id="terminal-window-toggle" class="top-accent-toggle">
                         <span class="top-accent-text">New Terminal <code class="terminal-shortcut-hint">[CTRL+SHIFT+\`]</code></span>
                         <div class="top-accent-icon-container">
-                            ${PlusIcon(14)}
+                            ${CubeIcon(14)}
                         </div>
                     </div>
                 </div>
@@ -263,23 +263,6 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             collapsedThoughtIds: [],
             onToggleTurn: (id) => this.store.setState(s => ({ collapsedTurnIds: s.collapsedTurnIds.includes(id) ? s.collapsedTurnIds.filter(x => x !== id) : [...s.collapsedTurnIds, id] })),
             onToggleThought: (id) => this.store.setState(s => ({ collapsedThoughtIds: s.collapsedThoughtIds.includes(id) ? s.collapsedThoughtIds.filter(x => x !== id) : [...s.collapsedThoughtIds, id] })),
-            onOpenInTerminal: (id, cmd, out) => {
-                const state = this.store.getState();
-                const existing = state.terminals.find(t => t.id === id);
-                
-                if (!existing) {
-                    this.store.setState(s => ({
-                        terminals: [...s.terminals, { id, command: cmd, output: out }],
-                        activeTerminalId: id,
-                        showTerminalWindow: true
-                    }));
-                } else {
-                    this.store.setState({
-                        activeTerminalId: id,
-                        showTerminalWindow: true
-                    });
-                }
-            },
             sidebarWidth: 500
         });
         this.query('#message-list-root')?.appendChild(this.messageList.getElement());
