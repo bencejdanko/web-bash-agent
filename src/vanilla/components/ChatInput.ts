@@ -419,4 +419,9 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         this.inputValue = '';
         this.render();
     }
+
+    focus() {
+        const textarea = this.query<HTMLTextAreaElement>('#chat-textarea');
+        textarea?.focus();
+    }
 }

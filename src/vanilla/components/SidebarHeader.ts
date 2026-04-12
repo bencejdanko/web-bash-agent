@@ -1,5 +1,5 @@
 import { BaseComponent } from '../BaseComponent';
-import { PlusIcon, HistoryIcon, HammerIcon, MCPIcon, EllipsisIcon } from './Icons';
+import { PlusIcon, HistoryIcon, HammerIcon, MCPIcon, EllipsisIcon, XIcon } from './Icons';
 
 interface SidebarHeaderProps {
   onNewChat: () => void;
@@ -7,6 +7,7 @@ interface SidebarHeaderProps {
   onToggleTools: () => void;
   onToggleRegistry: () => void;
   onToggleSystem: () => void;
+  onClose: () => void;
 }
 
 export class SidebarHeader extends BaseComponent<SidebarHeaderProps> {
@@ -25,6 +26,8 @@ export class SidebarHeader extends BaseComponent<SidebarHeaderProps> {
                 <button id="btn-tools" title="Agent Tools & Skills" class="header-btn">${HammerIcon(18)}</button>
                 <button id="btn-mcp" title="MCP" class="header-btn">${MCPIcon(18)}</button>
                 <button id="btn-system" title="System Information" class="header-btn">${EllipsisIcon(18)}</button>
+                <div class="header-divider" style="height: 16px; width: 1px; background: var(--agent-border-main); margin: 0 4px"></div>
+                <button id="btn-close-agent" title="Close Agent [CTRL+K]" class="header-btn">${XIcon(18)}</button>
             </div>
         `;
 
@@ -33,5 +36,6 @@ export class SidebarHeader extends BaseComponent<SidebarHeaderProps> {
         this.query('#btn-tools')?.addEventListener('click', this.props.onToggleTools);
         this.query('#btn-mcp')?.addEventListener('click', this.props.onToggleRegistry);
         this.query('#btn-system')?.addEventListener('click', this.props.onToggleSystem);
+        this.query('#btn-close-agent')?.addEventListener('click', this.props.onClose);
     }
 }

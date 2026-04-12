@@ -10,7 +10,7 @@ import { TerminalSessionManager } from '../TerminalSessionManager';
 import { SidebarHeader } from './SidebarHeader';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
-import { SidePanelRightIcon, CubeIcon } from './Icons';
+import { SidePanelRightIcon, CubeIcon, StarsIcon } from './Icons';
 
 // Import CSS to ensure it's bundled
 import '../../AgentSidebar.css';
@@ -144,9 +144,9 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             <div id="top-accent-header" class="top-accent-header">
                 <div class="top-accent-group">
                     <div id="top-accent-toggle" class="top-accent-toggle">
-                        <span class="top-accent-text">Toggle Agent <code class="terminal-shortcut-hint">[CTRL+ALT+B]</code></span>
+                        <span class="top-accent-text">New Agent <code class="terminal-shortcut-hint">[CTRL+ALT+B]</code></span>
                         <div class="top-accent-icon-container">
-                            ${SidePanelRightIcon('var(--agent-top-header-icon-size)')}
+                            ${StarsIcon('var(--agent-top-header-icon-size)')}
                         </div>
                     </div>
                     <div class="header-divider"></div>
@@ -174,7 +174,7 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
 
         // Add click listener for the top accent toggle control
         this.query('#top-accent-toggle')?.addEventListener('click', () => {
-            this.store.setState({ isCollapsed: !this.store.getState().isCollapsed });
+            this.handleNewAgent();
         });
 
         this.query('#terminal-window-toggle')?.addEventListener('click', () => {
@@ -185,7 +185,14 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         window.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.altKey && e.code === 'KeyB') {
                 e.preventDefault();
-                this.store.setState({ isCollapsed: !this.store.getState().isCollapsed });
+                this.handleNewAgent();
+            }
+            if (e.ctrlKey && e.code === 'KeyK') {
+                const state = this.store.getState();
+                if (!state.isCollapsed) {
+                    e.preventDefault();
+                    this.store.setState({ isCollapsed: true });
+                }
             }
             if (e.ctrlKey && e.shiftKey && e.code === 'Backquote') {
                 e.preventDefault();
@@ -246,11 +253,12 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         });
 
         this.header = new SidebarHeader({
-            onNewChat: () => this.historyLogic.handleNewChat(),
+            onNewChat: () => this.handleNewAgent(),
             onToggleHistory: () => this.store.setState(s => ({ showHistory: !s.showHistory, activeInfoPanel: null })),
             onToggleTools: () => this.store.setState(s => ({ activeInfoPanel: s.activeInfoPanel === 'tools' ? null : 'tools', showHistory: false })),
             onToggleRegistry: () => this.store.setState(s => ({ activeInfoPanel: s.activeInfoPanel === 'mcp' ? null : 'mcp', showHistory: false })),
-            onToggleSystem: () => this.store.setState(s => ({ activeInfoPanel: s.activeInfoPanel === 'system' ? null : 'system', showHistory: false }))
+            onToggleSystem: () => this.store.setState(s => ({ activeInfoPanel: s.activeInfoPanel === 'system' ? null : 'system', showHistory: false })),
+            onClose: () => this.store.setState({ isCollapsed: true })
         });
         this.query('#header-root')?.appendChild(this.header.getElement());
         this.header.render();
@@ -281,6 +289,16 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         this.chatInput.init();
 
         this.render();
+    }
+
+    private handleNewAgent() {
+        this.historyLogic.handleNewChat();
+        this.store.setState({ isCollapsed: false });
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                this.chatInput?.focus();
+            }, 50);
+        });
     }
 
     private handleTerminalToggle() {
