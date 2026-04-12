@@ -5,6 +5,7 @@ import { InitializationLogic } from '../InitializationLogic';
 import { HistoryLogic } from '../HistoryLogic';
 import { OverlayLogic } from '../OverlayLogic';
 import { AgentSidebarProps } from '../../types';
+import { TerminalSessionManager } from '../TerminalSessionManager';
 
 import { SidebarHeader } from './SidebarHeader';
 import { MessageList } from './MessageList';
@@ -28,6 +29,7 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
     private messageList: MessageList | null = null;
     private chatInput: ChatInput | null = null;
     private splitInstance: any = null;
+    private termManager: TerminalSessionManager;
 
     private bashSandbox: any = null;
     private llmBridge: any = null;
@@ -73,6 +75,9 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         this.chatLogic = new ChatLogic(this.store, props);
         this.initLogic = new InitializationLogic(this.store, props);
         this.historyLogic = new HistoryLogic(this.store);
+        
+        this.termManager = TerminalSessionManager.getInstance();
+        (window as any).terminalSessionManager = this.termManager;
 
         this.store.subscribe((state) => this.render());
         
@@ -86,6 +91,7 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         this.llmBridge = llmBridge;
         this.chatLogic.setDependencies(bashSandbox, llmBridge);
         
+        this.termManager.init(bashSandbox, () => this.saveTerminalStates());
         this.overlayLogic = new OverlayLogic(this.store, this.historyLogic, bashSandbox);
 
         if (skills) {

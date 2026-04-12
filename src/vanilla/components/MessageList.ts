@@ -141,6 +141,7 @@ export class MessageList extends BaseComponent<MessageListProps> {
                             let termBox = this.terminalBoxCache.get(terminalId);
                             
                             const termProps = {
+                                id: terminalId,
                                 command: commandText,
                                 output: toolOutput?.content || undefined,
                                 bashSandbox: this.props.bashSandbox,

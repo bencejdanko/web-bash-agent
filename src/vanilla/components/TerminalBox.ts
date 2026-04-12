@@ -8,8 +8,10 @@ import '@xterm/xterm/css/xterm.css';
 import './TerminalBox.css';
 
 interface TerminalBoxProps {
+  id: string; // Key for TerminalSessionManager
   command: string;
   output?: string;
+  initialState?: string; // ANSI serialized state
   bashSandbox?: any;
   isPending?: boolean;
   startTime?: number;
@@ -27,7 +29,7 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
     private initialized = false;
     private lastOutput: string | undefined = undefined;
     private lastPending: boolean | undefined = undefined;
-    private logic: TerminalLogic | null = null;
+    private logic: any = null;
 
     protected createRootElement(): HTMLElement {
         const div = document.createElement('div');
@@ -43,55 +45,56 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
         const container = this.query<HTMLElement>('.terminal-xterm-wrapper');
         if (!container) return;
 
-        this.terminal = new Terminal({
-            cursorBlink: true,
-            fontSize: 12,
-            lineHeight: 1.2,
-            fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-            theme: {
-                background: '#ffffff',
-                foreground: '#18181b',
-                cursor: '#18181b',
-                selectionBackground: 'rgba(24, 24, 27, 0.1)',
-                black: '#18181b',
-                red: '#ef4444',
-                green: '#16a34a',
-                yellow: '#ca8a04',
-                blue: '#2563eb',
-                magenta: '#9333ea',
-                cyan: '#0891b2',
-                white: '#ffffff',
-            },
-            convertEol: true,
-            rows: 10,
-        });
-
-        this.fitAddon = new FitAddon();
-        this.terminal.loadAddon(this.fitAddon);
-        this.terminal.open(container);
-        
-        if (this.props.bashSandbox) {
-            this.logic = new TerminalLogic({
-                terminal: this.terminal,
-                sandbox: this.props.bashSandbox,
-                onExit: this.props.onExit,
-                history: this.props.history,
-                onChange: this.props.onChange
+        if (this.props.isMinimal) {
+            // Static/Minimal terminals still create their own instance for isolation
+            this.terminal = new Terminal({
+                cursorBlink: false,
+                fontSize: 12,
+                lineHeight: 1.2,
+                fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                theme: {
+                    background: '#ffffff',
+                    foreground: '#18181b',
+                    cursor: '#18181b',
+                    selectionBackground: 'rgba(24, 24, 27, 0.1)',
+                    black: '#18181b',
+                    red: '#ef4444',
+                    green: '#16a34a',
+                    yellow: '#ca8a04',
+                    blue: '#2563eb',
+                    magenta: '#9333ea',
+                    cyan: '#0891b2',
+                    white: '#ffffff',
+                },
+                convertEol: true,
+                rows: 10,
             });
+            this.fitAddon = new FitAddon();
+            this.terminal.loadAddon(this.fitAddon);
+            this.terminal.open(container);
+            
+            setTimeout(() => {
+                try { this.fitAddon?.fit(); } catch (e) {}
+            }, 10);
+        } else {
+            // Interactive terminals use the shared session manager
+            const manager = (window as any).terminalSessionManager; // Injected globally or via props
+            if (manager) {
+                const session = manager.getOrCreateSession(this.props.id, {
+                    command: this.props.command,
+                    initialOutput: this.props.output,
+                    initialHistory: this.props.history,
+                    initialState: this.props.initialState
+                });
+                this.terminal = session.terminal;
+                this.fitAddon = session.fitAddon;
+                this.logic = session.logic;
+                manager.mount(this.props.id, container);
+            }
         }
-
-        setTimeout(() => {
-            try { this.fitAddon?.fit(); } catch (e) {}
-        }, 10);
 
         this.initialized = true;
         this.updateContent();
-
-        // New Robust REPL Handler
-        this.terminal.onData(async data => {
-            if (this.props.isMinimal || !this.logic) return;
-            await this.logic.handleKey(data);
-        });
 
         const resizeObserver = new ResizeObserver(() => {
             try { this.fitAddon?.fit(); } catch (e) {}

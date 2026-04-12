@@ -50,28 +50,19 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
 
     public focusActiveTerminal(withEnter = false) {
         if (!this.props.activeTerminalId) return;
-        const box = this.terminalCache.get(this.props.activeTerminalId);
-        if (box) {
-            // Sequential focus attempts to handle various browser/DOM states
-            box.focus();
-            requestAnimationFrame(() => {
-                box.focus();
-                if (withEnter) {
-                    box.pressEnter();
-                }
-            });
+        const manager = (window as any).terminalSessionManager;
+        const session = manager?.getSession(this.props.activeTerminalId);
+        if (session) {
+            session.terminal.focus();
+            if (withEnter) {
+                session.logic.pressEnter();
+            }
         }
     }
 
-    public getStates(): Record<string, { output: string, history: string[] }> {
-        const states: Record<string, { output: string, history: string[] }> = {};
-        for (const [id, box] of this.terminalCache.entries()) {
-            states[id] = {
-                output: box.getContent(),
-                history: box.getHistory()
-            };
-        }
-        return states;
+    public getStates(): Record<string, { state: string, history: string[] }> {
+        const manager = (window as any).terminalSessionManager;
+        return manager?.getAllSessionStates() || {};
     }
 
     private setupDragging() {
@@ -106,11 +97,24 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
     }
 
     update(props: TerminalWindowProps) {
+        const oldActiveId = this.props.activeTerminalId;
+        const oldTerminals = this.props.terminals;
+        const oldPos = this.position;
+
         super.update(props);
-        if (props.position && !this.isDragging && (props.position.x !== this.position.x || props.position.y !== this.position.y)) {
+
+        if (props.position && !this.isDragging && (props.position.x !== oldPos.x || props.position.y !== oldPos.y)) {
             this.position = { ...props.position };
             this.element.style.left = `${this.position.x}px`;
             this.element.style.top = `${this.position.y}px`;
+        }
+
+        if (props.terminals !== oldTerminals) {
+            this.updateTerminalList();
+        }
+
+        if (props.activeTerminalId !== oldActiveId) {
+            this.updateActiveTerminal();
         }
     }
 
@@ -160,54 +164,48 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
             this.initializedUI = true;
         }
 
+        this.updateTerminalList();
+        this.updateActiveTerminal();
+    }
+
+    private updateTerminalList() {
         const listContainer = this.query('.terminal-list');
-        if (listContainer) {
-            listContainer.innerHTML = this.props.terminals.map(t => `
-                <div class="terminal-list-item ${t.id === this.props.activeTerminalId ? 'active' : ''}" data-id="${t.id}">
-                    <div class="terminal-item-meta">
-                        <span class="terminal-item-label">bash</span>
-                        <span class="terminal-item-id">[${t.id.slice(0, 4)}]</span>
-                    </div>
-                    <button class="delete-terminal-btn" data-id="${t.id}" title="Delete session">
-                        ${XIcon(10)}
-                    </button>
+        if (!listContainer) return;
+
+        listContainer.innerHTML = this.props.terminals.map(t => `
+            <div class="terminal-list-item ${t.id === this.props.activeTerminalId ? 'active' : ''}" data-id="${t.id}">
+                <div class="terminal-item-meta">
+                    <span class="terminal-item-label">bash</span>
+                    <span class="terminal-item-id">[${t.id.slice(0, 4)}]</span>
                 </div>
-            `).join('');
+                <button class="delete-terminal-btn" data-id="${t.id}" title="Delete session">
+                    ${XIcon(10)}
+                </button>
+            </div>
+        `).join('');
 
-            listContainer.querySelectorAll('.terminal-list-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const id = item.getAttribute('data-id');
-                    if (id) this.props.onSelectTerminal(id);
-                });
-            });
-
-            listContainer.querySelectorAll('.delete-terminal-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const id = btn.getAttribute('data-id');
-                    if (id) this.props.onDeleteTerminal(id);
-                });
-            });
-        }
-
-        this.element.querySelectorAll('.terminal-list-item').forEach(item => {
+        listContainer.querySelectorAll('.terminal-list-item').forEach(item => {
             item.addEventListener('click', () => {
                 const id = item.getAttribute('data-id');
                 if (id) this.props.onSelectTerminal(id);
             });
         });
 
-        this.element.querySelectorAll('.delete-terminal-btn').forEach(btn => {
+        listContainer.querySelectorAll('.delete-terminal-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const id = btn.getAttribute('data-id');
                 if (id) this.props.onDeleteTerminal(id);
             });
         });
+    }
 
+    private updateActiveTerminal() {
         const activeTerminal = this.props.terminals.find(t => t.id === this.props.activeTerminalId);
         const root = this.query('#active-terminal-root');
-        
+        if (!root) return;
+
+        // Clean up unused boxes from cache
         const activeIds = new Set(this.props.terminals.map(t => t.id));
         for (const [id, box] of this.terminalCache.entries()) {
             if (!activeIds.has(id)) {
@@ -216,11 +214,13 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
             }
         }
 
-        if (activeTerminal && root) {
+        if (activeTerminal) {
             let termBox = this.terminalCache.get(activeTerminal.id);
             const boxProps = {
+                id: activeTerminal.id,
                 command: activeTerminal.command || 'bash',
                 output: activeTerminal.output,
+                initialState: (activeTerminal as any).state, // Use ANSI state if available
                 history: activeTerminal.history,
                 bashSandbox: this.props.bashSandbox,
                 isMinimal: false,
@@ -242,13 +242,13 @@ export class TerminalWindow extends BaseComponent<TerminalWindowProps> {
                 root.appendChild(termBox.getElement());
                 this.currentMountedId = activeTerminal.id;
                 
-                // Critical: Trigger fit after appending to DOM to ensure correct dimensions
-                setTimeout(() => {
+                requestAnimationFrame(() => {
                     if (termBox) termBox.fit();
-                }, 0);
+                });
             }
-        } else if (root) {
+        } else {
             root.innerHTML = '<div class="terminal-empty-state">No active session. Create one with + button.</div>';
+            this.currentMountedId = null;
         }
     }
 }

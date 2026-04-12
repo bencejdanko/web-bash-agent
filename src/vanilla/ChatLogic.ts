@@ -5,6 +5,7 @@ export interface TerminalSession {
     id: string;
     command?: string;
     output?: string;
+    state?: string;
     history?: string[];
 }
 
