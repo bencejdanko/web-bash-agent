@@ -1,6 +1,13 @@
 import { Message, AgentSidebarProps } from '../types';
 import { Store } from './Store';
 
+export interface TerminalSession {
+    id: string;
+    command?: string;
+    output?: string;
+    history?: string[];
+}
+
 export interface AgentState {
     messages: Message[];
     isProcessing: boolean;
@@ -11,7 +18,7 @@ export interface AgentState {
     collapsedThoughtIds: string[];
     currentModelId: string;
     actualFilesystem: Record<string, string>;
-    terminals: { id: string; command?: string; output?: string }[];
+    terminals: TerminalSession[];
     activeTerminalId: string | null;
     activeInfoPanel: 'tools' | 'mcp' | 'system' | null;
     showHistory: boolean;
@@ -23,6 +30,8 @@ export interface AgentState {
     skills: any[];
     showTerminalWindow: boolean;
     terminalPosition: { x: number, y: number } | null;
+    terminalCwd: string | null;
+    terminalEnv: Record<string, string> | null;
 }
 
 export class ChatLogic {

@@ -5,6 +5,9 @@ export interface TerminalLogicOptions {
     terminal: Terminal;
     sandbox: PersistentBashSandbox;
     onExit?: () => void;
+    history?: string[];
+    onHistoryChange?: (history: string[]) => void;
+    onChange?: () => void;
 }
 
 export class TerminalLogic {
@@ -16,11 +19,14 @@ export class TerminalLogic {
     private historyIndex = -1;
     private isExecuting = false;
     private onExit?: () => void;
+    private onChange?: () => void;
 
     constructor(options: TerminalLogicOptions) {
         this.terminal = options.terminal;
         this.sandbox = options.sandbox;
         this.onExit = options.onExit;
+        this.history = options.history || [];
+        this.onChange = options.onChange;
     }
 
     public async handleKey(data: string) {
@@ -31,6 +37,7 @@ export class TerminalLogic {
             const command = this.inputBuffer;
             if (command.trim()) {
                 this.history.push(command);
+                this.onChange?.();
             }
             this.historyIndex = -1;
             this.inputBuffer = '';
@@ -158,6 +165,7 @@ export class TerminalLogic {
         }
         this.isExecuting = false;
         this.writePrompt();
+        this.onChange?.();
     }
 
     public getPrompt() {
@@ -198,5 +206,9 @@ export class TerminalLogic {
             lines.pop();
         }
         return lines.join('\n');
+    }
+
+    public getHistory(): string[] {
+        return [...this.history];
     }
 }

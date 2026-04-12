@@ -17,6 +17,8 @@ interface TerminalBoxProps {
   onExit?: () => void;
   isMinimal?: boolean;
   hideHeader?: boolean;
+  history?: string[];
+  onChange?: () => void;
 }
 
 export class TerminalBox extends BaseComponent<TerminalBoxProps> {
@@ -72,7 +74,9 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
             this.logic = new TerminalLogic({
                 terminal: this.terminal,
                 sandbox: this.props.bashSandbox,
-                onExit: this.props.onExit
+                onExit: this.props.onExit,
+                history: this.props.history,
+                onChange: this.props.onChange
             });
         }
 
@@ -100,7 +104,12 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
     }
 
     public focus() {
-        this.terminal?.focus();
+        if (this.terminal) {
+            this.terminal.focus();
+            // Force focus on the underlying textarea to ensure keyboard events are captured
+            const textarea = this.element.querySelector('textarea');
+            if (textarea) textarea.focus();
+        }
     }
 
     public pressEnter() {
@@ -109,6 +118,10 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
 
     public getContent(): string {
         return this.logic?.getContent() || '';
+    }
+
+    public getHistory(): string[] {
+        return this.logic?.getHistory() || [];
     }
 
     render() {
@@ -142,46 +155,69 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
     }
 
     private updateContent() {
-        if (this.props.output !== this.lastOutput || this.props.isPending !== this.lastPending) {
-            this.refreshStaticContent();
-            this.lastOutput = this.props.output;
-            this.lastPending = this.props.isPending;
+        const outputChanged = this.props.output !== this.lastOutput;
+        const pendingChanged = this.props.isPending !== this.lastPending;
+
+        if (this.props.isMinimal) {
+            if (outputChanged || pendingChanged) {
+                this.refreshStaticContent();
+            }
+        } else {
+            // Interactive terminal: only rehydrate once or if the pending state flips.
+            // We MUST update the tracking variables even if we skip the draw to prevent future redundant draws.
+            const shouldRehydrate = !this.initializedInteractive || pendingChanged;
+            if (shouldRehydrate) {
+                this.refreshStaticContent();
+                this.initializedInteractive = true;
+            }
         }
+
+        this.lastOutput = this.props.output;
+        this.lastPending = this.props.isPending;
     }
+
+    private initializedInteractive = false;
 
     private refreshStaticContent() {
         const term = this.terminal;
         if (!term) return;
 
+        // Visual reset
         term.reset();
         
-        // 1. Initial Command
-        if (this.props.command) {
-            this.logic?.writeCommandLine(this.props.command);
-        }
-
-        // 2. Output or Pending State
-        if (this.props.isPending) {
-            term.write('\r\n\x1b[2mProcessing...\x1b[0m');
-        } else if (this.props.output !== undefined) {
-            if (this.props.isMinimal) {
-                // Historical view with decorative prefixes
+        // 1. Handle Minimal (Static/History) View
+        if (this.props.isMinimal) {
+            if (this.props.command && this.props.command !== 'bash') {
+                term.writeln(`\x1b[2m$ ${this.props.command}\x1b[0m`);
+            }
+            if (this.props.output) {
                 const lines = this.props.output.split('\n');
                 lines.forEach((line, idx) => {
                     const prefix = idx === lines.length - 1 ? '\x1b[2m└\x1b[0m ' : '\x1b[2m│\x1b[0m ';
                     term.writeln(`${prefix} ${line}`);
                 });
-            } else {
-                // Interactive starting view
-                this.logic?.writeOutput(this.props.output);
-                if (!this.props.output.endsWith('\n')) term.write('\r\n');
             }
-            this.logic?.writePrompt();
-            this.logic?.restoreInput();
-        } else {
-            this.logic?.writePrompt();
-            this.logic?.restoreInput();
+            if (this.props.isPending) {
+                term.write('\x1b[2m│ Processing...\x1b[0m');
+            }
+            return;
         }
+
+        // 2. Handle Interactive View (First Render / Rehydration Only)
+        if (this.props.isPending) {
+            term.write('\r\n\x1b[2mProcessing...\x1b[0m');
+            return;
+        }
+
+        if (this.props.output) {
+            this.logic?.writeOutput(this.props.output);
+            if (!this.props.output.endsWith('\n')) term.write('\r\n');
+        } else {
+            // Only write a fresh prompt if we don't have existing output to restore
+            this.logic?.writePrompt();
+        }
+
+        this.logic?.restoreInput();
     }
 
     destroy() {

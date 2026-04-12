@@ -64,7 +64,9 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             showTerminalWindow: savedState.showTerminalWindow || false,
             terminalPosition: savedState.terminalPosition || null,
             terminals: savedState.terminals || [],
-            activeTerminalId: savedState.activeTerminalId || null
+            activeTerminalId: savedState.activeTerminalId || null,
+            terminalCwd: savedState.terminalCwd || null,
+            terminalEnv: savedState.terminalEnv || null
         };
 
         this.store = new Store(initialState);
@@ -102,7 +104,9 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
                 showTerminalWindow: state.showTerminalWindow,
                 terminalPosition: state.terminalPosition,
                 terminals: state.terminals,
-                activeTerminalId: state.activeTerminalId
+                activeTerminalId: state.activeTerminalId,
+                terminalCwd: state.terminalCwd,
+                terminalEnv: state.terminalEnv
             }));
         });
 
@@ -211,6 +215,12 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
                 }
             }
         }, true);
+        
+        window.addEventListener('beforeunload', () => {
+            if (this.store.getState().showTerminalWindow) {
+                this.saveTerminalStates();
+            }
+        });
 
         // Initialize Split.js
         const spacer = this.query('#sidebar-spacer')!;
@@ -282,7 +292,7 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
                 this.handleAddTerminal();
                 requestAnimationFrame(() => {
                     setTimeout(() => {
-                        this.overlayLogic?.getTerminalWindow()?.focusActiveTerminal(true);
+                        this.overlayLogic?.getTerminalWindow()?.focusActiveTerminal(false);
                     }, 150);
                 });
             } else {
@@ -297,7 +307,7 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             this.handleAddTerminal();
             requestAnimationFrame(() => {
                 setTimeout(() => {
-                    this.overlayLogic?.getTerminalWindow()?.focusActiveTerminal(true);
+                    this.overlayLogic?.getTerminalWindow()?.focusActiveTerminal(false);
                 }, 50);
             });
         }
@@ -310,9 +320,13 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         const currentTerminals = this.store.getState().terminals;
         const updatedTerminals = currentTerminals.map(t => ({
             ...t,
-            output: states[t.id] || t.output
+            ...(states[t.id] || {})
         }));
-        this.store.setState({ terminals: updatedTerminals });
+        this.store.setState({ 
+            terminals: updatedTerminals,
+            terminalCwd: this.bashSandbox?.getCwd() || null,
+            terminalEnv: this.bashSandbox?.getEnv() || null
+        });
     }
 
     private handleAddTerminal() {

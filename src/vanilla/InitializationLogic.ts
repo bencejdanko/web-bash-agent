@@ -49,7 +49,9 @@ export class InitializationLogic {
                 files: this.props.filesystem || {},
                 pagefind: pagefindContext.pagefind,
                 customCommands,
-                normalizePaths: true
+                normalizePaths: true,
+                cwd: state.terminalCwd || undefined,
+                env: state.terminalEnv || undefined
             });
 
             const defaultHeaders: Record<string, string> = {};

@@ -122,6 +122,7 @@ export class OverlayLogic {
                 this.saveTerminalStates();
                 this.store.setState({ showTerminalWindow: false });
             },
+            onStateChange: () => this.saveTerminalStates(),
             bashSandbox: this.bashSandbox,
             position: state.terminalPosition,
             onPositionChange: (pos: { x: number, y: number }) => this.store.setState({ terminalPosition: pos })
@@ -157,7 +158,7 @@ export class OverlayLogic {
         }));
         requestAnimationFrame(() => {
             setTimeout(() => {
-                this.terminalWindow?.focusActiveTerminal(true);
+                this.terminalWindow?.focusActiveTerminal(false);
             }, 50);
         });
     }
@@ -189,7 +190,9 @@ export class OverlayLogic {
         if (!this.terminalWindow) return;
         const states = this.terminalWindow.getStates();
         this.store.setState(s => ({
-            terminals: s.terminals.map(t => states[t.id] !== undefined ? { ...t, output: states[t.id] } : t)
+            terminals: s.terminals.map(t => states[t.id] !== undefined ? { ...t, ...states[t.id] } : t),
+            terminalCwd: this.bashSandbox.getCwd(),
+            terminalEnv: this.bashSandbox.getEnv()
         }));
     }
 
