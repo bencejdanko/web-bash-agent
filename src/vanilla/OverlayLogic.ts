@@ -172,6 +172,8 @@ export class OverlayLogic {
             newActiveId = newTerminals.length > 0 ? newTerminals[newTerminals.length - 1].id : null;
         }
 
+        (window as any).terminalSessionManager?.deleteSession(id);
+
         this.store.setState({
             terminals: newTerminals,
             activeTerminalId: newActiveId

@@ -84,7 +84,8 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
                     command: this.props.command,
                     initialOutput: this.props.output,
                     initialHistory: this.props.history,
-                    initialState: this.props.initialState
+                    initialState: this.props.initialState,
+                    onExit: this.props.onExit
                 });
                 this.terminal = session.terminal;
                 this.fitAddon = session.fitAddon;
@@ -165,62 +166,33 @@ export class TerminalBox extends BaseComponent<TerminalBoxProps> {
             if (outputChanged || pendingChanged) {
                 this.refreshStaticContent();
             }
-        } else {
-            // Interactive terminal: only rehydrate once or if the pending state flips.
-            // We MUST update the tracking variables even if we skip the draw to prevent future redundant draws.
-            const shouldRehydrate = !this.initializedInteractive || pendingChanged;
-            if (shouldRehydrate) {
-                this.refreshStaticContent();
-                this.initializedInteractive = true;
-            }
         }
 
         this.lastOutput = this.props.output;
         this.lastPending = this.props.isPending;
     }
 
-    private initializedInteractive = false;
 
     private refreshStaticContent() {
         const term = this.terminal;
         if (!term) return;
 
-        // Visual reset
+        // Visual reset for static view
         term.reset();
         
-        // 1. Handle Minimal (Static/History) View
-        if (this.props.isMinimal) {
-            if (this.props.command && this.props.command !== 'bash') {
-                term.writeln(`\x1b[2m$ ${this.props.command}\x1b[0m`);
-            }
-            if (this.props.output) {
-                const lines = this.props.output.split('\n');
-                lines.forEach((line, idx) => {
-                    const prefix = idx === lines.length - 1 ? '\x1b[2m└\x1b[0m ' : '\x1b[2m│\x1b[0m ';
-                    term.writeln(`${prefix} ${line}`);
-                });
-            }
-            if (this.props.isPending) {
-                term.write('\x1b[2m│ Processing...\x1b[0m');
-            }
-            return;
+        if (this.props.command && this.props.command !== 'bash') {
+            term.writeln(`\x1b[2m$ ${this.props.command}\x1b[0m`);
         }
-
-        // 2. Handle Interactive View (First Render / Rehydration Only)
-        if (this.props.isPending) {
-            term.write('\r\n\x1b[2mProcessing...\x1b[0m');
-            return;
-        }
-
         if (this.props.output) {
-            this.logic?.writeOutput(this.props.output);
-            if (!this.props.output.endsWith('\n')) term.write('\r\n');
-        } else {
-            // Only write a fresh prompt if we don't have existing output to restore
-            this.logic?.writePrompt();
+            const lines = this.props.output.split('\n');
+            lines.forEach((line, idx) => {
+                const prefix = idx === lines.length - 1 ? '\x1b[2m└\x1b[0m ' : '\x1b[2m│\x1b[0m ';
+                term.writeln(`${prefix} ${line}`);
+            });
         }
-
-        this.logic?.restoreInput();
+        if (this.props.isPending) {
+            term.write('\x1b[2m│ Processing...\x1b[0m');
+        }
     }
 
     destroy() {

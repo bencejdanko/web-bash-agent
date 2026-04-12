@@ -38,7 +38,8 @@ export class TerminalSessionManager {
         command?: string, 
         initialOutput?: string, 
         initialHistory?: string[],
-        initialState?: string // ANSI serialized state
+        initialState?: string, // ANSI serialized state
+        onExit?: () => void
     }): TerminalSession {
         if (this.sessions.has(id)) {
             return this.sessions.get(id)!;
@@ -78,6 +79,7 @@ export class TerminalSessionManager {
         const logic = new TerminalLogic({
             terminal,
             sandbox: this.sandbox,
+            onExit: options.onExit,
             history: options.initialHistory,
             onChange: () => this.scheduleSave()
         });
