@@ -9,12 +9,8 @@ export function createBashTool(customDescription?: string): AgentTool {
         description: customDescription || [
           'Run a bash command in the virtual shell environment.',
           'THE ONLY WAY TO RUN SHELL COMMANDS IS BY CALLING THIS BASH TOOL.',
-          'Do NOT try to call "ls", "cat", "grep", etc. as separate tools; they do not exist.',
-          'Instead, pass your command string to this tool, e.g., bash({ command: "ls -R /site" }).',
-          'The site and its metadata are mounted in `/site/`.',
-          'Check `/site/.agents/README.md` for capabilities and usage.',
-          'All standard bash commands are available INSIDE the bash tool: ls, cat, grep, find, head, tail, jq, wc, sort, awk, sed, etc.',
-          'Pipes (|), redirections (>, >>), globs (*.json), and chaining (&&, ||) all work.',
+          'Specialized: `search "query"`, `navigate "/url"`, `fetch_internal "/path"`.',
+          'Standard: ls, cat, grep, find, head, tail, jq, etc. are all available.',
         ].join(' '),
         parameters: {
           type: 'object',

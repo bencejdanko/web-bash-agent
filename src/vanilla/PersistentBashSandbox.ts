@@ -6,6 +6,7 @@ import {
 export type { ExecResult, IFileSystem };
 import { createSearchCommand } from '../commands/search';
 import { createFetchInternalCommand } from '../commands/fetch-internal';
+import { createNavigateCommand } from '../commands/navigate';
 
 // Internal types from just-bash 
 export interface BashExecResult extends ExecResult {
@@ -62,6 +63,7 @@ export class PersistentBashSandbox {
         const coreCommands = [
             createSearchCommand(options.pagefind),
             createFetchInternalCommand(),
+            createNavigateCommand(),
         ];
         const allCommands = [...coreCommands, ...(options.customCommands || [])];
 
