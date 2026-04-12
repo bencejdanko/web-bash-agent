@@ -23,12 +23,6 @@ export interface PersistentBashOptions {
     normalizePaths?: boolean;
 }
 
-export function normalizeSitePath(path: string): string {
-    if (path.startsWith('/site/')) return path;
-    if (path === '/site') return '/site/';
-    return `/site${path.startsWith('/') ? '' : '/'}${path}`;
-}
-
 /**
  * A unified, stateful version of BashSandbox that preserves CWD, variables, 
  * and functions between executions.
@@ -39,7 +33,7 @@ export class PersistentBashSandbox {
     private currentEnv: Record<string, string>;
 
     constructor(options: PersistentBashOptions = {}) {
-        this.currentCwd = options.cwd || '/site';
+        this.currentCwd = options.cwd || '/';
         this.currentEnv = { 
             PATH: '/bin:/usr/bin',
             HOME: '/home/user',
@@ -49,15 +43,8 @@ export class PersistentBashSandbox {
             ...options.env 
         };
 
-        // Prepare files (with optional normalization)
-        let initialFiles = options.files || {};
-        if (options.normalizePaths) {
-            const normalized: Record<string, string> = {};
-            for (const [path, content] of Object.entries(initialFiles)) {
-                normalized[normalizeSitePath(path)] = content;
-            }
-            initialFiles = normalized;
-        }
+        // Prepare files (no normalization/prefixing)
+        const initialFiles = options.files || {};
 
         // Build core commands (Pagefind + Internal Fetch)
         const coreCommands = [

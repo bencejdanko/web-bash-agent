@@ -1,6 +1,6 @@
 import { BaseComponent } from '../BaseComponent';
 import { StopIcon, ArrowRightIcon, CubeIcon } from './Icons';
-import { ModelConfig } from '../../types';
+import { ModelConfig, AgentProfile } from '../../types';
 import './ChatInput.css';
 
 interface ChatInputProps {
@@ -12,6 +12,9 @@ interface ChatInputProps {
   models: ModelConfig[];
   currentModelId: string;
   onModelChange: (id: string) => void;
+  agents: AgentProfile[];
+  currentAgentId: string;
+  onAgentChange: (id: string) => void;
   skills?: any[];
   filesystem?: Record<string, string>;
 }
@@ -19,12 +22,14 @@ interface ChatInputProps {
 export class ChatInput extends BaseComponent<ChatInputProps> {
     private inputValue: string = '';
     private isModelMenuOpen: boolean = false;
+    private isAgentMenuOpen: boolean = false;
     private showSuggestions: boolean = false;
     private suggestionType: '@' | '/' | null = null;
     private suggestionQuery: string = '';
     private selectedSuggestionIndex: number = 0;
     private suggestionAnchorPos: number = -1;
     private selectedModelIndex: number = 0;
+    private selectedAgentIndex: number = 0;
 
     protected createRootElement(): HTMLElement {
         const div = document.createElement('div');
@@ -45,25 +50,33 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
 
     private renderShell() {
         const currentModel = this.props.models.find(m => m.id === this.props.currentModelId) || this.props.models[0];
+        const currentAgent = this.props.agents.find(a => a.id === this.props.currentAgentId) || this.props.agents[0];
 
         this.element.innerHTML = `
             <div class="chat-input-inner-wrapper chat-input-group">
                 <div id="suggestion-popup" class="suggestion-popup"></div>
+                
                 <div id="model-menu" class="model-menu-popup">
                     <div id="model-options-container" class="model-options-list"></div>
                 </div>
+
+                <div id="agent-menu" class="model-menu-popup">
+                    <div id="agent-options-container" class="model-options-list"></div>
+                </div>
+
                 <div class="chat-input-container">
                     <textarea id="chat-textarea" aria-label="Message assistant..." placeholder="${this.props.placeholder || 'Ask anything, @ to mention, / for skills'}" class="chat-input-textarea"></textarea>
                     <div id="input-controls" class="input-controls-group"></div>
                 </div>
 
                 <div class="footer-controls-group">
-                    ${this.props.onOpenTerminal ? `
-                        <button id="btn-open-terminal" class="control-btn-secondary">
-                            ${CubeIcon(14)}
-                            <span>Open terminal</span>
+                    <div style="position: relative">
+                        <button id="btn-agent-selector" class="control-btn-secondary">
+                            <div class="model-dot" style="background-color: var(--agent-accent); opacity: 0.7"></div>
+                            <span id="current-agent-name">${currentAgent?.name || 'Select Agent'}</span>
+                            <code class="terminal-shortcut-hint">[CTRL+SHIFT+A]</code>
                         </button>
-                    ` : ''}
+                    </div>
                     
                     <div style="position: relative">
                         <button id="btn-model-selector" class="control-btn-secondary">
@@ -72,6 +85,13 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
                             <code class="terminal-shortcut-hint">[CTRL+SHIFT+M]</code>
                         </button>
                     </div>
+
+                    ${this.props.onOpenTerminal ? `
+                        <button id="btn-open-terminal" class="control-btn-secondary">
+                            ${CubeIcon(14)}
+                            <span>Open terminal</span>
+                        </button>
+                    ` : ''}
                 </div>
             </div>
         `;
@@ -83,6 +103,7 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         const textarea = this.query<HTMLTextAreaElement>('#chat-textarea')!;
         const btnOpenTerminal = this.query<HTMLButtonElement>('#btn-open-terminal');
         const btnModelSelector = this.query<HTMLButtonElement>('#btn-model-selector');
+        const btnAgentSelector = this.query<HTMLButtonElement>('#btn-agent-selector');
 
         textarea.addEventListener('input', () => {
             this.inputValue = textarea.value;
@@ -110,6 +131,30 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
                 if (e.key === 'Escape') {
                     e.preventDefault();
                     this.isModelMenuOpen = false;
+                    this.render();
+                    return;
+                }
+            }
+
+            if (this.isAgentMenuOpen) {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    this.moveAgentSelection(1);
+                    return;
+                }
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    this.moveAgentSelection(-1);
+                    return;
+                }
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.applySelectedAgent();
+                    return;
+                }
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    this.isAgentMenuOpen = false;
                     this.render();
                     return;
                 }
@@ -149,6 +194,7 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         btnModelSelector?.addEventListener('click', (e) => {
             e.stopPropagation();
             this.isModelMenuOpen = !this.isModelMenuOpen;
+            this.isAgentMenuOpen = false;
             if (this.isModelMenuOpen) {
                 this.selectedModelIndex = this.props.models.findIndex(m => m.id === this.props.currentModelId);
                 if (this.selectedModelIndex === -1) this.selectedModelIndex = 0;
@@ -157,26 +203,37 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
             this.render();
         });
 
-        btnModelSelector?.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') {
-                e.preventDefault();
-                if (!this.isModelMenuOpen) {
-                    this.isModelMenuOpen = true;
-                    this.selectedModelIndex = this.props.models.findIndex(m => m.id === this.props.currentModelId);
-                    if (this.selectedModelIndex === -1) this.selectedModelIndex = 0;
-                    this.render();
-                }
+        btnAgentSelector?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.isAgentMenuOpen = !this.isAgentMenuOpen;
+            this.isModelMenuOpen = false;
+            if (this.isAgentMenuOpen) {
+                this.selectedAgentIndex = this.props.agents.findIndex(a => a.id === this.props.currentAgentId);
+                if (this.selectedAgentIndex === -1) this.selectedAgentIndex = 0;
                 textarea.focus();
             }
+            this.render();
         });
 
         window.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.shiftKey && e.code === 'KeyM') {
                 e.preventDefault();
                 this.isModelMenuOpen = !this.isModelMenuOpen;
+                this.isAgentMenuOpen = false;
                 if (this.isModelMenuOpen) {
                     this.selectedModelIndex = this.props.models.findIndex(m => m.id === this.props.currentModelId);
                     if (this.selectedModelIndex === -1) this.selectedModelIndex = 0;
+                    textarea.focus();
+                }
+                this.render();
+            }
+            if (e.ctrlKey && e.shiftKey && e.code === 'KeyA') {
+                e.preventDefault();
+                this.isAgentMenuOpen = !this.isAgentMenuOpen;
+                this.isModelMenuOpen = false;
+                if (this.isAgentMenuOpen) {
+                    this.selectedAgentIndex = this.props.agents.findIndex(a => a.id === this.props.currentAgentId);
+                    if (this.selectedAgentIndex === -1) this.selectedAgentIndex = 0;
                     textarea.focus();
                 }
                 this.render();
@@ -186,8 +243,9 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         document.addEventListener('click', (e) => {
             const isInside = this.element.contains(e.target as Node);
             if (!isInside) {
-                let shouldRender = this.isModelMenuOpen || this.showSuggestions;
+                let shouldRender = this.isModelMenuOpen || this.isAgentMenuOpen || this.showSuggestions;
                 this.isModelMenuOpen = false;
+                this.isAgentMenuOpen = false;
                 this.closeSuggestions();
                 if (shouldRender) this.render();
             }
@@ -198,7 +256,9 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         const textarea = this.query<HTMLTextAreaElement>('#chat-textarea')!;
         const controls = this.query<HTMLElement>('#input-controls')!;
         const modelName = this.query<HTMLElement>('#current-model-name')!;
+        const agentName = this.query<HTMLElement>('#current-agent-name')!;
         const modelContainer = this.query<HTMLElement>('#model-options-container')!;
+        const agentContainer = this.query<HTMLElement>('#agent-options-container')!;
 
         if (textarea.value !== this.inputValue) {
             textarea.value = this.inputValue;
@@ -223,42 +283,89 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         const currentModel = this.props.models.find(m => m.id === this.props.currentModelId) || this.props.models[0];
         if (modelName) modelName.textContent = currentModel?.name || 'Select Model';
 
+        const currentAgent = this.props.agents.find(a => a.id === this.props.currentAgentId) || this.props.agents[0];
+        if (agentName) agentName.textContent = currentAgent?.name || 'Select Agent';
+
         const modelMenu = this.query<HTMLElement>('#model-menu')!;
         modelMenu.style.display = this.isModelMenuOpen ? 'block' : 'none';
+
+        const agentMenu = this.query<HTMLElement>('#agent-menu')!;
+        agentMenu.style.display = this.isAgentMenuOpen ? 'block' : 'none';
 
         if (modelContainer) {
             modelContainer.innerHTML = this.props.models.map((m, i) => {
                 const isCurrent = m.id === this.props.currentModelId;
                 const isFocused = i === this.selectedModelIndex;
-                const bgColor = isFocused ? 'var(--agent-bg-subtle)' : 'transparent';
-                const textColor = isCurrent ? 'var(--agent-accent)' : 'var(--agent-text-main)';
-                const dotColor = isCurrent ? 'var(--agent-accent)' : (isFocused ? 'var(--agent-border-main)' : 'transparent');
-                
                 return `
-                    <div class="model-option" data-id="${m.id}" data-index="${i}" style="padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: var(--agent-font-main); color: ${textColor}; background-color: ${bgColor}; display: flex; align-items: center; gap: 8px; transition: all 0.15s ease">
-                        <div class="model-dot" style="background-color: ${dotColor}; border: ${isCurrent ? 'none' : '1px solid var(--agent-border-main)'}"></div>
-                        <div style="flex-grow: 1">${m.name}</div>
+                    <div class="model-option ${isFocused ? 'focused' : ''}" data-id="${m.id}" data-index="${i}" style="color: ${isCurrent ? 'var(--agent-accent)' : 'var(--agent-text-main)'}">
+                        <div class="model-dot" style="background-color: ${isCurrent ? 'var(--agent-accent)' : 'var(--agent-text-muted)'}"></div>
+                        <span style="font-weight: ${isCurrent ? '600' : 'normal'}">${m.name}</span>
                     </div>
                 `;
             }).join('');
 
-            if (this.isModelMenuOpen) {
-                const focusedItem = modelContainer.querySelector(`[data-index="${this.selectedModelIndex}"]`) as HTMLElement;
-                if (focusedItem) focusedItem.scrollIntoView({ block: 'nearest' });
-            }
-
-            modelContainer.querySelectorAll('.model-option').forEach(opt => {
-                opt.addEventListener('click', (e) => {
+            modelContainer.querySelectorAll('.model-option').forEach(el => {
+                el.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const id = (opt as HTMLElement).dataset.id;
-                    if (id) {
-                        this.props.onModelChange(id);
-                        this.isModelMenuOpen = false;
-                        this.render();
-                    }
+                    const id = el.getAttribute('data-id')!;
+                    this.props.onModelChange(id);
+                    this.isModelMenuOpen = false;
+                    this.render();
                 });
             });
         }
+
+        if (agentContainer) {
+            agentContainer.innerHTML = this.props.agents.map((a, i) => {
+                const isCurrent = a.id === this.props.currentAgentId;
+                const isFocused = i === this.selectedAgentIndex;
+                return `
+                    <div class="model-option ${isFocused ? 'focused' : ''}" data-id="${a.id}" data-index="${i}" style="color: ${isCurrent ? 'var(--agent-accent)' : 'var(--agent-text-main)'}">
+                        <div class="model-dot" style="background-color: ${isCurrent ? 'var(--agent-accent)' : 'var(--agent-text-muted)'}; opacity: 0.7"></div>
+                        <span style="font-weight: ${isCurrent ? '600' : 'normal'}">${a.name}</span>
+                    </div>
+                `;
+            }).join('');
+
+            agentContainer.querySelectorAll('.model-option').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = el.getAttribute('data-id')!;
+                    this.props.onAgentChange(id);
+                    this.isAgentMenuOpen = false;
+                    this.render();
+                });
+            });
+        }
+    }
+
+    private autoResize(textarea: HTMLTextAreaElement) {
+        textarea.style.height = 'auto';
+        textarea.style.height = (textarea.scrollHeight) + 'px';
+    }
+
+    private updateSendButtonState(value: string, btn: HTMLButtonElement) {
+        const hasContent = value.trim().length > 0;
+        btn.disabled = !hasContent || this.props.isProcessing;
+        if (hasContent && !this.props.isProcessing) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    }
+
+    private handleSend() {
+        if (!this.inputValue.trim() || this.props.isProcessing) return;
+        this.props.onSend(this.inputValue);
+        this.inputValue = '';
+        this.closeSuggestions();
+        this.render();
+    }
+
+    focus() {
+        requestAnimationFrame(() => {
+            this.query<HTMLTextAreaElement>('#chat-textarea')?.focus();
+        });
     }
 
     private moveModelSelection(direction: number) {
@@ -273,6 +380,22 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         if (model) {
             this.props.onModelChange(model.id);
             this.isModelMenuOpen = false;
+            this.render();
+        }
+    }
+
+    private moveAgentSelection(direction: number) {
+        const count = this.props.agents.length;
+        if (count === 0) return;
+        this.selectedAgentIndex = (this.selectedAgentIndex + direction + count) % count;
+        this.render();
+    }
+
+    private applySelectedAgent() {
+        const agent = this.props.agents[this.selectedAgentIndex];
+        if (agent) {
+            this.props.onAgentChange(agent.id);
+            this.isAgentMenuOpen = false;
             this.render();
         }
     }
@@ -344,84 +467,46 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
 
         popup.querySelectorAll('.suggestion-item').forEach(el => {
             el.addEventListener('click', () => {
-                this.selectedSuggestionIndex = parseInt((el as HTMLElement).dataset.index!);
+                this.selectedSuggestionIndex = parseInt(el.getAttribute('data-index')!);
                 this.applySelectedSuggestion(this.query<HTMLTextAreaElement>('#chat-textarea')!);
             });
         });
     }
 
-    private moveSuggestionSelection(direction: number) {
-        const popup = this.query<HTMLElement>('#suggestion-popup')!;
-        const items = popup.querySelectorAll('.suggestion-item');
-        if (items.length === 0) return;
-        this.selectedSuggestionIndex = (this.selectedSuggestionIndex + direction + items.length) % items.length;
-        this.renderSuggestions();
+    private applySelectedSuggestion(textarea: HTMLTextAreaElement) {
+        const items: any[] = []; 
+        if (this.suggestionType === '@') {
+            const files = Object.keys(this.props.filesystem || {});
+            const filtered = files.filter(f => f.toLowerCase().includes(this.suggestionQuery.toLowerCase())).slice(0, 10);
+            items.push(...filtered.map(f => ({ label: f })));
+        } else {
+            const filtered = (this.props.skills || []).filter(s => s.name.toLowerCase().includes(this.suggestionQuery.toLowerCase())).slice(0, 10);
+            items.push(...filtered.map(s => ({ label: s.name })));
+        }
+
+        const selected = items[this.selectedSuggestionIndex];
+        if (!selected) return;
+
+        const val = textarea.value;
+        const before = val.substring(0, this.suggestionAnchorPos);
+        const after = val.substring(textarea.selectionStart);
+        
+        textarea.value = before + this.suggestionType + selected.label + ' ' + after;
+        this.inputValue = textarea.value;
+        this.closeSuggestions();
+        this.render();
+        textarea.focus();
     }
 
-    private applySelectedSuggestion(textarea: HTMLTextAreaElement) {
-        const popup = this.query<HTMLElement>('#suggestion-popup')!;
-        const items = Array.from(popup.querySelectorAll('.suggestion-item')) as HTMLElement[];
-        if (items.length === 0 || this.selectedSuggestionIndex >= items.length) return;
-
-        const label = items[this.selectedSuggestionIndex].querySelector('div')!.textContent!;
-        const textBefore = textarea.value.substring(0, this.suggestionAnchorPos);
-        const textAfter = textarea.value.substring(textarea.selectionStart);
-        
-        const prefix = this.suggestionType === '/' ? '/skill:' : '@file:';
-        const insertedText = prefix + label + ' ';
-        const newValue = textBefore + insertedText + textAfter;
-        
-        textarea.value = newValue;
-        this.inputValue = newValue;
-        
-        const newPos = this.suggestionAnchorPos + insertedText.length;
-        textarea.setSelectionRange(newPos, newPos);
-        textarea.focus();
-        this.closeSuggestions();
-        this.autoResize(textarea);
+    private moveSuggestionSelection(direction: number) {
+        const count = 10; 
+        this.selectedSuggestionIndex = (this.selectedSuggestionIndex + direction + count) % count;
+        this.renderSuggestions();
     }
 
     private closeSuggestions() {
         this.showSuggestions = false;
-        this.suggestionType = null;
-        this.suggestionQuery = '';
-        this.selectedSuggestionIndex = 0;
-        this.suggestionAnchorPos = -1;
         const popup = this.query<HTMLElement>('#suggestion-popup');
         if (popup) popup.style.display = 'none';
-    }
-
-    private updateSendButtonState(val: string, btn: HTMLButtonElement) {
-        const hasText = val.trim().length > 0;
-        if (hasText && !this.props.isProcessing) {
-            btn.disabled = false;
-            btn.style.backgroundColor = 'var(--agent-bg-dark)';
-            btn.style.color = 'var(--agent-text-white)';
-            btn.style.cursor = 'pointer';
-            btn.style.transform = 'scale(1)';
-        } else {
-            btn.disabled = true;
-            btn.style.backgroundColor = 'var(--agent-bg-subtle)';
-            btn.style.color = 'var(--agent-text-muted)';
-            btn.style.cursor = 'default';
-            btn.style.transform = 'scale(0.9)';
-        }
-    }
-
-    private autoResize(textarea: HTMLTextAreaElement) {
-        textarea.style.height = 'auto';
-        textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
-    }
-
-    private handleSend() {
-        if (!this.inputValue.trim() || this.props.isProcessing) return;
-        this.props.onSend(this.inputValue);
-        this.inputValue = '';
-        this.render();
-    }
-
-    focus() {
-        const textarea = this.query<HTMLTextAreaElement>('#chat-textarea');
-        textarea?.focus();
     }
 }

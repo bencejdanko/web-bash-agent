@@ -29,6 +29,14 @@ export interface AgentSkill {
     metadata?: Record<string, string>;
 }
 
+export interface AgentProfile {
+    id: string;
+    name: string;
+    systemPromptPath: string;
+    description?: string;
+    skillsDir?: string;
+}
+
 export type ToolConfig = 
     | { type: 'bash' }
     | { type: 'load-skill' }
@@ -58,7 +66,9 @@ export interface AgentSidebarProps {
     models: ModelConfig[];
     initialModelId?: string;
 
-    systemPrompt: string;
+    agents: AgentProfile[];
+    initialAgentId?: string;
+
     filesystem?: Record<string, string>;
     reasoningEffort?: 'low' | 'medium' | 'high';
 
@@ -67,5 +77,3 @@ export interface AgentSidebarProps {
     // Can be explicit BashCommandConfig objects (serializable) OR full Command objects (client-side)
     customBashCommands?: (BashCommandConfig | any)[];
 }
-
-

@@ -45,6 +45,11 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             initialModelId = undefined;
         }
 
+        let initialAgentId = savedState.currentAgentId;
+        if (initialAgentId && !props.agents.some(a => a.id === initialAgentId)) {
+            initialAgentId = undefined;
+        }
+
         const initialState: AgentState = {
             messages: [],
             isProcessing: false,
@@ -54,6 +59,9 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             collapsedTurnIds: [],
             collapsedThoughtIds: [],
             currentModelId: initialModelId || props.initialModelId || props.models[0]?.id,
+            currentAgentId: initialAgentId || props.initialAgentId || props.agents[0]?.id,
+            currentSystemPrompt: '', // Will be resolved during init
+            agents: props.agents,
             actualFilesystem: props.filesystem || {},
             activeInfoPanel: null,
             showHistory: false,
@@ -86,16 +94,19 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
 
     private async setup() {
         this.historyLogic.loadHistory();
-        const { bashSandbox, llmBridge, skills } = await this.initLogic.init();
-        this.bashSandbox = bashSandbox;
-        this.llmBridge = llmBridge;
-        this.chatLogic.setDependencies(bashSandbox, llmBridge);
-        
-        this.termManager.init(bashSandbox, () => this.saveTerminalStates());
-        this.overlayLogic = new OverlayLogic(this.store, this.historyLogic, bashSandbox);
+        try {
+            const { bashSandbox, llmBridge, skills } = await this.initLogic.init();
+            this.bashSandbox = bashSandbox;
+            this.llmBridge = llmBridge;
+            this.chatLogic.setDependencies(bashSandbox, llmBridge);
+            
+            this.termManager.init(bashSandbox, () => this.saveTerminalStates());
+            this.overlayLogic = new OverlayLogic(this.store, this.historyLogic, bashSandbox);
 
-        if (skills) {
-            this.store.setState({ skills });
+            if (skills) {
+                this.store.setState({ skills });
+            }
+        } catch (e) {
         }
 
         // Sync history whenever messages change
@@ -107,6 +118,7 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
                 isCollapsed: state.isCollapsed,
                 sidebarSizes: state.sidebarSizes,
                 currentModelId: state.currentModelId,
+                currentAgentId: state.currentAgentId,
                 showTerminalWindow: state.showTerminalWindow,
                 terminalPosition: state.terminalPosition,
                 terminals: state.terminals,
@@ -292,7 +304,10 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             models: this.props.models,
             currentModelId: this.store.getState().currentModelId,
             onModelChange: (id) => this.initLogic.updateModel(id),
-            skills: this.props.skills,
+            agents: this.props.agents,
+            currentAgentId: this.store.getState().currentAgentId,
+            onAgentChange: (id) => this.initLogic.updateAgent(id),
+            skills: this.store.getState().skills,
             filesystem: this.store.getState().actualFilesystem
         });
         this.query('#chat-input-root')?.appendChild(this.chatInput.getElement());
@@ -365,7 +380,7 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
     }
 
     render() {
-        if (!this.header || !this.overlayLogic) return;
+        if (!this.header) return;
 
         const state = this.store.getState();
         const gutter = this.query('.gutter');
@@ -389,11 +404,16 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
         this.chatInput?.update({
             isProcessing: state.isProcessing,
             currentModelId: state.currentModelId,
+            currentAgentId: state.currentAgentId,
             skills: state.skills,
             filesystem: state.actualFilesystem
         });
 
-        if (state.isInitializing) return;
+        if (!this.overlayLogic || state.isInitializing) {
+            const panelInner = this.query<HTMLElement>('.agent-panel-inner')!;
+            panelInner.classList.remove('padded');
+            return;
+        }
 
         const overlayRoot = this.query<HTMLElement>('#overlay-root')!;
         const globalOverlayRoot = this.query<HTMLElement>('#global-overlay-root');
@@ -402,7 +422,7 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             overlayRoot, 
             globalOverlayRoot, 
             this.llmBridge?.tools, 
-            this.props.systemPrompt
+            state.currentSystemPrompt
         );
 
         const panelInner = this.query<HTMLElement>('.agent-panel-inner')!;

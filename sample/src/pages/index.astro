@@ -15,17 +15,29 @@ const glossaryDir = path.join(benceDir, 'src/content/glossary');
 
 // 2. Gather the virtual filesystem (metadata + index)
 const realFilesystem: Record<string, string> = getAgentContextFilesystem({
-    agentsDir,
-    pagefindIndexDir,
-    mounts: {
-        '/content/posts': postsDir,
-        '/content/appendices': appendicesDir,
-        '/content/glossary': glossaryDir
-    }
+    '/.agents': agentsDir,
+    '/pagefind': pagefindIndexDir,
+    '/content/posts': postsDir,
+    '/content/appendices': appendicesDir,
+    '/content/glossary': glossaryDir
 });
 
-// 3. Extract the system prompt explicitly for total transparency
-const systemPrompt = realFilesystem['/.agents/system_prompt.txt'];
+// 3. Define Personas using VPaths
+const AGENTS = [
+    {
+        id: 'researcher',
+        name: 'Researcher',
+        systemPromptPath: '/.agents/system_prompt.txt',
+        description: 'Expert in content search and analysis.',
+    },
+    {
+        id: 'coder',
+        name: 'Technical Assistant',
+        systemPromptPath: '/.agents/system_prompt.txt', // Reusing for now as placeholder
+        description: 'Expert technical advisor.',
+        skillsDir: '/.agents/skills', // Only shows skills from this dir
+    }
+];
 
 // 4. Configuration for testing (Per-model credentials)
 const PROXY_URL = "https://llm-proxy.bencejdanko.workers.dev"; // Change this to your actual worker URL
@@ -47,12 +59,13 @@ const MODELS: ModelConfig[] = [
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Astro Real Test Page (Modular Agent)</title>
+		<title>Astro Real Test Page (VPath Prompts)</title>
         <script id="pagefind-agent-config" type="application/json" set:html={JSON.stringify({ 
             models: MODELS, 
-            systemPrompt, 
+            agents: AGENTS, 
             filesystem: realFilesystem, 
-            initialModelId: MODELS[0].id 
+            initialModelId: MODELS[0].id,
+            initialAgentId: AGENTS[0].id
         })} />
         <script is:inline>
             (async () => {
@@ -69,13 +82,14 @@ const MODELS: ModelConfig[] = [
 	<body style="font-family: sans-serif; padding: 2rem; max-width: 800px; margin: 0 auto; background: #f9fafb;">
 		<div>
             <h1>Modular Pagefind Bash Agent</h1>
-            <p>This is a test page using the new <strong>Modular Architecture</strong>.</p>
+            <p>This is a test page using <strong>VPath-based System Prompts</strong>.</p>
             
             <div style="margin-top: 2rem;">
                 <h2>Internal Search and Skills</h2>
-                <p>The agent below uses built-in Pagefind search and discoverable skills.</p>
+                <p>The system prompt is now read from <code>/.agents/system_prompt.txt</code> at runtime.</p>
                 <ul>
                     <li>Files loaded: {Object.keys(realFilesystem).length}</li>
+                    <li>Agents available: {AGENTS.length}</li>
                 </ul>
             </div>
         </div>
@@ -86,20 +100,14 @@ const MODELS: ModelConfig[] = [
         <script>
             import { AgentSidebar } from 'pagefind-bash-agent-astro';
 
-            // We can get the config from the hidden div or pass it another way.
-            // For simplicity in this test page, we'll re-use the config injected by the script or passed via props.
-            // Since we are in the same page, we can just grab the config from the script we injected earlier 
-            // OR better, we can just use the variables if they were available.
-            // But Astro scripts don't have access to frontmatter variables directly unless using define:vars.
-            
-            // Let's use the simplest approach for a vanilla mount:
             const configEl = document.getElementById('pagefind-agent-config');
             if (configEl) {
                 const config = JSON.parse(configEl.textContent || '{}');
                 const sidebar = new AgentSidebar({
                     models: config.models,
                     initialModelId: config.initialModelId || config.models[0]?.id,
-                    systemPrompt: config.systemPrompt,
+                    agents: config.agents,
+                    initialAgentId: config.initialAgentId || config.agents[0]?.id,
                     filesystem: config.filesystem
                 });
                 

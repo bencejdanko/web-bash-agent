@@ -1,4 +1,4 @@
-import { Message, AgentSidebarProps } from '../types';
+import { Message, AgentSidebarProps, AgentProfile } from '../types';
 import { Store } from './Store';
 
 export interface TerminalSession {
@@ -18,6 +18,9 @@ export interface AgentState {
     collapsedTurnIds: string[];
     collapsedThoughtIds: string[];
     currentModelId: string;
+    currentAgentId: string;
+    currentSystemPrompt: string;
+    agents: AgentProfile[];
     actualFilesystem: Record<string, string>;
     terminals: TerminalSession[];
     activeTerminalId: string | null;

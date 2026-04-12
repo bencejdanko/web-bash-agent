@@ -1,13 +1,12 @@
 import type { AstroIntegration } from 'astro';
 import { getAgentContextFilesystem } from './src/filesystem';
-import path from 'node:path';
 
 export interface IntegrationOptions {
   models: any[];
-  mounts?: Record<string, string>;
-  agentsDir?: string;
-  pagefindIndexDir?: string;
+  agents: any[];
+  mounts: Record<string, string>;
   initialModelId?: string;
+  initialAgentId?: string;
 }
 
 export function pagefindAgent(options: IntegrationOptions): AstroIntegration {
@@ -15,24 +14,17 @@ export function pagefindAgent(options: IntegrationOptions): AstroIntegration {
         name: 'pagefind-bash-agent-astro',
         hooks: {
             'astro:config:setup': ({ injectScript, updateConfig }) => {
-                const repoRoot = process.cwd();
-                const agentsDir = options.agentsDir || path.join(repoRoot, '.agents');
-                const pagefindIndexDir = options.pagefindIndexDir || path.join(repoRoot, 'dist/pagefind');
+                const mounts = options.mounts || {};
                 
                 // 1. Gather filesystem on server side (SSR-compatible)
-                const filesystem = getAgentContextFilesystem({
-                    agentsDir,
-                    pagefindIndexDir,
-                    mounts: options.mounts || {}
-                });
-
-                const systemPrompt = filesystem['/.agents/system_prompt.txt'] || 'You are helpful.';
+                const filesystem = getAgentContextFilesystem(mounts);
 
                 const configBlob = {
                     models: options.models,
-                    systemPrompt,
+                    agents: options.agents,
                     filesystem,
-                    initialModelId: options.initialModelId
+                    initialModelId: options.initialModelId,
+                    initialAgentId: options.initialAgentId
                 };
 
                 // 2. Inject Config to head of every page

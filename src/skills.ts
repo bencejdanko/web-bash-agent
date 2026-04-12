@@ -20,9 +20,14 @@ function parseFrontMatter(content: string): { frontMatter: Record<string, any>, 
     return { frontMatter, body };
 }
 
-export function discoverSkills(filesystem: Record<string, string>): AgentSkill[] {
+export function discoverSkills(filesystem: Record<string, string>, basePath?: string): AgentSkill[] {
     const skills: AgentSkill[] = [];
-    const skillFiles = Object.keys(filesystem).filter(path => path.endsWith('/SKILL.md'));
+    const skillFiles = Object.keys(filesystem).filter(p => {
+        const isSkillFile = p.endsWith('/SKILL.md');
+        if (!basePath) return isSkillFile;
+        const normalizedBase = basePath.endsWith('/') ? basePath : basePath + '/';
+        return isSkillFile && p.startsWith(normalizedBase);
+    });
 
     for (const skillFile of skillFiles) {
         const skillDir = skillFile.replace(/\/SKILL\.md$/, '');

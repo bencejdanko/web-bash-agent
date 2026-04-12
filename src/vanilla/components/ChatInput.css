@@ -142,3 +142,21 @@
     justify-content: center;
     transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+.model-option {
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: var(--agent-font-main);
+    transition: background-color 0.15s;
+}
+
+.model-option:hover {
+    background-color: var(--agent-bg-subtle);
+}
+
+.model-option.focused {
+    background-color: var(--agent-bg-subtle);
+}
