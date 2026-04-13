@@ -48,8 +48,10 @@ export function renderWithHighlights(
         if (isValid) {
             const icon = getIconForType(inj.type, inj.value);
             const placeholder = `{{TAG_INJECTION_${idx}}}`;
-            // Chip with icon + label
-            placeholders[placeholder] = `<span class="tag-highlight ${className}">${icon}${inj.fullMatch}</span>`;
+            // Map type to its trigger char so the chip matches the editor display
+            const triggerChar = inj.type === 'file' ? '@' : inj.type === 'skill' ? '/' : '#';
+            const chipLabel = `${triggerChar}${inj.value}`;
+            placeholders[placeholder] = `<span class="tag-highlight ${className}">${icon}${chipLabel}</span>`;
             contentWithPlaceholders = contentWithPlaceholders.split(inj.fullMatch).join(placeholder);
         }
     });
