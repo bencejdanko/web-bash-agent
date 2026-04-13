@@ -19,10 +19,6 @@ export function renderMarkdown(content: string): string {
     return marked.parse(content) as string;
 }
 
-function getIconForType(type: string, _value: string): string {
-    return FileIcon(14);
-}
-
 export function renderWithHighlights(
     content: string, 
     assets: AgentInjection[] = [], 
@@ -36,19 +32,31 @@ export function renderWithHighlights(
     injections.forEach((inj, idx) => {
         let isValid = false;
         let className = '';
+        let icon = FileIcon(14);
         
         if (inj.type === 'file') {
-            isValid = filesystem[inj.value] !== undefined;
-            className = 'file-tag';
+            // A path is a directory when any key in the filesystem starts with "path/"
+            // (filesystem keys never end with '/', so trailing-slash check is wrong here)
+            const dirPrefix = inj.value + '/';
+            const isDir = Object.keys(filesystem).some(k => k.startsWith(dirPrefix));
+
+            if (isDir) {
+                isValid = true; // valid as long as it has at least one child
+                icon = FolderIcon(14);
+                className = 'file-tag folder-tag';
+            } else {
+                isValid = filesystem[inj.value] !== undefined;
+                icon = FileIcon(14);
+                className = 'file-tag';
+            }
         } else {
             isValid = !!assets.find(a => a.name === inj.value && a.type === inj.type);
             className = inj.type === 'system' ? 'system-tag' : 'skill-tag';
         }
 
         if (isValid) {
-            const icon = getIconForType(inj.type, inj.value);
             const placeholder = `{{TAG_INJECTION_${idx}}}`;
-            // Map type to its trigger char so the chip matches the editor display
+            // Use just the trigger char so the chip label matches the editor chip display
             const triggerChar = inj.type === 'file' ? '@' : inj.type === 'skill' ? '/' : '#';
             const chipLabel = `${triggerChar}${inj.value}`;
             placeholders[placeholder] = `<span class="tag-highlight ${className}">${icon}${chipLabel}</span>`;

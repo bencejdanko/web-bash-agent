@@ -32,17 +32,45 @@ interface ChatInputProps {
 
 interface SuggestionItem {
   id: string;
-  label: string;
+  label: string;        // full path / logical name (used in chip + serialisation)
+  displayName: string;  // short name shown in the popup row (basename)
   detail?: string;
   icon: string; // raw SVG
-  tagPrefix: string; // e.g. "@file:", "/skill:", "#system:"
+  tagPrefix: string;    // e.g. "@file:", "/skill:", "#system:"
   triggerChar: string;
+  isDirectory: boolean; // true = folder (navigate deeper); false = file (inserts mention)
 }
 
-function getFileIcon(path: string): string {
-  if (path.endsWith('/')) return FolderIcon(14);
-  return FileIcon(14);
+// ── Directory helpers ─────────────────────────────────────────────────────────
+
+/** True if `path` has children in the filesystem (i.e. is a directory). */
+function isDirectory(path: string, filesystem: Record<string, string>): boolean {
+  const prefix = path + '/';
+  return Object.keys(filesystem).some(k => k.startsWith(prefix));
 }
+
+/**
+ * Returns the immediate one-level children of `parentPath` in the filesystem.
+ * Root is represented as '/'.
+ */
+function getDirectChildren(parentPath: string, filesystem: Record<string, string>): string[] {
+  const allPaths = Object.keys(filesystem);
+  if (parentPath === '/') {
+    // Root: keep paths that have exactly one level (no '/' after the leading slash)
+    return allPaths.filter(p => {
+      if (p === '/') return false;
+      return !p.substring(1).includes('/');
+    });
+  }
+  const prefix = parentPath + '/';
+  return allPaths.filter(p => {
+    if (!p.startsWith(prefix)) return false;
+    const rel = p.substring(prefix.length);
+    return rel.length > 0 && !rel.includes('/');
+  });
+}
+
+// ─── Suggestion item builders ────────────────────────────────────────────────
 
 function buildSuggestionItems(
   query: string,
@@ -53,17 +81,45 @@ function buildSuggestionItems(
   const q = query.toLowerCase();
 
   if (triggerChar === '@') {
-    return Object.keys(filesystem)
-      .filter(f => f.toLowerCase().includes(q))
-      .slice(0, 10)
-      .map(f => ({
-        id: `file:${f}`,
-        label: f,
-        detail: 'File',
-        icon: getFileIcon(f),
+    // ── Tiered file / folder navigation ──────────────────────────────────────
+    // Parse the query into a "current directory" and a basename filter.
+    //   query = ""              →  dir = "/",         filter = ""
+    //   query = "/.agents"      →  dir = "/",         filter = ".agents"
+    //   query = "/.agents/"     →  dir = "/.agents",  filter = ""
+    //   query = "/.agents/ski"  →  dir = "/.agents",  filter = "ski"
+    let currentDir: string;
+    let filter: string;
+    const lastSlash = q.lastIndexOf('/');
+    if (lastSlash <= 0) {
+      currentDir = '/';
+      filter = q;
+    } else {
+      // Preserve original case for path lookup; use lowercased for filter comparison
+      currentDir = query.substring(0, lastSlash);
+      filter = q.substring(lastSlash + 1);
+    }
+
+    const children = getDirectChildren(currentDir, filesystem)
+      .filter(path => {
+        const basename = path.substring(currentDir === '/' ? 1 : currentDir.length + 1);
+        return basename.toLowerCase().includes(filter);
+      })
+      .slice(0, 12);
+
+    return children.map(path => {
+      const basename = path.substring(currentDir === '/' ? 1 : currentDir.length + 1);
+      const isDir = isDirectory(path, filesystem);
+      return {
+        id: `file:${path}`,
+        label: path,
+        displayName: basename,
+        detail: isDir ? 'Folder' : 'File',
+        icon: isDir ? FolderIcon(14) : FileIcon(14),
         tagPrefix: '@file:',
-        triggerChar: '@'
-      }));
+        triggerChar: '@',
+        isDirectory: isDir,
+      };
+    });
   }
 
   if (triggerChar === '/') {
@@ -73,10 +129,12 @@ function buildSuggestionItems(
       .map(s => ({
         id: `skill:${s.name}`,
         label: s.name,
-        detail: s.description,
+        displayName: s.name,
+        detail: s.description || 'Skill',
         icon: FileIcon(14),
         tagPrefix: '/skill:',
-        triggerChar: '/'
+        triggerChar: '/',
+        isDirectory: false,
       }));
   }
 
@@ -87,10 +145,12 @@ function buildSuggestionItems(
       .map(s => ({
         id: `system:${s.name}`,
         label: s.name,
-        detail: s.description,
+        displayName: s.name,
+        detail: s.description || 'System',
         icon: FileIcon(14),
         tagPrefix: '#system:',
-        triggerChar: '#'
+        triggerChar: '#',
+        isDirectory: false,
       }));
   }
 
@@ -110,7 +170,7 @@ const TRIGGER_TO_PREFIX: Record<string, string> = {
 
 /**
  * Converts a Tiptap JSON doc to a plain-text string that the PromptAssembler
- * can parse. Mention nodes are serialised as e.g. `@file:path/to/file`.
+ * can parse. Mention nodes are serialised as e.g. `@file:/path/to/file`.
  */
 function serializeDoc(doc: any): string {
   if (!doc || !doc.content) return '';
@@ -142,7 +202,7 @@ function serializeDoc(doc: any): string {
   return parts.join('').replace(/\n+$/, '');
 }
 
-// ─── MentionSuggestion plugin ─────────────────────────────────────────────────
+// ─── Renderer factory ─────────────────────────────────────────────────────────
 
 interface Renderer {
   popup: HTMLElement | null;
@@ -154,135 +214,153 @@ interface Renderer {
   onExit: () => void;
 }
 
+/**
+ * Creates an independent renderer instance (one per mention extension).
+ * Each has its own local state: popup DOM, items list, selection index.
+ */
+function createRenderer(): Renderer {
+  let popup: HTMLElement | null = null;
+  let items: SuggestionItem[] = [];
+  let selectedIndex = 0;
+  let clientProps: any = null;
+
+  /**
+   * Folders navigate one level deeper; files insert a mention node.
+   */
+  function selectItem(item: SuggestionItem) {
+    if (item.isDirectory) {
+      const editor = clientProps?.editor;
+      const range  = clientProps?.range;
+      if (editor && range) {
+        // Delete from the trigger '@' to the cursor, then re-insert with the
+        // folder path appended — this re-triggers the suggestion with the new query.
+        editor.chain()
+          .focus()
+          .deleteRange(range)
+          .insertContent('@' + item.label + '/')
+          .run();
+      }
+    } else {
+      clientProps?.command(item);
+    }
+  }
+
+  function renderPopup() {
+    if (!popup || items.length === 0) {
+      if (popup) popup.style.display = 'none';
+      return;
+    }
+    popup.style.display = 'block';
+    popup.innerHTML = `
+      <div class="ti-suggestion-list agent-scrollbar">
+        ${items.map((item, i) => `
+          <div class="ti-suggestion-item ${i === selectedIndex ? 'ti-suggestion-item--active' : ''} ${item.isDirectory ? 'ti-suggestion-item--folder' : ''}" data-index="${i}">
+            <span class="ti-suggestion-icon">${item.icon}</span>
+            <span class="ti-suggestion-label">${item.displayName ?? item.label}</span>
+            ${item.detail ? `<span class="ti-suggestion-detail ${item.isDirectory ? 'ti-suggestion-detail--folder' : ''}">${item.detail}</span>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    popup.querySelectorAll('.ti-suggestion-item').forEach(el => {
+      el.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        const idx = parseInt((el as HTMLElement).dataset.index || '0');
+        selectedIndex = idx;
+        selectItem(items[idx]);
+      });
+    });
+
+    const active = popup.querySelector('.ti-suggestion-item--active') as HTMLElement | null;
+    active?.scrollIntoView({ block: 'nearest' });
+  }
+
+  return {
+    popup,
+    items,
+    selectedIndex,
+
+    onStart(props: any) {
+      clientProps = props;
+      items = props.items;
+      selectedIndex = 0;
+
+      const editorEl = props.editor.view.dom as HTMLElement;
+      // Mount to .chat-input-group which has position:relative and no overflow:hidden
+      const group = editorEl.closest('.chat-input-group') as HTMLElement | null;
+      if (!group) return;
+
+      popup = document.createElement('div');
+      popup.className = 'ti-suggestion-popup';
+      group.appendChild(popup);
+
+      // Position popup just above the input container
+      const container = group.querySelector('.chat-input-container') as HTMLElement | null;
+      if (container && popup) {
+        const groupRect = group.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const bottomOffset = groupRect.bottom - containerRect.top + 8;
+        popup.style.bottom = `${bottomOffset}px`;
+      }
+
+      renderPopup();
+    },
+
+    onUpdate(props: any) {
+      clientProps = props;
+      items = props.items;
+      if (selectedIndex >= items.length) selectedIndex = 0;
+      renderPopup();
+    },
+
+    onExit() {
+      popup?.remove();
+      popup = null;
+    },
+
+    onKeyDown({ event }: SuggestionKeyDownProps) {
+      if (event.key === 'ArrowDown') {
+        selectedIndex = (selectedIndex + 1) % Math.max(items.length, 1);
+        renderPopup();
+        return true;
+      }
+      if (event.key === 'ArrowUp') {
+        selectedIndex = (selectedIndex - 1 + items.length) % Math.max(items.length, 1);
+        renderPopup();
+        return true;
+      }
+      if (event.key === 'Enter' || event.key === 'Tab') {
+        if (items[selectedIndex]) {
+          selectItem(items[selectedIndex]);
+          return true;
+        }
+      }
+      return false;
+    }
+  };
+}
+
+// ─── Suggestion factory ───────────────────────────────────────────────────────
+
+/**
+ * Creates a suggestion config for a specific trigger character.
+ * Each extension gets its own config so `items()` always uses the correct
+ * trigger without having to detect it from editor text (which fails for file
+ * paths that contain '/').
+ */
 function createMentionSuggestion(
+  triggerChar: '@' | '/' | '#',
   getInjections: () => AgentInjection[],
   getFilesystem: () => Record<string, string>
 ) {
   return {
     allowSpaces: false,
     startOfLine: false,
-
-    items({ query, editor }: { query: string; editor: Editor }) {
-      const { selection } = editor.state;
-      const { from } = selection;
-      const textBefore = editor.state.doc.textBetween(0, from, '\n', '\0');
-
-      let triggerChar: '@' | '/' | '#' = '@';
-      for (let i = textBefore.length - 1; i >= 0; i--) {
-        const ch = textBefore[i];
-        if (ch === '@' || ch === '/' || ch === '#') {
-          triggerChar = ch as '@' | '/' | '#';
-          break;
-        }
-        if (ch === ' ' || ch === '\n') break;
-      }
-
+    items({ query }: { query: string }) {
       return buildSuggestionItems(query, triggerChar, getInjections(), getFilesystem());
     },
-
-    render(): Renderer {
-      let popup: HTMLElement | null = null;
-      let items: SuggestionItem[] = [];
-      let selectedIndex = 0;
-      let clientProps: any = null;
-
-      function renderPopup() {
-        if (!popup || items.length === 0) {
-          if (popup) popup.style.display = 'none';
-          return;
-        }
-        popup.style.display = 'block';
-        popup.innerHTML = `
-          <div class="ti-suggestion-list agent-scrollbar">
-            ${items.map((item, i) => `
-              <div class="ti-suggestion-item ${i === selectedIndex ? 'ti-suggestion-item--active' : ''}" data-index="${i}">
-                <span class="ti-suggestion-icon">${item.icon}</span>
-                <span class="ti-suggestion-label">${item.label}</span>
-                ${item.detail ? `<span class="ti-suggestion-detail">${item.detail}</span>` : ''}
-              </div>
-            `).join('')}
-          </div>
-        `;
-
-        popup.querySelectorAll('.ti-suggestion-item').forEach(el => {
-          el.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            const idx = parseInt((el as HTMLElement).dataset.index || '0');
-            selectedIndex = idx;
-            clientProps?.command(items[idx]);
-          });
-        });
-
-        const active = popup.querySelector('.ti-suggestion-item--active') as HTMLElement | null;
-        active?.scrollIntoView({ block: 'nearest' });
-      }
-
-      return {
-        popup,
-        items,
-        selectedIndex,
-
-        onStart(props: any) {
-          clientProps = props;
-          items = props.items;
-          selectedIndex = 0;
-
-          const editorEl = props.editor.view.dom as HTMLElement;
-          // Mount to .chat-input-group which has position:relative and no overflow:hidden,
-          // so the popup is not clipped by .chat-input-container's overflow:hidden.
-          const group = editorEl.closest('.chat-input-group') as HTMLElement | null;
-          if (!group) return;
-
-          popup = document.createElement('div');
-          popup.className = 'ti-suggestion-popup';
-          group.appendChild(popup);
-
-          // Position the popup just above the .chat-input-container
-          const container = group.querySelector('.chat-input-container') as HTMLElement | null;
-          if (container && popup) {
-            const groupRect = group.getBoundingClientRect();
-            const containerRect = container.getBoundingClientRect();
-            // Distance from bottom of group to top of container (= gap below container)
-            const bottomOffset = groupRect.bottom - containerRect.top + 8;
-            popup.style.bottom = `${bottomOffset}px`;
-          }
-
-          renderPopup();
-        },
-
-        onUpdate(props: any) {
-          clientProps = props;
-          items = props.items;
-          if (selectedIndex >= items.length) selectedIndex = 0;
-          renderPopup();
-        },
-
-        onExit() {
-          popup?.remove();
-          popup = null;
-        },
-
-        onKeyDown({ event }: SuggestionKeyDownProps) {
-          if (event.key === 'ArrowDown') {
-            selectedIndex = (selectedIndex + 1) % Math.max(items.length, 1);
-            renderPopup();
-            return true;
-          }
-          if (event.key === 'ArrowUp') {
-            selectedIndex = (selectedIndex - 1 + items.length) % Math.max(items.length, 1);
-            renderPopup();
-            return true;
-          }
-          if (event.key === 'Enter' || event.key === 'Tab') {
-            if (items[selectedIndex]) {
-              clientProps?.command(items[selectedIndex]);
-              return true;
-            }
-          }
-          return false;
-        }
-      };
-    }
+    render: createRenderer,
   };
 }
 
@@ -352,11 +430,12 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
   private setupEditor() {
     const editorEl = this.query<HTMLElement>('#tiptap-editor')!;
 
-    const suggestion = createMentionSuggestion(
-      () => this.props.injections,
-      () => this.props.filesystem || {}
-    );
+    const getInjections = () => this.props.injections;
+    const getFilesystem = () => this.props.filesystem || {};
 
+    // Each extension gets its OWN suggestion config bound to its trigger char.
+    // This avoids the bug where items() would detect '/' inside file paths and
+    // return skills instead of files.
     const mentionExtensions = [
       Mention.extend({ name: 'mentionAt' }).configure({
         HTMLAttributes: { class: 'ti-mention' },
@@ -370,7 +449,7 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
             'data-mention-suggestion-char': tChar
           }, `${tChar}${label}`];
         },
-        suggestion: { ...suggestion, char: '@' }
+        suggestion: { ...createMentionSuggestion('@', getInjections, getFilesystem), char: '@' }
       }),
       Mention.extend({ name: 'mentionSlash' }).configure({
         HTMLAttributes: { class: 'ti-mention' },
@@ -384,7 +463,7 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
             'data-mention-suggestion-char': tChar
           }, `${tChar}${label}`];
         },
-        suggestion: { ...suggestion, char: '/' }
+        suggestion: { ...createMentionSuggestion('/', getInjections, getFilesystem), char: '/' }
       }),
       Mention.extend({ name: 'mentionHash' }).configure({
         HTMLAttributes: { class: 'ti-mention' },
@@ -398,7 +477,7 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
             'data-mention-suggestion-char': tChar
           }, `${tChar}${label}`];
         },
-        suggestion: { ...suggestion, char: '#' }
+        suggestion: { ...createMentionSuggestion('#', getInjections, getFilesystem), char: '#' }
       }),
     ];
 

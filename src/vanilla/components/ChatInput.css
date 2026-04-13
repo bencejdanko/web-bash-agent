@@ -176,6 +176,17 @@
     max-width: 48%;
 }
 
+/* ── Folder rows in the suggestion popup ─────────────────────────────────── */
+
+.ti-suggestion-item--folder .ti-suggestion-icon {
+    color: var(--agent-purple);
+}
+
+.ti-suggestion-detail--folder {
+    color: var(--agent-text-muted);
+    font-weight: 500;
+}
+
 /* ── Model menu popup ───────────────────────────────────────────────────── */
 
 .model-menu-popup {

@@ -15,8 +15,25 @@ export class PromptAssembler {
         for (const match of matches) {
             let content = '';
             if (match.type === 'file') {
-                const fileContent = filesystem[match.value];
-                content = fileContent !== undefined ? `\n\n[FILE INJECTION: ${match.value}]\n${fileContent}\n[END FILE INJECTION]\n\n` : '';
+                // A path is a directory when any key in the filesystem starts with "path/"
+                const dirPrefix = match.value + '/';
+                const isDir = Object.keys(filesystem).some(k => k.startsWith(dirPrefix));
+
+                if (isDir) {
+                    // Folder reference: list all direct children
+                    const children = Object.keys(filesystem)
+                        .filter(k => k.startsWith(dirPrefix))
+                        .sort();
+                    if (children.length > 0) {
+                        const listing = children.join('\n');
+                        content = `\n\n[FOLDER LISTING: ${match.value}]\n${listing}\n[END FOLDER LISTING]\n\n`;
+                    }
+                } else {
+                    const fileContent = filesystem[match.value];
+                    content = fileContent !== undefined
+                        ? `\n\n[FILE INJECTION: ${match.value}]\n${fileContent}\n[END FILE INJECTION]\n\n`
+                        : '';
+                }
             } else {
                 // Matches either 'system' or 'skill' type
                 const asset = injections.find(i => i.name === match.value && i.type === match.type);
@@ -54,9 +71,10 @@ export type AgentInjection = AI;
 export function parseInjections(input: string): TagMatch[] {
     const matches: TagMatch[] = [];
     const triggers = [
-        { type: 'system', prefix: '#system:' },
-        { type: 'skill', prefix: '/skill:' },
-        { type: 'file', prefix: '@file:' }
+        { type: 'system', prefix: '#system:', allowSlash: false },
+        { type: 'skill',  prefix: '/skill:',  allowSlash: false },
+        // File paths contain '/' so we must not stop at '/'
+        { type: 'file',   prefix: '@file:',   allowSlash: true  }
     ] as const;
 
     for (const trigger of triggers) {
@@ -65,10 +83,16 @@ export function parseInjections(input: string): TagMatch[] {
             const valueStart = currentPos + trigger.prefix.length;
             let valueEnd = valueStart;
 
-            // Match until next trigger char, space, or newline
+            // Match until a stopping character.
+            // File paths may contain '/' so only stop at whitespace / other trigger chars.
+            // Skill/system names don't contain slashes so stop at '/' too.
             while (valueEnd < input.length) {
                 const char = input[valueEnd];
-                if (char === ' ' || char === '\n' || char === '#' || char === '/' || char === '@') {
+                if (char === ' ' || char === '\n' || char === '@' || char === '#') {
+                    break;
+                }
+                // For skill/system, '/' marks the start of another trigger
+                if (!trigger.allowSlash && char === '/') {
                     break;
                 }
                 valueEnd++;
