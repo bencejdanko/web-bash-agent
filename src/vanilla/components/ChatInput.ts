@@ -1,5 +1,5 @@
 import { BaseComponent } from '../BaseComponent';
-import { StopIcon, ArrowRightIcon, CubeIcon, FileIcon, FolderIcon } from './Icons';
+import { StopIcon, ArrowRightIcon, CubeIcon, FileIcon, FolderIcon, CubeFilledIcon, Cube3dIcon } from './Icons';
 import { ModelConfig, AgentInjection } from '../../types';
 import './ChatInput.css';
 
@@ -36,7 +36,6 @@ interface SuggestionItem {
   displayName: string;  // short name shown in the popup row (basename)
   detail?: string;
   icon: string; // raw SVG
-  tagPrefix: string;    // e.g. "@file:", "/skill:", "#system:"
   triggerChar: string;
   isDirectory: boolean; // true = folder (navigate deeper); false = file (inserts mention)
 }
@@ -115,7 +114,6 @@ function buildSuggestionItems(
         displayName: basename,
         detail: isDir ? 'Folder' : 'File',
         icon: isDir ? FolderIcon(14) : FileIcon(14),
-        tagPrefix: '@file:',
         triggerChar: '@',
         isDirectory: isDir,
       };
@@ -131,8 +129,7 @@ function buildSuggestionItems(
         label: s.name,
         displayName: s.name,
         detail: s.description || 'Skill',
-        icon: FileIcon(14),
-        tagPrefix: '/skill:',
+        icon: CubeFilledIcon(14),
         triggerChar: '/',
         isDirectory: false,
       }));
@@ -147,8 +144,7 @@ function buildSuggestionItems(
         label: s.name,
         displayName: s.name,
         detail: s.description || 'System',
-        icon: FileIcon(14),
-        tagPrefix: '#system:',
+        icon: Cube3dIcon(14),
         triggerChar: '#',
         isDirectory: false,
       }));
@@ -160,17 +156,11 @@ function buildSuggestionItems(
 // ─── Serialisation ────────────────────────────────────────────────────────────
 
 /**
- * Maps trigger char to the PromptAssembler tag prefix.
- */
-const TRIGGER_TO_PREFIX: Record<string, string> = {
-  '@': '@file:',
-  '/': '/skill:',
-  '#': '#system:'
-};
-
-/**
  * Converts a Tiptap JSON doc to a plain-text string that the PromptAssembler
  * can parse. Mention nodes are serialised as e.g. `@file:/path/to/file`.
+ * Uses node *type* to determine the prefix — more reliable than reading a
+ * stored mentionSuggestionChar attr which is not declared in addAttributes
+ * and therefore never persisted in the ProseMirror node JSON.
  */
 function serializeDoc(doc: any): string {
   if (!doc || !doc.content) return '';
@@ -179,15 +169,15 @@ function serializeDoc(doc: any): string {
   function walk(node: any) {
     if (node.type === 'text') {
       parts.push(node.text || '');
-    } else if (node.type === 'mention' ||
-               node.type === 'mentionAt' ||
-               node.type === 'mentionSlash' ||
-               node.type === 'mentionHash') {
-      const attr = node.attrs || {};
-      const triggerChar = attr.mentionSuggestionChar || '@';
-      const prefix = TRIGGER_TO_PREFIX[triggerChar] || `${triggerChar}file:`;
-      const label = attr.label || attr.id || '';
-      parts.push(`${prefix}${label}`);
+    } else if (node.type === 'mentionAt' || node.type === 'mention') {
+      const label = node.attrs?.label || node.attrs?.id || '';
+      parts.push(`@file:${label}`);
+    } else if (node.type === 'mentionSlash') {
+      const label = node.attrs?.label || node.attrs?.id || '';
+      parts.push(`/skill:${label}`);
+    } else if (node.type === 'mentionHash') {
+      const label = node.attrs?.label || node.attrs?.id || '';
+      parts.push(`#system:${label}`);
     } else if (node.type === 'hardBreak') {
       parts.push('\n');
     } else if (node.type === 'paragraph') {
@@ -437,45 +427,70 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
     // This avoids the bug where items() would detect '/' inside file paths and
     // return skills instead of files.
     const mentionExtensions = [
-      Mention.extend({ name: 'mentionAt' }).configure({
+      // ── @ file/folder mentions ─────────────────────────────────────────────
+      // Stores isDirectory so renderHTML can pick file-vs-folder icon even when
+      // content is re-hydrated from stored JSON.
+      Mention.extend({
+        name: 'mentionAt',
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            isDirectory: {
+              default: false,
+              parseHTML: el => el.getAttribute('data-is-directory') === 'true',
+              renderHTML: attrs => ({ 'data-is-directory': attrs.isDirectory ? 'true' : 'false' }),
+            },
+          };
+        }
+      }).configure({
         HTMLAttributes: { class: 'ti-mention' },
         renderHTML({ node }) {
           const label = node.attrs.label ?? node.attrs.id ?? '';
-          const tChar = node.attrs.mentionSuggestionChar || '@';
+          const isDir = !!node.attrs.isDirectory;
+          // ProseMirror's renderSpec accepts real DOM nodes as children.
+          const iconEl = document.createElement('span');
+          iconEl.className = 'ti-mention-icon';
+          iconEl.setAttribute('aria-hidden', 'true');
+          iconEl.innerHTML = isDir ? FolderIcon(14) : FileIcon(14);
           return ['span', {
-            class: 'ti-mention',
+            class: 'ti-mention ti-mention--file',
             'data-id': node.attrs.id,
             'data-label': label,
-            'data-mention-suggestion-char': tChar
-          }, `${tChar}${label}`];
+          }, iconEl, `@${label}`];
         },
         suggestion: { ...createMentionSuggestion('@', getInjections, getFilesystem), char: '@' }
       }),
+      // ── / skill mentions ───────────────────────────────────────────────────
       Mention.extend({ name: 'mentionSlash' }).configure({
         HTMLAttributes: { class: 'ti-mention' },
         renderHTML({ node }) {
           const label = node.attrs.label ?? node.attrs.id ?? '';
-          const tChar = node.attrs.mentionSuggestionChar || '/';
+          const iconEl = document.createElement('span');
+          iconEl.className = 'ti-mention-icon';
+          iconEl.setAttribute('aria-hidden', 'true');
+          iconEl.innerHTML = CubeFilledIcon(14);
           return ['span', {
-            class: 'ti-mention',
+            class: 'ti-mention ti-mention--skill',
             'data-id': node.attrs.id,
             'data-label': label,
-            'data-mention-suggestion-char': tChar
-          }, `${tChar}${label}`];
+          }, iconEl, `/${label}`];
         },
         suggestion: { ...createMentionSuggestion('/', getInjections, getFilesystem), char: '/' }
       }),
+      // ── # system mentions ──────────────────────────────────────────────────
       Mention.extend({ name: 'mentionHash' }).configure({
         HTMLAttributes: { class: 'ti-mention' },
         renderHTML({ node }) {
           const label = node.attrs.label ?? node.attrs.id ?? '';
-          const tChar = node.attrs.mentionSuggestionChar || '#';
+          const iconEl = document.createElement('span');
+          iconEl.className = 'ti-mention-icon';
+          iconEl.setAttribute('aria-hidden', 'true');
+          iconEl.innerHTML = Cube3dIcon(14);
           return ['span', {
-            class: 'ti-mention',
+            class: 'ti-mention ti-mention--system',
             'data-id': node.attrs.id,
             'data-label': label,
-            'data-mention-suggestion-char': tChar
-          }, `${tChar}${label}`];
+          }, iconEl, `#${label}`];
         },
         suggestion: { ...createMentionSuggestion('#', getInjections, getFilesystem), char: '#' }
       }),

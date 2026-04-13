@@ -3,7 +3,7 @@ import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
 import { parseInjections } from './PromptAssembler';
 import { AgentInjection } from '../types';
-import { FileIcon, FolderIcon } from './components/Icons';
+import { FileIcon, FolderIcon, CubeFilledIcon, Cube3dIcon } from './components/Icons';
 
 const marked = new Marked(
     markedHighlight({
@@ -51,7 +51,13 @@ export function renderWithHighlights(
             }
         } else {
             isValid = !!assets.find(a => a.name === inj.value && a.type === inj.type);
-            className = inj.type === 'system' ? 'system-tag' : 'skill-tag';
+            if (inj.type === 'skill') {
+                className = 'skill-tag';
+                icon = CubeFilledIcon(14);
+            } else {
+                className = 'system-tag';
+                icon = Cube3dIcon(14);
+            }
         }
 
         if (isValid) {

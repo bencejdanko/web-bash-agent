@@ -85,27 +85,20 @@
 }
 
 /* ── Mention tag chip ───────────────────────────────────────────────────── */
-
+/* Base chip styles (display, colour, padding, radius …) live in AgentSidebar.css
+   under the unified ".ti-mention, .tag-highlight" selector so both the live
+   editor chip and the frozen user-bubble chip are always in sync.
+   Only editor-specific behaviour overrides go here.                        */
 .ti-mention {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    background-color: var(--agent-accent);
-    color: var(--agent-text-on-dark);
-    border-radius: 4px;
-    padding: 1px 6px 1px 4px;
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 1.4;
-    vertical-align: middle;
     user-select: all;
-    white-space: nowrap;
     cursor: default;
 }
 
-.ti-mention svg {
-    flex-shrink: 0;
-    opacity: 0.8;
+/* The icon wrapper injected by renderHTML */
+.ti-mention .ti-mention-icon {
+    display: inline-flex;
+    align-items: center;
+    line-height: 0;
 }
 
 /* ── Suggestion popup ───────────────────────────────────────────────────── */
