@@ -3,10 +3,8 @@ import { getAgentContextFilesystem } from './src/filesystem';
 
 export interface IntegrationOptions {
   models: any[];
-  agents: any[];
   mounts: Record<string, string>;
   initialModelId?: string;
-  initialAgentId?: string;
 }
 
 export function pagefindAgent(options: IntegrationOptions): AstroIntegration {
@@ -21,10 +19,8 @@ export function pagefindAgent(options: IntegrationOptions): AstroIntegration {
 
                 const configBlob = {
                     models: options.models,
-                    agents: options.agents,
                     filesystem,
-                    initialModelId: options.initialModelId,
-                    initialAgentId: options.initialAgentId
+                    initialModelId: options.initialModelId
                 };
 
                 // 2. Inject Config to head of every page

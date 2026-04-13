@@ -1,6 +1,6 @@
 import { BaseComponent } from '../BaseComponent';
 import { StopIcon, ArrowRightIcon, CubeIcon } from './Icons';
-import { ModelConfig, AgentProfile } from '../../types';
+import { ModelConfig, AgentInjection } from '../../types';
 import './ChatInput.css';
 
 interface ChatInputProps {
@@ -12,24 +12,19 @@ interface ChatInputProps {
   models: ModelConfig[];
   currentModelId: string;
   onModelChange: (id: string) => void;
-  agents: AgentProfile[];
-  currentAgentId: string;
-  onAgentChange: (id: string) => void;
-  skills?: any[];
+  injections: AgentInjection[];
   filesystem?: Record<string, string>;
 }
 
 export class ChatInput extends BaseComponent<ChatInputProps> {
     private inputValue: string = '';
     private isModelMenuOpen: boolean = false;
-    private isAgentMenuOpen: boolean = false;
     private showSuggestions: boolean = false;
-    private suggestionType: '@' | '/' | null = null;
+    private suggestionType: '@' | '/' | '#' | null = null;
     private suggestionQuery: string = '';
     private selectedSuggestionIndex: number = 0;
     private suggestionAnchorPos: number = -1;
     private selectedModelIndex: number = 0;
-    private selectedAgentIndex: number = 0;
 
     protected createRootElement(): HTMLElement {
         const div = document.createElement('div');
@@ -50,7 +45,6 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
 
     private renderShell() {
         const currentModel = this.props.models.find(m => m.id === this.props.currentModelId) || this.props.models[0];
-        const currentAgent = this.props.agents.find(a => a.id === this.props.currentAgentId) || this.props.agents[0];
 
         this.element.innerHTML = `
             <div class="chat-input-inner-wrapper chat-input-group">
@@ -60,24 +54,12 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
                     <div id="model-options-container" class="model-options-list"></div>
                 </div>
 
-                <div id="agent-menu" class="model-menu-popup">
-                    <div id="agent-options-container" class="model-options-list"></div>
-                </div>
-
                 <div class="chat-input-container">
-                    <textarea id="chat-textarea" aria-label="Message assistant..." placeholder="${this.props.placeholder || 'Ask anything, @ to mention, / for skills'}" class="chat-input-textarea"></textarea>
+                    <textarea id="chat-textarea" aria-label="Message assistant..." placeholder="${this.props.placeholder || 'Ask anything, @ for files, / for skills, # for system'}" class="chat-input-textarea"></textarea>
                     <div id="input-controls" class="input-controls-group"></div>
                 </div>
 
                 <div class="footer-controls-group">
-                    <div style="position: relative">
-                        <button id="btn-agent-selector" class="control-btn-secondary">
-                            <div class="model-dot" style="background-color: var(--agent-accent); opacity: 0.7"></div>
-                            <span id="current-agent-name">${currentAgent?.name || 'Select Agent'}</span>
-                            <code class="terminal-shortcut-hint">[CTRL+SHIFT+A]</code>
-                        </button>
-                    </div>
-                    
                     <div style="position: relative">
                         <button id="btn-model-selector" class="control-btn-secondary">
                             <div class="model-dot" style="background-color: var(--agent-accent)"></div>
@@ -103,7 +85,6 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         const textarea = this.query<HTMLTextAreaElement>('#chat-textarea')!;
         const btnOpenTerminal = this.query<HTMLButtonElement>('#btn-open-terminal');
         const btnModelSelector = this.query<HTMLButtonElement>('#btn-model-selector');
-        const btnAgentSelector = this.query<HTMLButtonElement>('#btn-agent-selector');
 
         textarea.addEventListener('input', () => {
             this.inputValue = textarea.value;
@@ -131,30 +112,6 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
                 if (e.key === 'Escape') {
                     e.preventDefault();
                     this.isModelMenuOpen = false;
-                    this.render();
-                    return;
-                }
-            }
-
-            if (this.isAgentMenuOpen) {
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    this.moveAgentSelection(1);
-                    return;
-                }
-                if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    this.moveAgentSelection(-1);
-                    return;
-                }
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    this.applySelectedAgent();
-                    return;
-                }
-                if (e.key === 'Escape') {
-                    e.preventDefault();
-                    this.isAgentMenuOpen = false;
                     this.render();
                     return;
                 }
@@ -194,22 +151,9 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         btnModelSelector?.addEventListener('click', (e) => {
             e.stopPropagation();
             this.isModelMenuOpen = !this.isModelMenuOpen;
-            this.isAgentMenuOpen = false;
             if (this.isModelMenuOpen) {
                 this.selectedModelIndex = this.props.models.findIndex(m => m.id === this.props.currentModelId);
                 if (this.selectedModelIndex === -1) this.selectedModelIndex = 0;
-                textarea.focus();
-            }
-            this.render();
-        });
-
-        btnAgentSelector?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.isAgentMenuOpen = !this.isAgentMenuOpen;
-            this.isModelMenuOpen = false;
-            if (this.isAgentMenuOpen) {
-                this.selectedAgentIndex = this.props.agents.findIndex(a => a.id === this.props.currentAgentId);
-                if (this.selectedAgentIndex === -1) this.selectedAgentIndex = 0;
                 textarea.focus();
             }
             this.render();
@@ -219,21 +163,9 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
             if (e.ctrlKey && e.shiftKey && e.code === 'KeyM') {
                 e.preventDefault();
                 this.isModelMenuOpen = !this.isModelMenuOpen;
-                this.isAgentMenuOpen = false;
                 if (this.isModelMenuOpen) {
                     this.selectedModelIndex = this.props.models.findIndex(m => m.id === this.props.currentModelId);
                     if (this.selectedModelIndex === -1) this.selectedModelIndex = 0;
-                    textarea.focus();
-                }
-                this.render();
-            }
-            if (e.ctrlKey && e.shiftKey && e.code === 'KeyA') {
-                e.preventDefault();
-                this.isAgentMenuOpen = !this.isAgentMenuOpen;
-                this.isModelMenuOpen = false;
-                if (this.isAgentMenuOpen) {
-                    this.selectedAgentIndex = this.props.agents.findIndex(a => a.id === this.props.currentAgentId);
-                    if (this.selectedAgentIndex === -1) this.selectedAgentIndex = 0;
                     textarea.focus();
                 }
                 this.render();
@@ -243,9 +175,8 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         document.addEventListener('click', (e) => {
             const isInside = this.element.contains(e.target as Node);
             if (!isInside) {
-                let shouldRender = this.isModelMenuOpen || this.isAgentMenuOpen || this.showSuggestions;
+                let shouldRender = this.isModelMenuOpen || this.showSuggestions;
                 this.isModelMenuOpen = false;
-                this.isAgentMenuOpen = false;
                 this.closeSuggestions();
                 if (shouldRender) this.render();
             }
@@ -256,9 +187,7 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         const textarea = this.query<HTMLTextAreaElement>('#chat-textarea')!;
         const controls = this.query<HTMLElement>('#input-controls')!;
         const modelName = this.query<HTMLElement>('#current-model-name')!;
-        const agentName = this.query<HTMLElement>('#current-agent-name')!;
         const modelContainer = this.query<HTMLElement>('#model-options-container')!;
-        const agentContainer = this.query<HTMLElement>('#agent-options-container')!;
 
         if (textarea.value !== this.inputValue) {
             textarea.value = this.inputValue;
@@ -283,14 +212,8 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         const currentModel = this.props.models.find(m => m.id === this.props.currentModelId) || this.props.models[0];
         if (modelName) modelName.textContent = currentModel?.name || 'Select Model';
 
-        const currentAgent = this.props.agents.find(a => a.id === this.props.currentAgentId) || this.props.agents[0];
-        if (agentName) agentName.textContent = currentAgent?.name || 'Select Agent';
-
         const modelMenu = this.query<HTMLElement>('#model-menu')!;
         modelMenu.style.display = this.isModelMenuOpen ? 'block' : 'none';
-
-        const agentMenu = this.query<HTMLElement>('#agent-menu')!;
-        agentMenu.style.display = this.isAgentMenuOpen ? 'block' : 'none';
 
         if (modelContainer) {
             modelContainer.innerHTML = this.props.models.map((m, i) => {
@@ -310,29 +233,6 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
                     const id = el.getAttribute('data-id')!;
                     this.props.onModelChange(id);
                     this.isModelMenuOpen = false;
-                    this.render();
-                });
-            });
-        }
-
-        if (agentContainer) {
-            agentContainer.innerHTML = this.props.agents.map((a, i) => {
-                const isCurrent = a.id === this.props.currentAgentId;
-                const isFocused = i === this.selectedAgentIndex;
-                return `
-                    <div class="model-option ${isFocused ? 'focused' : ''}" data-id="${a.id}" data-index="${i}" style="color: ${isCurrent ? 'var(--agent-accent)' : 'var(--agent-text-main)'}">
-                        <div class="model-dot" style="background-color: ${isCurrent ? 'var(--agent-accent)' : 'var(--agent-text-muted)'}; opacity: 0.7"></div>
-                        <span style="font-weight: ${isCurrent ? '600' : 'normal'}">${a.name}</span>
-                    </div>
-                `;
-            }).join('');
-
-            agentContainer.querySelectorAll('.model-option').forEach(el => {
-                el.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const id = el.getAttribute('data-id')!;
-                    this.props.onAgentChange(id);
-                    this.isAgentMenuOpen = false;
                     this.render();
                 });
             });
@@ -384,32 +284,17 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         }
     }
 
-    private moveAgentSelection(direction: number) {
-        const count = this.props.agents.length;
-        if (count === 0) return;
-        this.selectedAgentIndex = (this.selectedAgentIndex + direction + count) % count;
-        this.render();
-    }
-
-    private applySelectedAgent() {
-        const agent = this.props.agents[this.selectedAgentIndex];
-        if (agent) {
-            this.props.onAgentChange(agent.id);
-            this.isAgentMenuOpen = false;
-            this.render();
-        }
-    }
-
     private handleInputSuggestions(textarea: HTMLTextAreaElement) {
         const value = textarea.value;
         const pos = textarea.selectionStart;
         const textBefore = value.substring(0, pos);
         const lastAt = textBefore.lastIndexOf('@');
         const lastSlash = textBefore.lastIndexOf('/');
-        const lastTrigger = Math.max(lastAt, lastSlash);
+        const lastHash = textBefore.lastIndexOf('#');
+        const lastTrigger = Math.max(lastAt, lastSlash, lastHash);
         
         if (lastTrigger !== -1) {
-            const triggerChar = textBefore[lastTrigger] as '@' | '/';
+            const triggerChar = textBefore[lastTrigger] as '@' | '/' | '#';
             if (lastTrigger === 0 || /\s/.test(textBefore[lastTrigger - 1])) {
                 const query = textBefore.substring(lastTrigger + 1);
                 if (!/\s/.test(query)) {
@@ -435,8 +320,13 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
                 .map(f => ({ label: f, detail: 'File' }))
                 .slice(0, 10);
         } else if (this.suggestionType === '/') {
-            items = (this.props.skills || [])
-                .filter(s => s.name.toLowerCase().includes(this.suggestionQuery.toLowerCase()))
+            items = (this.props.injections || [])
+                .filter(s => s.type === 'skill' && s.name.toLowerCase().includes(this.suggestionQuery.toLowerCase()))
+                .map(s => ({ label: s.name, detail: s.description }))
+                .slice(0, 10);
+        } else if (this.suggestionType === '#') {
+            items = (this.props.injections || [])
+                .filter(s => s.type === 'system' && s.name.toLowerCase().includes(this.suggestionQuery.toLowerCase()))
                 .map(s => ({ label: s.name, detail: s.description }))
                 .slice(0, 10);
         }
@@ -474,14 +364,17 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
     }
 
     private applySelectedSuggestion(textarea: HTMLTextAreaElement) {
-        const items: any[] = []; 
+        let items: any[] = []; 
         if (this.suggestionType === '@') {
             const files = Object.keys(this.props.filesystem || {});
             const filtered = files.filter(f => f.toLowerCase().includes(this.suggestionQuery.toLowerCase())).slice(0, 10);
-            items.push(...filtered.map(f => ({ label: f })));
-        } else {
-            const filtered = (this.props.skills || []).filter(s => s.name.toLowerCase().includes(this.suggestionQuery.toLowerCase())).slice(0, 10);
-            items.push(...filtered.map(s => ({ label: s.name })));
+            items = filtered.map(f => ({ label: f }));
+        } else if (this.suggestionType === '/') {
+            const filtered = (this.props.injections || []).filter(s => s.type === 'skill' && s.name.toLowerCase().includes(this.suggestionQuery.toLowerCase())).slice(0, 10);
+            items = filtered.map(s => ({ label: s.name }));
+        } else if (this.suggestionType === '#') {
+            const filtered = (this.props.injections || []).filter(s => s.type === 'system' && s.name.toLowerCase().includes(this.suggestionQuery.toLowerCase())).slice(0, 10);
+            items = filtered.map(s => ({ label: s.name }));
         }
 
         const selected = items[this.selectedSuggestionIndex];
@@ -492,7 +385,11 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         const after = val.substring(textarea.selectionEnd);
 
         const type = this.suggestionType;
-        const prefix = type === '@' ? 'file:' : 'skill:';
+        let prefix = '';
+        if (type === '@') prefix = 'file:';
+        if (type === '/') prefix = 'skill:';
+        if (type === '#') prefix = 'system:';
+
         textarea.value = before + type + prefix + selected.label + ' ' + after;
         this.inputValue = textarea.value;
 
@@ -502,13 +399,13 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
 
         const newCursorPos = before.length + type.length + prefix.length + selected.label.length + 1; 
         textarea.setSelectionRange(newCursorPos, newCursorPos);
-
     }
 
-
-
     private moveSuggestionSelection(direction: number) {
-        const count = 10; 
+        const popup = this.query<HTMLElement>('#suggestion-list');
+        if (!popup) return;
+        const count = popup.querySelectorAll('.suggestion-item').length;
+        if (count === 0) return;
         this.selectedSuggestionIndex = (this.selectedSuggestionIndex + direction + count) % count;
         this.renderSuggestions();
     }

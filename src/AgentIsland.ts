@@ -11,7 +11,7 @@ export async function initAgentIsland() {
     try {
         const configText = configEl.textContent || '{}';
         const config = JSON.parse(configText);
-        const { models, agents, filesystem, initialModelId, initialAgentId } = config;
+        const { models, filesystem, initialModelId } = config;
 
         // 1. Resolve Pagefind Base URL
         const astroBase = document.documentElement.getAttribute('data-astro-base') || '/';
@@ -39,8 +39,6 @@ export async function initAgentIsland() {
         const sidebar = new AgentSidebar({
             models,
             initialModelId: initialModelId || models[0]?.id,
-            agents: agents || [],
-            initialAgentId: initialAgentId,
             filesystem
         });
         

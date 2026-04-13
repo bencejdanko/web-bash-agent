@@ -1,49 +1,74 @@
-import { AgentSkill } from './types';
+import { AgentInjection } from './types';
 
-function parseFrontMatter(content: string): { frontMatter: Record<string, any>, body: string } {
-    const fmMatch = content.match(/^---\r?\n([\s\S]*?)\n---\r?\n([\s\S]*)$/);
-    if (!fmMatch) {
+/**
+ * Robust frontmatter parser that handles different line endings and edge cases.
+ */
+export function parseAgentMarkdown(content: string): { frontMatter: Record<string, any>, body: string } {
+    const lines = content.split(/\r?\n/);
+    
+    let firstLineIdx = 0;
+    while (firstLineIdx < lines.length && lines[firstLineIdx].trim() === '') {
+        firstLineIdx++;
+    }
+
+    if (firstLineIdx >= lines.length || lines[firstLineIdx].trim() !== '---') {
         return { frontMatter: {}, body: content };
     }
 
-    const fmText = fmMatch[1];
-    const body = fmMatch[2];
     const frontMatter: Record<string, string> = {};
+    let i = firstLineIdx + 1;
+    let foundEnd = false;
 
-    fmText.split('\n').forEach(line => {
-        const [key, ...rest] = line.split(':');
-        if (key && rest.length > 0) {
-            frontMatter[key.trim()] = rest.join(':').trim().replace(/^['"](.*)['"]$/, '$1');
+    for (; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line === '---') {
+            foundEnd = true;
+            break;
         }
-    });
-
-    return { frontMatter, body };
-}
-
-export function discoverSkills(filesystem: Record<string, string>, basePath?: string): AgentSkill[] {
-    const skills: AgentSkill[] = [];
-    const skillFiles = Object.keys(filesystem).filter(p => {
-        const isSkillFile = p.endsWith('/SKILL.md');
-        if (!basePath) return isSkillFile;
-        const normalizedBase = basePath.endsWith('/') ? basePath : basePath + '/';
-        return isSkillFile && p.startsWith(normalizedBase);
-    });
-
-    for (const skillFile of skillFiles) {
-        const skillDir = skillFile.replace(/\/SKILL\.md$/, '');
-        const content = filesystem[skillFile];
-        const { frontMatter, body } = parseFrontMatter(content);
-
-        if (frontMatter.name && frontMatter.description) {
-            skills.push({
-                name: frontMatter.name,
-                description: frontMatter.description,
-                instructions: body,
-                path: skillDir,
-                metadata: frontMatter.metadata ? JSON.parse(frontMatter.metadata) : undefined
-            });
+        
+        const colonIndex = line.indexOf(':');
+        if (colonIndex !== -1) {
+            const key = line.substring(0, colonIndex).trim();
+            const value = line.substring(colonIndex + 1).trim()
+                .replace(/^['"](.*)['"]$/, '$1'); // Remove surrounding quotes
+            frontMatter[key] = value;
         }
     }
 
-    return skills;
+    if (!foundEnd) {
+        return { frontMatter: {}, body: content };
+    }
+
+    const body = lines.slice(i + 1).join('\n').trim();
+    return { frontMatter, body };
+}
+
+export function discoverInjections(filesystem: Record<string, string>): AgentInjection[] {
+    const injections: AgentInjection[] = [];
+    
+    for (const [p, content] of Object.entries(filesystem)) {
+        const lp = p.toLowerCase();
+        const isSkillFile = lp.endsWith('/skill.md') || lp === 'skill.md';
+        const isSystemFile = lp.endsWith('/system.md') || lp === 'system.md';
+        
+        if (!isSkillFile && !isSystemFile) continue;
+
+        const type = isSystemFile ? 'system' : 'skill';
+        const assetDir = p.replace(/\/(skill|system|SKILL|SYSTEM)\.md$/i, '');
+        const { frontMatter, body } = parseAgentMarkdown(content);
+
+        const name = frontMatter.name || assetDir.split('/').pop() || `Untitled ${type}`;
+        const description = frontMatter.description || '';
+
+        injections.push({
+            type,
+            name,
+            description,
+            instructions: body,
+            path: assetDir,
+            metadata: frontMatter
+        });
+    }
+
+    return injections;
 }

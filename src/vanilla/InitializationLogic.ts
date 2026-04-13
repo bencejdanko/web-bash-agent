@@ -1,7 +1,7 @@
 import { PersistentBashSandbox } from './PersistentBashSandbox';
 import { LlmBridge } from '../llmBridge';
-import { AgentSidebarProps, ModelConfig, AgentProfile } from '../types';
-import { discoverSkills } from '../skills';
+import { AgentSidebarProps } from '../types';
+import { discoverInjections } from '../skills';
 import { registry } from '../registry';
 import { Store } from './Store';
 import { AgentState } from './ChatLogic';
@@ -21,32 +21,16 @@ export class InitializationLogic {
         try {
             const state = this.store.getState();
             const currentModelConfig = this.props.models.find(m => m.id === state.currentModelId) || this.props.models[0];
-            const currentAgent = this.props.agents.find(a => a.id === state.currentAgentId) || this.props.agents[0];
-
-            if (!currentAgent) {
-                throw new Error('Fatal configuration error: No agent profiles provided.');
-            }
 
             const filesystem = this.props.filesystem || {};
             
-            // Resolve prompt from filesystem - FATAL if missing
-            const systemPromptPath = currentAgent.systemPromptPath;
-            if (!systemPromptPath) {
-                throw new Error(`Fatal configuration error: Agent "${currentAgent.id}" is missing a systemPromptPath.`);
-            }
-
-            const systemPrompt = filesystem[systemPromptPath];
-            if (!systemPrompt) {
-                throw new Error(`Fatal configuration error: System prompt file not found at virtual path "${systemPromptPath}". Check your agent configuration and mounts.`);
-            }
-
-            // Resolve skills explicitly (isolated per agent)
-            const discoveredSkills = this.props.skills || (currentAgent.skillsDir ? discoverSkills(filesystem, currentAgent.skillsDir) : []);
+            // Discover all injections across the entire mounted filesystem
+            const injections = discoverInjections(filesystem);
             
             const pagefindContext = { pagefind: typeof window !== 'undefined' ? (window as any).pagefind : null };
 
             // Build Tools
-            const finalTools = await this.buildTools(discoveredSkills);
+            const finalTools = await this.buildTools(injections);
 
             // Build Commands
             const customCommands: any[] = [];
@@ -80,7 +64,7 @@ export class InitializationLogic {
             this.llmBridge = this.props.llmBridge || new LlmBridge({
                 apiKey: currentModelConfig.apiKey || 'proxy-key', 
                 model: currentModelConfig.id,
-                systemPrompt: systemPrompt,
+                systemPrompt: '', 
                 baseURL: currentModelConfig.endpoint,
                 dangerouslyAllowBrowser: true,
                 tools: finalTools,
@@ -94,13 +78,14 @@ export class InitializationLogic {
             this.store.setState({ 
                 isInitializing: false,
                 actualFilesystem: this.bashSandbox.getFilesystem(),
-                currentSystemPrompt: systemPrompt,
+                currentSystemPrompt: '',
+                injections
             });
 
             return {
                 bashSandbox: this.bashSandbox,
                 llmBridge: this.llmBridge,
-                skills: discoveredSkills
+                injections
             };
 
         } catch (error: any) {
@@ -112,8 +97,8 @@ export class InitializationLogic {
         }
     }
 
-    private async buildTools(discoveredSkills: any[]) {
-        const skillContext = { skills: discoveredSkills };
+    private async buildTools(injections: any[]) {
+        const skillContext = { skills: injections.filter(i => i.type === 'skill') };
         const toolConfigs = [{ type: 'bash' }, { type: 'load-skill' }];
         const finalTools: any[] = [];
         
@@ -148,41 +133,4 @@ export class InitializationLogic {
             this.store.setState({ currentModelId: modelId });
         }
     }
-
-    async updateAgent(agentId: string) {
-        try {
-            const agent = this.props.agents.find(a => a.id === agentId);
-            const filesystem = this.props.filesystem || {};
-
-            if (!agent) {
-                throw new Error(`Fatal configuration error: Agent with ID "${agentId}" not found.`);
-            }
-
-            if (this.llmBridge && agent) {
-                // Resolve prompt - FATAL if missing
-                const systemPrompt = filesystem[agent.systemPromptPath];
-                if (!systemPrompt) {
-                    throw new Error(`Fatal configuration error: System prompt file not found at virtual path "${agent.systemPromptPath}" for agent "${agent.id}".`);
-                }
-                
-                this.llmBridge.setSystemPrompt(systemPrompt);
-                
-                // Re-discover skills based on the agent's skillsDir (isolated)
-                const discoveredSkills = agent.skillsDir ? discoverSkills(filesystem, agent.skillsDir) : [];
-                
-                // Re-build and set tools for the new skills
-                const finalTools = await this.buildTools(discoveredSkills);
-                this.llmBridge.setTools(finalTools);
-
-                this.store.setState({ 
-                    currentAgentId: agentId, 
-                    currentSystemPrompt: systemPrompt,
-                    skills: discoveredSkills,
-                });
-            }
-        } catch (error: any) {
-            console.error('Agent update failed:', error);
-        }
-    }
 }
-
