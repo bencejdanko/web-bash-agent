@@ -1053,21 +1053,23 @@
     background-color: var(--agent-bg-subtle);
     color: var(--agent-text-subtle);
 }
-/* Tag Highlights */
+/* Tag Highlights – user bubble read-only chips */
 .tag-highlight {
-    padding: 0;
-    margin: 0;
-    border-radius: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background-color: var(--agent-accent);
+    color: var(--agent-text-on-dark);
+    border-radius: 4px;
+    padding: 1px 6px 1px 4px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    vertical-align: middle;
+    white-space: nowrap;
 }
 
-.system-tag {
-    background: rgba(168, 85, 247, 0.15); /* Purple accent */
-}
-
-.skill-tag {
-    background: rgba(34, 197, 94, 0.15); /* Green accent */
-}
-
-.file-tag {
-    background: rgba(59, 130, 246, 0.15); /* Blue accent */
+.tag-highlight svg {
+    flex-shrink: 0;
+    opacity: 0.7;
 }
