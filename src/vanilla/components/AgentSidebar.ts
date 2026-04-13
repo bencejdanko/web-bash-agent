@@ -293,7 +293,8 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
             currentModelId: this.store.getState().currentModelId,
             onModelChange: (id) => this.initLogic.updateModel(id),
             injections: this.store.getState().injections,
-            filesystem: this.store.getState().actualFilesystem
+            filesystem: this.store.getState().actualFilesystem,
+            placeholder: 'Ask anything, @ to mention files, / for skills, # for system...'
         });
         this.query('#chat-input-root')?.appendChild(this.chatInput.getElement());
         this.chatInput.init();

@@ -322,7 +322,7 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
 
         <div class="chat-input-container">
           <div class="ti-editor-wrapper">
-            <div id="tiptap-editor" class="ti-editor" aria-label="${this.props.placeholder || 'Ask anything…'}"></div>
+            <div id="tiptap-editor" class="ti-editor"></div>
           </div>
           <div id="input-controls" class="input-controls-group"></div>
         </div>
@@ -411,7 +411,7 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         HardBreak,
         History,
         Placeholder.configure({
-          placeholder: this.props.placeholder || 'Ask anything, @ to mention files, / for skills, # for system...',
+          placeholder: this.props.placeholder || 'Ask anything, @ to mention files',
           emptyEditorClass: 'ti-editor-empty',
         }),
         ...mentionExtensions,
@@ -420,6 +420,8 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         attributes: {
           class: 'ti-prosemirror',
           spellcheck: 'false',
+          'aria-label': this.props.placeholder || 'Ask anything, @ to mention files',
+          'data-placeholder': this.props.placeholder || 'Ask anything, @ to mention files',
         },
       },
       onUpdate: () => {
@@ -445,6 +447,17 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
     this.updateInputState();
     this.updateSendButton();
     this.updateModelMenu();
+    this.updatePlaceholder();
+  }
+
+  private updatePlaceholder() {
+    if (!this.editor) return;
+    const text = this.props.placeholder || 'Ask anything, @ to mention files';
+    const dom = this.editor.view.dom;
+    if (dom.getAttribute('data-placeholder') !== text) {
+      dom.setAttribute('data-placeholder', text);
+      dom.setAttribute('aria-label', text);
+    }
   }
 
   private updateInputState() {

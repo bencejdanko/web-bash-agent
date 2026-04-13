@@ -45,6 +45,7 @@
 
 /* The ProseMirror contenteditable element */
 .ti-prosemirror {
+    position: relative;
     padding: var(--agent-input-padding);
     min-height: 48px;
     max-height: 200px;
@@ -59,11 +60,13 @@
 }
 
 /* Placeholder */
-.ti-editor-empty .ti-prosemirror::before {
-    content: attr(data-placeholder, 'Ask anything…');
+.ti-prosemirror.ti-editor-empty::before {
+    content: attr(data-placeholder);
     color: var(--agent-text-muted);
     pointer-events: none;
     position: absolute;
+    top: 12px;
+    left: 16px;
     font-style: normal;
 }
 
@@ -73,7 +76,7 @@
 }
 
 /* Remove Tiptap's ProseMirror's own placeholder (we use CSS) */
-.ti-prosemirror p.is-editor-empty:first-child::before {
+.ti-prosemirror p.is-empty:first-child::before {
     content: attr(data-placeholder);
     color: var(--agent-text-muted);
     pointer-events: none;
