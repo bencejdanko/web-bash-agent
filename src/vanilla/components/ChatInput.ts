@@ -228,12 +228,25 @@ function createMentionSuggestion(
           selectedIndex = 0;
 
           const editorEl = props.editor.view.dom as HTMLElement;
-          const wrapper = editorEl.closest('.ti-editor-wrapper') as HTMLElement | null;
-          if (!wrapper) return;
+          // Mount to .chat-input-group which has position:relative and no overflow:hidden,
+          // so the popup is not clipped by .chat-input-container's overflow:hidden.
+          const group = editorEl.closest('.chat-input-group') as HTMLElement | null;
+          if (!group) return;
 
           popup = document.createElement('div');
           popup.className = 'ti-suggestion-popup';
-          wrapper.appendChild(popup);
+          group.appendChild(popup);
+
+          // Position the popup just above the .chat-input-container
+          const container = group.querySelector('.chat-input-container') as HTMLElement | null;
+          if (container && popup) {
+            const groupRect = group.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
+            // Distance from bottom of group to top of container (= gap below container)
+            const bottomOffset = groupRect.bottom - containerRect.top + 8;
+            popup.style.bottom = `${bottomOffset}px`;
+          }
+
           renderPopup();
         },
 
@@ -398,7 +411,7 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
         HardBreak,
         History,
         Placeholder.configure({
-          placeholder: this.props.placeholder || 'Ask anything, @ for files, / for skills, # for system',
+          placeholder: this.props.placeholder || 'Ask anything, @ to mention files, / for skills, # for system...',
           emptyEditorClass: 'ti-editor-empty',
         }),
         ...mentionExtensions,
