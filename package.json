@@ -11,18 +11,14 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./integration": {
-      "types": "./dist/integration.d.ts",
-      "import": "./dist/integration.js"
-    },
-    "./AgentIsland": {
-      "import": "./dist/AgentIsland.js"
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
     },
     "./dist/*": "./dist/*"
   },
   "files": [
-    "dist",
-    "integration.ts"
+    "dist"
   ],
   "scripts": {
     "build": "tsup",
