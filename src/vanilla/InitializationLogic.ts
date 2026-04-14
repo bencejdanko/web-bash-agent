@@ -33,21 +33,27 @@ export class InitializationLogic {
             const finalTools = await this.buildTools(injections);
 
             // Build Commands
-            const customCommands: any[] = [];
-            const commandConfigs = this.props.customBashCommands || [];
-            for (const config of commandConfigs) {
-                const cmd = await registry.getCommand(config, pagefindContext);
-                if (Array.isArray(cmd)) {
-                    customCommands.push(...cmd);
-                } else if (cmd) {
-                    customCommands.push(cmd);
+            let customCommands: any[] = [];
+            const commandConfigs = this.props.customBashCommands;
+            
+            if (typeof commandConfigs === 'function') {
+                // If it's a factory function, we'll pass it to the sandbox to handle late-bound FS
+                (this as any)._customCommandFactory = commandConfigs;
+            } else if (Array.isArray(commandConfigs)) {
+                for (const config of commandConfigs) {
+                    const cmd = await registry.getCommand(config, pagefindContext);
+                    if (Array.isArray(cmd)) {
+                        customCommands.push(...cmd);
+                    } else if (cmd) {
+                        customCommands.push(cmd);
+                    }
                 }
             }
 
             this.bashSandbox = this.props.bashSandbox as any || new PersistentBashSandbox({
                 files: this.props.filesystem || {},
                 pagefind: pagefindContext.pagefind,
-                customCommands,
+                customCommands: (this as any)._customCommandFactory ? (ctx: any) => (this as any)._customCommandFactory(ctx) : customCommands,
                 normalizePaths: false,
                 cwd: state.terminalCwd || undefined,
                 env: state.terminalEnv || undefined

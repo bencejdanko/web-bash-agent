@@ -75,5 +75,5 @@ export interface AgentSidebarProps {
 
     includeThinking?: boolean;
     injections?: AgentInjection[];
-    customBashCommands?: (BashCommandConfig | any)[];
+    customBashCommands?: (BashCommandConfig | any)[] | ((ctx: any) => any[]);
 }

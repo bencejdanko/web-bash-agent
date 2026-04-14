@@ -9,7 +9,6 @@ export function createBashTool(customDescription?: string): AgentTool {
         description: customDescription || [
           'Run a bash command in the virtual shell environment.',
           'THE ONLY WAY TO RUN SHELL COMMANDS IS BY CALLING THIS BASH TOOL.',
-          'Specialized: `search "query"`, `navigate "/url"`, `fetch_internal "/path"`.',
           'Standard: ls, cat, grep, find, head, tail, jq, etc. are all available.',
         ].join(' '),
         parameters: {

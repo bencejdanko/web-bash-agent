@@ -99,6 +99,8 @@ const MODELS: ModelConfig[] = [
 
         <script>
             import { AgentSidebar } from 'pagefind-bash-agent-astro';
+            import { defineCommand } from 'just-bash/browser';
+            import { getDefaultCommands } from '../commands';
 
             const configEl = document.getElementById('pagefind-agent-config');
             if (configEl) {
@@ -106,9 +108,13 @@ const MODELS: ModelConfig[] = [
                 const sidebar = new AgentSidebar({
                     models: config.models,
                     initialModelId: config.initialModelId || config.models[0]?.id,
-                    agents: config.agents,
-                    initialAgentId: config.initialAgentId || config.agents[0]?.id,
-                    filesystem: config.filesystem
+                    filesystem: config.filesystem,
+                    
+                    // The library is now 100% generic. 
+                    // We explicitly inject all specialized commands here.
+                    customBashCommands: (ctx) => [
+                        ...getDefaultCommands(ctx),
+                    ]
                 });
                 
                 const container = document.getElementById('pagefind-agent-manual-island');

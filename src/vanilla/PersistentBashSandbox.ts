@@ -4,9 +4,6 @@ import {
     type IFileSystem,
 } from 'just-bash/browser';
 export type { ExecResult, IFileSystem };
-import { createSearchCommand } from '../commands/search';
-import { createFetchInternalCommand } from '../commands/fetch-internal';
-import { createNavigateCommand } from '../commands/navigate';
 
 // Internal types from just-bash 
 export interface BashExecResult extends ExecResult {
@@ -18,7 +15,7 @@ export interface PersistentBashOptions {
     fs?: IFileSystem;
     cwd?: string;
     env?: Record<string, string>;
-    customCommands?: any[];
+    customCommands?: any[] | ((context: { pagefind: any, getFs: () => any }) => any[]);
     pagefind?: any;
     normalizePaths?: boolean;
 }
@@ -46,13 +43,19 @@ export class PersistentBashSandbox {
         // Prepare files (no normalization/prefixing)
         const initialFiles = options.files || {};
 
-        // Build core commands (Pagefind + Internal Fetch)
-        const coreCommands = [
-            createSearchCommand(options.pagefind),
-            createFetchInternalCommand(),
-            createNavigateCommand(),
-        ];
-        const allCommands = [...coreCommands, ...(options.customCommands || [])];
+        const context = { 
+            pagefind: options.pagefind, 
+            getFs: () => this.bash?.fs 
+        };
+        
+        let customCommands: any[] = [];
+        if (typeof options.customCommands === 'function') {
+            customCommands = options.customCommands(context);
+        } else if (Array.isArray(options.customCommands)) {
+            customCommands = options.customCommands;
+        }
+
+        const allCommands = customCommands;
 
         this.bash = new Bash({
             files: initialFiles,

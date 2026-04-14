@@ -4,8 +4,10 @@ import { defineCommand } from "just-bash/browser";
  * Command: search "query"
  * Uses Pagefind to search the site's indexed content.
  */
-export function createSearchCommand(pagefind: any) {
+export function createSearchCommand(context: { pagefind?: any }) {
   return defineCommand("search", async (args) => {
+    const pagefind = context.pagefind || (typeof window !== 'undefined' ? (window as any).pagefind : null);
+
     if (!pagefind) {
       return { 
         stdout: "", 
