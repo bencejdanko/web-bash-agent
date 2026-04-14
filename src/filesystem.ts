@@ -3,7 +3,7 @@ import path from 'node:path';
 
 /**
  * Recursively builds a virtual filesystem mapping from a base directory.
- * Includes text-based files and Pagefind metadata.
+ * Includes text-based files.
  */
 export function getFilesystem(baseDir: string, skip: string[] = ['node_modules', 'dist', '.git']): Record<string, string> {
     const result: Record<string, string> = {};

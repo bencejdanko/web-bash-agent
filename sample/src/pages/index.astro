@@ -60,7 +60,7 @@ const MODELS: ModelConfig[] = [
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
 		<title>Astro Real Test Page (VPath Prompts)</title>
-        <script id="pagefind-agent-config" type="application/json" set:html={JSON.stringify({ 
+        <script id="agent-sidebar-config" type="application/json" set:html={JSON.stringify({ 
             models: MODELS, 
             agents: AGENTS, 
             filesystem: realFilesystem, 
@@ -107,7 +107,7 @@ const MODELS: ModelConfig[] = [
                 createRenderDiagramCommand 
             } from '../commands';
 
-            const configEl = document.getElementById('pagefind-agent-config');
+            const configEl = document.getElementById('agent-sidebar-config');
             if (configEl) {
                 const config = JSON.parse(configEl.textContent || '{}');
                 const sidebar = new AgentSidebar({

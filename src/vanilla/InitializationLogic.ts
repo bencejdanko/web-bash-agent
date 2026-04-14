@@ -27,14 +27,11 @@ export class InitializationLogic {
             // Discover all injections across the entire mounted filesystem
             const injections = discoverInjections(filesystem);
             
-            const pagefindContext = { pagefind: typeof window !== 'undefined' ? (window as any).pagefind : null };
-
             // Build Tools
             const finalTools = await this.buildTools(injections);
 
             this.bashSandbox = this.props.bashSandbox as any || new PersistentBashSandbox({
                 files: this.props.filesystem || {},
-                pagefind: pagefindContext.pagefind,
                 customCommands: this.props.customBashCommands as any,
                 normalizePaths: false,
                 cwd: state.terminalCwd || undefined,

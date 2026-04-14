@@ -7,9 +7,9 @@ export interface IntegrationOptions {
   initialModelId?: string;
 }
 
-export function pagefindAgent(options: IntegrationOptions): AstroIntegration {
+export function bashAgent(options: IntegrationOptions): AstroIntegration {
     return {
-        name: 'pagefind-bash-agent-astro',
+        name: 'bash-agent-astro',
         hooks: {
             'astro:config:setup': ({ injectScript, updateConfig }) => {
                 const mounts = options.mounts || {};
@@ -27,7 +27,7 @@ export function pagefindAgent(options: IntegrationOptions): AstroIntegration {
                 injectScript('head-inline', `
                     (function() {
                         const script = document.createElement('script');
-                        script.id = 'pagefind-agent-config';
+                        script.id = 'agent-sidebar-config';
                         script.type = 'application/json';
                         script.textContent = \`${JSON.stringify(configBlob).replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`;
                         document.head.appendChild(script);
@@ -50,4 +50,4 @@ export function pagefindAgent(options: IntegrationOptions): AstroIntegration {
     };
 }
 
-export default pagefindAgent;
+export default bashAgent;

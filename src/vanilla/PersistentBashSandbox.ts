@@ -15,8 +15,7 @@ export interface PersistentBashOptions {
     fs?: IFileSystem;
     cwd?: string;
     env?: Record<string, string>;
-    customCommands?: (context: { pagefind: any, getFs: () => any }) => any[];
-    pagefind?: any;
+    customCommands?: (context: { getFs: () => any }) => any[];
     normalizePaths?: boolean;
 }
 
@@ -45,7 +44,6 @@ export class PersistentBashSandbox {
 
         // 1. Prepare Context for late-binding (e.g. FS)
         const context = { 
-            pagefind: options.pagefind, 
             getFs: () => this.bash?.fs 
         };
         

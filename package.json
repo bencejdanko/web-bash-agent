@@ -1,8 +1,8 @@
 {
-  "name": "pagefind-bash-agent-astro",
+  "name": "bash-agent-astro",
   "version": "1.0.0",
   "type": "module",
-  "description": "True Astro Integration for Pagefind Bash Agent",
+  "description": "Astro Integration for a Bash-enabled Agent",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",

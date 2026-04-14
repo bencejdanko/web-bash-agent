@@ -9,7 +9,7 @@ export async function createMcpTool(serverUrl: string) {
   const transport = new SSEClientTransport(new URL("/sse", serverUrl));
   const client = new Client(
     {
-      name: "pagefind-agent-client",
+      name: "agent-bash-client",
       version: "1.0.0",
     },
     {
@@ -59,7 +59,7 @@ import { defineCommand } from "just-bash";
 export async function createMcpCommand(serverUrl: string, toolName: string) {
   const transport = new SSEClientTransport(new URL("/sse", serverUrl));
   const client = new Client(
-    { name: "pagefind-agent-bash", version: "1.0.0" },
+    { name: "agent-bash-command", version: "1.0.0" },
     { capabilities: {} }
   );
 
@@ -91,7 +91,7 @@ export async function createMcpCommand(serverUrl: string, toolName: string) {
 export async function createMcpCommands(serverUrl: string) {
   const transport = new SSEClientTransport(new URL("/sse", serverUrl));
   const client = new Client(
-    { name: "pagefind-agent-bash-bulk", version: "1.0.0" },
+    { name: "agent-bash-bulk", version: "1.0.0" },
     { capabilities: {} }
   );
 

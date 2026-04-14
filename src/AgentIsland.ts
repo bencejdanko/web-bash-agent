@@ -5,7 +5,7 @@
 export async function initAgentIsland() {
     if (typeof window === 'undefined') return;
 
-    const configEl = document.getElementById('pagefind-agent-config');
+    const configEl = document.getElementById('agent-sidebar-config');
     if (!configEl) return;
 
     try {
@@ -13,26 +13,14 @@ export async function initAgentIsland() {
         const config = JSON.parse(configText);
         const { models, filesystem, initialModelId } = config;
 
-        // 1. Resolve Pagefind Base URL
-        const astroBase = document.documentElement.getAttribute('data-astro-base') || '/';
-        const base = astroBase.endsWith('/') ? astroBase : astroBase + '/';
-
-        // 2. Connect to Pagefind
-        try {
-            const pagefind = await import(/* @vite-ignore */ `${base}pagefind/pagefind.js`);
-            (window as any).pagefind = pagefind;
-        } catch (e) {
-            console.warn('Agent Search: Pagefind index not available.');
-        }
-
-        // 3. Dynamic Import of the Vanilla Sidebar UI
+        // 1. Dynamic Import of the Vanilla Sidebar UI
         const { AgentSidebar } = await import('./vanilla/components/AgentSidebar');
 
-        // 4. Mount Vanilla Sidebar
-        let container = document.getElementById('pagefind-agent-island');
+        // 2. Mount Vanilla Sidebar
+        let container = document.getElementById('agent-sidebar-island');
         if (!container) {
             container = document.createElement('div');
-            container.id = 'pagefind-agent-island';
+            container.id = 'agent-sidebar-island';
             document.body.appendChild(container);
         }
 
