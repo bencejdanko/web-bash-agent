@@ -163,6 +163,20 @@ export class TerminalSessionManager {
 
         session.container = container;
         session.terminal.open(container);
+
+        // Right-click to copy selection
+        container.addEventListener('contextmenu', (e) => {
+            if (session.terminal.hasSelection()) {
+                e.preventDefault();
+                const selection = session.terminal.getSelection();
+                if (selection) {
+                    navigator.clipboard.writeText(selection).catch(err => {
+                        console.error('Failed to copy text: ', err);
+                    });
+                    session.terminal.clearSelection();
+                }
+            }
+        });
         
         // Ensure fit happens after opening and being in DOM
         requestAnimationFrame(() => {
