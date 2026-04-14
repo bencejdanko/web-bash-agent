@@ -100,7 +100,12 @@ const MODELS: ModelConfig[] = [
         <script>
             import { AgentSidebar } from 'pagefind-bash-agent-astro';
             import { defineCommand } from 'just-bash/browser';
-            import { getDefaultCommands } from '../commands';
+            import { 
+                createSearchCommand, 
+                createNavigateCommand, 
+                createFetchInternalCommand, 
+                createRenderDiagramCommand 
+            } from '../commands';
 
             const configEl = document.getElementById('pagefind-agent-config');
             if (configEl) {
@@ -111,9 +116,15 @@ const MODELS: ModelConfig[] = [
                     filesystem: config.filesystem,
                     
                     // The library is now 100% generic. 
-                    // We explicitly inject all specialized commands here.
+                    // We explicitly inject all specialized commands here manually.
                     customBashCommands: (ctx) => [
-                        ...getDefaultCommands(ctx),
+                        createSearchCommand(ctx),
+                        createNavigateCommand(),
+                        createFetchInternalCommand(),
+                        createRenderDiagramCommand(ctx),
+                        defineCommand("whoami", async () => {
+                            return { stdout: "I am the Pagefind Bash Agent!\n", stderr: "", exitCode: 0 };
+                        }),
                     ]
                 });
                 

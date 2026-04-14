@@ -15,7 +15,7 @@ export interface PersistentBashOptions {
     fs?: IFileSystem;
     cwd?: string;
     env?: Record<string, string>;
-    customCommands?: any[] | ((context: { pagefind: any, getFs: () => any }) => any[]);
+    customCommands?: (context: { pagefind: any, getFs: () => any }) => any[];
     pagefind?: any;
     normalizePaths?: boolean;
 }
@@ -43,19 +43,14 @@ export class PersistentBashSandbox {
         // Prepare files (no normalization/prefixing)
         const initialFiles = options.files || {};
 
+        // 1. Prepare Context for late-binding (e.g. FS)
         const context = { 
             pagefind: options.pagefind, 
             getFs: () => this.bash?.fs 
         };
         
-        let customCommands: any[] = [];
-        if (typeof options.customCommands === 'function') {
-            customCommands = options.customCommands(context);
-        } else if (Array.isArray(options.customCommands)) {
-            customCommands = options.customCommands;
-        }
-
-        const allCommands = customCommands;
+        // 2. Resolve commands from the mandatory factory (if provided)
+        const allCommands = options.customCommands ? options.customCommands(context) : [];
 
         this.bash = new Bash({
             files: initialFiles,
