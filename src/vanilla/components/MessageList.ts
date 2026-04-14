@@ -1,6 +1,6 @@
 import { BaseComponent } from '../BaseComponent';
-import { Message } from '../../types';
-import { renderMarkdown } from '../markdown';
+import { Message, AgentInjection } from '../../types';
+import { renderWithHighlights } from '../markdown';
 import { Collapsible } from './Collapsible';
 import { TerminalBox } from './TerminalBox';
 import { ThinkingIndicator } from './ThinkingIndicator';
@@ -17,10 +17,11 @@ interface MessageListProps {
     onToggleThought: (id: string) => void;
     bashSandbox?: any;
     sidebarWidth: number;
+    injections: AgentInjection[];
+    filesystem: Record<string, string>;
 }
 
 export class MessageList extends BaseComponent<MessageListProps> {
-    private turnComponents: Map<string, HTMLElement> = new Map();
     private terminalBoxCache: Map<string, TerminalBox> = new Map();
     private thinkingIndicator: ThinkingIndicator | null = null;
 
@@ -71,7 +72,6 @@ export class MessageList extends BaseComponent<MessageListProps> {
             }
         });
 
-        // Simplified rendering: just rebuild for now to ensure consistency
         this.element.innerHTML = '';
 
         turns.forEach((turn, idx) => {
@@ -82,7 +82,11 @@ export class MessageList extends BaseComponent<MessageListProps> {
             // User message
             const userBubble = document.createElement('div');
             userBubble.className = 'user-bubble';
-            userBubble.innerHTML = renderMarkdown(turn.user.content || '');
+            userBubble.innerHTML = renderWithHighlights(
+                turn.user.content || '',
+                this.props.injections,
+                this.props.filesystem
+            );
             
             const userActions = document.createElement('div');
             userActions.className = 'message-actions';
@@ -176,10 +180,14 @@ export class MessageList extends BaseComponent<MessageListProps> {
                 if (m.role === 'assistant' && m.content) {
                     const contentDiv = document.createElement('div');
                     contentDiv.className = 'markdown-output';
-                    contentDiv.innerHTML = renderMarkdown(m.content);
+                    contentDiv.innerHTML = renderWithHighlights(
+                        m.content,
+                        this.props.injections,
+                        this.props.filesystem
+                    );
                     assistantTurnContainer.appendChild(contentDiv);
 
-                    // Bot actions at the bottom right
+                    // Bot actions
                     const botActions = document.createElement('div');
                     botActions.className = 'bot-actions';
                     
@@ -215,13 +223,13 @@ export class MessageList extends BaseComponent<MessageListProps> {
                 if (!this.thinkingIndicator) {
                     this.thinkingIndicator = new ThinkingIndicator({
                         isProcessing: true,
-                        turnStartTime: effectiveStartTime
+                        turnStartTime: (effectiveStartTime as number) || Date.now()
                     });
                     this.thinkingIndicator.init();
                 } else {
                     this.thinkingIndicator.update({
                         isProcessing: true,
-                        turnStartTime: effectiveStartTime
+                        turnStartTime: (effectiveStartTime as number) || Date.now()
                     });
                 }
                 assistantTurnContainer.appendChild(this.thinkingIndicator.getElement());

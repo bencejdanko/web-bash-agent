@@ -1,7 +1,7 @@
 import { PersistentBashSandbox } from './PersistentBashSandbox';
 import { LlmBridge } from '../llmBridge';
-import { AgentSidebarProps, ModelConfig } from '../types';
-import { discoverSkills } from '../skills';
+import { AgentSidebarProps } from '../types';
+import { discoverInjections } from '../skills';
 import { registry } from '../registry';
 import { Store } from './Store';
 import { AgentState } from './ChatLogic';
@@ -22,34 +22,18 @@ export class InitializationLogic {
             const state = this.store.getState();
             const currentModelConfig = this.props.models.find(m => m.id === state.currentModelId) || this.props.models[0];
 
-            const discoveredSkills = this.props.skills || discoverSkills(this.props.filesystem || {});
+            const filesystem = this.props.filesystem || {};
             
-            const skillContext = { skills: discoveredSkills };
-            const pagefindContext = { pagefind: typeof window !== 'undefined' ? (window as any).pagefind : null };
-
+            // Discover all injections across the entire mounted filesystem
+            const injections = discoverInjections(filesystem);
+            
             // Build Tools
-            const toolConfigs = [{ type: 'bash' }, { type: 'load-skill' }];
-            const finalTools: any[] = [];
-            for (const config of toolConfigs) {
-                const result = await registry.getTool(config, skillContext);
-                if (Array.isArray(result)) finalTools.push(...result);
-                else if (result) finalTools.push(result);
-            }
-
-            // Build Commands
-            const customCommands: any[] = [];
-            const commandConfigs = this.props.customBashCommands || [];
-            for (const config of commandConfigs) {
-                const cmd = await registry.getCommand(config, pagefindContext);
-                if (Array.isArray(cmd)) customCommands.push(...cmd);
-                else if (cmd) customCommands.push(cmd);
-            }
+            const finalTools = await this.buildTools(injections);
 
             this.bashSandbox = this.props.bashSandbox as any || new PersistentBashSandbox({
                 files: this.props.filesystem || {},
-                pagefind: pagefindContext.pagefind,
-                customCommands,
-                normalizePaths: true,
+                customCommands: this.props.customBashCommands as any,
+                normalizePaths: false,
                 cwd: state.terminalCwd || undefined,
                 env: state.terminalEnv || undefined
             });
@@ -65,7 +49,7 @@ export class InitializationLogic {
             this.llmBridge = this.props.llmBridge || new LlmBridge({
                 apiKey: currentModelConfig.apiKey || 'proxy-key', 
                 model: currentModelConfig.id,
-                systemPrompt: this.props.systemPrompt,
+                systemPrompt: '', 
                 baseURL: currentModelConfig.endpoint,
                 dangerouslyAllowBrowser: true,
                 tools: finalTools,
@@ -78,20 +62,40 @@ export class InitializationLogic {
 
             this.store.setState({ 
                 isInitializing: false,
-                actualFilesystem: this.bashSandbox.getFilesystem()
+                actualFilesystem: this.bashSandbox.getFilesystem(),
+                currentSystemPrompt: '',
+                injections
             });
 
             return {
                 bashSandbox: this.bashSandbox,
                 llmBridge: this.llmBridge,
-                skills: discoveredSkills
+                injections
             };
 
-        } catch (error) {
-            console.error('Sandbox initialization failed:', error);
-            this.store.setState({ isInitializing: false });
+        } catch (error: any) {
+            console.error('Initialization failed:', error);
+            this.store.setState({ 
+                isInitializing: false,
+            });
             throw error;
         }
+    }
+
+    private async buildTools(injections: any[]) {
+        const skillContext = { skills: injections.filter(i => i.type === 'skill') };
+        const toolConfigs = [{ type: 'bash' }, { type: 'load-skill' }];
+        const finalTools: any[] = [];
+        
+        for (const config of toolConfigs) {
+            const result = await registry.getTool(config, skillContext);
+            if (Array.isArray(result)) {
+                finalTools.push(...result);
+            } else if (result) {
+                finalTools.push(result);
+            }
+        }
+        return finalTools;
     }
 
     updateModel(modelId: string) {

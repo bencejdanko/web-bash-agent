@@ -21,12 +21,24 @@ export interface Conversation {
   updatedAt: number;
 }
 
-export interface AgentSkill {
+export interface AgentInjection {
+    type: 'system' | 'skill';
     name: string;
     description: string;
-    instructions: string; // The body content after frontmatter
-    path: string; // Path to the skill directory relative to /site/
+    instructions: string;
+    path: string;
     metadata?: Record<string, string>;
+}
+
+// Keep alias for backward compatibility during transition if needed
+export type AgentSkill = AgentInjection;
+
+export interface AgentProfile {
+    id: string;
+    name: string;
+    systemPromptPath: string;
+    description?: string;
+    skillsDir?: string;
 }
 
 export type ToolConfig = 
@@ -58,14 +70,10 @@ export interface AgentSidebarProps {
     models: ModelConfig[];
     initialModelId?: string;
 
-    systemPrompt: string;
     filesystem?: Record<string, string>;
     reasoningEffort?: 'low' | 'medium' | 'high';
 
     includeThinking?: boolean;
-    skills?: AgentSkill[];
-    // Can be explicit BashCommandConfig objects (serializable) OR full Command objects (client-side)
-    customBashCommands?: (BashCommandConfig | any)[];
+    injections?: AgentInjection[];
+    customBashCommands?: (ctx: { pagefind: any, getFs: () => any }) => any[];
 }
-
-

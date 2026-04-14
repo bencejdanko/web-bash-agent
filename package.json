@@ -1,8 +1,8 @@
 {
-  "name": "pagefind-bash-agent-astro",
+  "name": "bash-agent-astro",
   "version": "1.0.0",
   "type": "module",
-  "description": "True Astro Integration for Pagefind Bash Agent",
+  "description": "Astro Integration for a Bash-enabled Agent",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -11,18 +11,14 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./integration": {
-      "types": "./dist/integration.d.ts",
-      "import": "./dist/integration.js"
-    },
-    "./AgentIsland": {
-      "import": "./dist/AgentIsland.js"
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
     },
     "./dist/*": "./dist/*"
   },
   "files": [
-    "dist",
-    "integration.ts"
+    "dist"
   ],
   "scripts": {
     "build": "tsup",
@@ -32,6 +28,14 @@
   },
   "packageManager": "pnpm@10.28.0",
   "dependencies": {
+    "@tiptap/core": "^3.22.3",
+    "@tiptap/extension-document": "^3.22.3",
+    "@tiptap/extension-hard-break": "^3.22.3",
+    "@tiptap/extension-history": "^3.22.3",
+    "@tiptap/extension-mention": "^3.22.3",
+    "@tiptap/extension-paragraph": "^3.22.3",
+    "@tiptap/extension-placeholder": "^3.22.3",
+    "@tiptap/extension-text": "^3.22.3",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-serialize": "^0.14.0",
     "@xterm/xterm": "^6.0.0",

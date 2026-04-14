@@ -5,7 +5,7 @@ import { createMcpTool, createMcpCommand, createMcpCommands } from './tools/mcp'
 
 
 type ToolFactory = (config: any, context: { skills: any[] }) => any;
-type CommandFactory = (config: any, context: { pagefind: any }) => any;
+type CommandFactory = (config: any, context: { [key: string]: any }) => any;
 
 class Registry {
   private toolFactories = new Map<string, ToolFactory>();
@@ -39,7 +39,7 @@ class Registry {
     return await factory(config, context);
   }
 
-  async getCommand(config: any, context: { pagefind: any }) {
+  async getCommand(config: any, context: { [key: string]: any }) {
     if (!config || typeof config.type !== 'string') return config;
     const factory = this.commandFactories.get(config.type);
     if (!factory) return null;

@@ -3,7 +3,7 @@ import path from 'node:path';
 
 /**
  * Recursively builds a virtual filesystem mapping from a base directory.
- * Includes text-based files and Pagefind metadata.
+ * Includes text-based files.
  */
 export function getFilesystem(baseDir: string, skip: string[] = ['node_modules', 'dist', '.git']): Record<string, string> {
     const result: Record<string, string> = {};
@@ -53,51 +53,20 @@ export function getFilesystem(baseDir: string, skip: string[] = ['node_modules',
 }
 
 /**
- * Standardized way to gather the agent's context (metadata folder + pagefind index).
- * Used for building a "production-ready" virtual filesystem.
+ * Standardized way to gather the agent's context from multiple mount points.
+ * @param mounts Mapping from virtual path (e.g. '/.agents') to real filesystem path.
  */
-export function getAgentContextFilesystem(options: { 
-    agentsDir: string; 
-    pagefindIndexDir?: string;
-    buildDir?: string;
-    mounts?: Record<string, string>; // Mapping from virtual path to real path
-}): Record<string, string> {
+export function getAgentContextFilesystem(mounts: Record<string, string>): Record<string, string> {
     const realFilesystem: Record<string, string> = {};
 
-    // 1. Mount the .agents (metadata) folder
-    if (fs.existsSync(options.agentsDir)) {
-        const metadataFs = getFilesystem(options.agentsDir);
-        for (const [p, content] of Object.entries(metadataFs)) {
-            realFilesystem['/.agents' + p] = content;
-        }
-    }
-
-    // 2. Mount the Pagefind index
-    if (options.pagefindIndexDir && fs.existsSync(options.pagefindIndexDir)) {
-        const indexFs = getFilesystem(options.pagefindIndexDir);
-        for (const [p, content] of Object.entries(indexFs)) {
-            realFilesystem['/pagefind' + p] = content;
-        }
-    }
-
-    // 3. Mount the build output (dist)
-    if (options.buildDir && fs.existsSync(options.buildDir)) {
-        const buildFs = getFilesystem(options.buildDir, ['node_modules', '.git']);
-        for (const [p, content] of Object.entries(buildFs)) {
-            realFilesystem['/build' + p] = content;
-        }
-    }
-
-    // 4. Mount additional custom directories
-    if (options.mounts) {
-        for (const [vPath, rPath] of Object.entries(options.mounts)) {
-            if (fs.existsSync(rPath)) {
-                const mountFs = getFilesystem(rPath);
-                for (const [p, content] of Object.entries(mountFs)) {
-                    // Ensure vPath starts with / and join it
-                    const prefix = vPath.startsWith('/') ? vPath : '/' + vPath;
-                    realFilesystem[prefix + p] = content;
-                }
+    for (const [vPath, rPath] of Object.entries(mounts)) {
+        if (fs.existsSync(rPath)) {
+            const mountFs = getFilesystem(rPath);
+            for (const [p, content] of Object.entries(mountFs)) {
+                // Ensure vPath starts with / and join it
+                const prefix = vPath.startsWith('/') ? vPath : '/' + vPath;
+                const joinedPath = (prefix + p).replace(/\/+/g, '/');
+                realFilesystem[joinedPath] = content;
             }
         }
     }

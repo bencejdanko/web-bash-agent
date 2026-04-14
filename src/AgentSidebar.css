@@ -1053,3 +1053,52 @@
     background-color: var(--agent-bg-subtle);
     color: var(--agent-text-subtle);
 }
+/* ── Mention chip — shared canonical styles ─────────────────────────────────
+   Covers both the live Tiptap editor chip (.ti-mention, ChatInput.css) and
+   the frozen user-bubble chip (.tag-highlight, emitted by renderWithHighlights).
+   Edit here to change chip appearance everywhere at once.                    */
+.ti-mention,
+.tag-highlight {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background-color: var(--agent-accent);
+    color: var(--agent-text-on-dark);
+    border-radius: 4px;
+    padding: 1px 6px 1px 4px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.ti-mention svg,
+.tag-highlight svg {
+    flex-shrink: 0;
+    opacity: 0.75;
+}
+
+/* ── Mention chip icon tints ─────────────────────────────────────────────────
+   The SVG fill/stroke uses currentColor, so setting color on the icon wrapper
+   (Tiptap chips) or directly on the svg (user-bubble chips) is enough.       */
+
+/* Files & folders — purple */
+.ti-mention--file .ti-mention-icon,
+.tag-highlight.file-tag svg {
+    color: var(--agent-purple);
+    opacity: 1;
+}
+
+/* Skills — cyan */
+.ti-mention--skill .ti-mention-icon,
+.tag-highlight.skill-tag svg {
+    color: var(--agent-cyan);
+    opacity: 1;
+}
+
+/* System — neutral: inherit the chip's white text colour, slightly dimmed */
+.ti-mention--system .ti-mention-icon,
+.tag-highlight.system-tag svg {
+    opacity: 0.65;
+}

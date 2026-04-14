@@ -4,9 +4,6 @@ import {
     type IFileSystem,
 } from 'just-bash/browser';
 export type { ExecResult, IFileSystem };
-import { createSearchCommand } from '../commands/search';
-import { createFetchInternalCommand } from '../commands/fetch-internal';
-import { createNavigateCommand } from '../commands/navigate';
 
 // Internal types from just-bash 
 export interface BashExecResult extends ExecResult {
@@ -18,15 +15,8 @@ export interface PersistentBashOptions {
     fs?: IFileSystem;
     cwd?: string;
     env?: Record<string, string>;
-    customCommands?: any[];
-    pagefind?: any;
+    customCommands?: (context: { getFs: () => any }) => any[];
     normalizePaths?: boolean;
-}
-
-export function normalizeSitePath(path: string): string {
-    if (path.startsWith('/site/')) return path;
-    if (path === '/site') return '/site/';
-    return `/site${path.startsWith('/') ? '' : '/'}${path}`;
 }
 
 /**
@@ -39,7 +29,7 @@ export class PersistentBashSandbox {
     private currentEnv: Record<string, string>;
 
     constructor(options: PersistentBashOptions = {}) {
-        this.currentCwd = options.cwd || '/site';
+        this.currentCwd = options.cwd || '/';
         this.currentEnv = { 
             PATH: '/bin:/usr/bin',
             HOME: '/home/user',
@@ -49,23 +39,16 @@ export class PersistentBashSandbox {
             ...options.env 
         };
 
-        // Prepare files (with optional normalization)
-        let initialFiles = options.files || {};
-        if (options.normalizePaths) {
-            const normalized: Record<string, string> = {};
-            for (const [path, content] of Object.entries(initialFiles)) {
-                normalized[normalizeSitePath(path)] = content;
-            }
-            initialFiles = normalized;
-        }
+        // Prepare files (no normalization/prefixing)
+        const initialFiles = options.files || {};
 
-        // Build core commands (Pagefind + Internal Fetch)
-        const coreCommands = [
-            createSearchCommand(options.pagefind),
-            createFetchInternalCommand(),
-            createNavigateCommand(),
-        ];
-        const allCommands = [...coreCommands, ...(options.customCommands || [])];
+        // 1. Prepare Context for late-binding (e.g. FS)
+        const context = { 
+            getFs: () => this.bash?.fs 
+        };
+        
+        // 2. Resolve commands from the mandatory factory (if provided)
+        const allCommands = options.customCommands ? options.customCommands(context) : [];
 
         this.bash = new Bash({
             files: initialFiles,

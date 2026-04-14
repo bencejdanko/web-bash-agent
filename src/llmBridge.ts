@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { AgentSkill } from './types';
+import { AgentInjection } from './types';
 
 export class LlmBridge {
   private openai: OpenAI;
@@ -58,19 +58,17 @@ export class LlmBridge {
   }
 
   getSystemPrompt() {
-    if (!this.systemPromptOverride) {
-        throw new Error('System prompt not configured');
-    }
-    return this.systemPromptOverride;
+    return this.systemPromptOverride || '';
   }
 
   async *streamChat(messages: any[], options: { reasoning_effort?: 'low' | 'medium' | 'high', include_thinking?: boolean, signal?: AbortSignal } = {}) {
     if (!this.openai?.chat?.completions) {
         throw new Error('OpenAI client not configured');
     }
+    const systemPrompt = this.getSystemPrompt();
     const body: any = {
       model: this.model,
-      messages: [{ role: 'system', content: this.getSystemPrompt() }, ...messages],
+      messages: systemPrompt ? [{ role: 'system', content: systemPrompt }, ...messages] : messages,
       tools: this.getToolDefinitions() as any,
       tool_choice: 'auto',
       stream: true,
@@ -94,9 +92,10 @@ export class LlmBridge {
     if (!this.openai?.chat?.completions) {
         throw new Error('OpenAI client not configured');
     }
+    const systemPrompt = this.getSystemPrompt();
     const body: any = {
       model: this.model,
-      messages: [{ role: 'system', content: this.getSystemPrompt() }, ...messages],
+      messages: systemPrompt ? [{ role: 'system', content: systemPrompt }, ...messages] : messages,
       tools: this.getToolDefinitions() as any,
       tool_choice: 'auto',
     };

@@ -1,5 +1,6 @@
-import { Message, AgentSidebarProps } from '../types';
+import { Message, AgentSidebarProps, AgentInjection } from '../types';
 import { Store } from './Store';
+import { PromptAssembler } from './PromptAssembler';
 
 export interface TerminalSession {
     id: string;
@@ -18,6 +19,7 @@ export interface AgentState {
     collapsedTurnIds: string[];
     collapsedThoughtIds: string[];
     currentModelId: string;
+    currentSystemPrompt: string;
     actualFilesystem: Record<string, string>;
     terminals: TerminalSession[];
     activeTerminalId: string | null;
@@ -28,7 +30,7 @@ export interface AgentState {
     currentConversationId: string | null;
     isCollapsed: boolean;
     sidebarSizes: number[];
-    skills: any[];
+    injections: AgentInjection[];
     showTerminalWindow: boolean;
     terminalPosition: { x: number, y: number } | null;
     terminalCwd: string | null;
@@ -84,7 +86,17 @@ export class ChatLogic {
         try {
             let isWorking = true;
             let iterations = 0;
-            let currentMessages = [...this.store.getState().messages];
+            
+            // Initial Prompt Assembly
+            const assembledPrompt = PromptAssembler.assemble(
+                text,
+                state.injections,
+                state.actualFilesystem
+            );
+
+            // Replace the last message content for the context of the first call
+            const contextMessages = [...state.messages, { ...userMessage, content: assembledPrompt }];
+            let currentMessages = [...contextMessages];
             
             while (isWorking && iterations < 15) {
                 if (controller.signal.aborted) break;

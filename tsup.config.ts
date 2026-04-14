@@ -3,8 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: {
     index: 'index.ts',
-    integration: 'integration.ts',
-    AgentIsland: 'src/AgentIsland.ts',
+    server: 'src/server.ts',
   },
   format: ['esm'],
   target: 'es2020', 
@@ -13,7 +12,7 @@ export default defineConfig({
   clean: false,
   minify: false,
   sourcemap: false,
-  external: ['astro'],
+  external: [],
   treeshake: true,
   injectStyle: true,
   outDir: 'dist',
