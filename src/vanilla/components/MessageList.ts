@@ -81,7 +81,7 @@ export class MessageList extends BaseComponent<MessageListProps> {
             
             // User message
             const userBubble = document.createElement('div');
-            userBubble.className = 'user-bubble';
+            userBubble.className = 'user-bubble agent-scrollbar';
             userBubble.innerHTML = renderWithHighlights(
                 turn.user.content || '',
                 this.props.injections,

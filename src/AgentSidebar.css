@@ -367,6 +367,8 @@
   top: 8px;
   z-index: 50;
   margin-bottom: 12px;
+  height: 82px;
+  overflow-y: auto;
 }
 
 .chat-turn {
