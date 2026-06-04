@@ -4,11 +4,44 @@ import { AgentInjection } from './types';
 export class LlmBridge {
   private openai: OpenAI;
   private model: string;
-
+  private turnstileToken: string | null = null;
 
   private systemPromptOverride: string | null = null;
 
   public tools: any[] = []; // Can hold full AgentTool objects
+
+  setTurnstileToken(token: string | null) {
+    this.turnstileToken = token;
+  }
+
+  private createOpenAI(config: { apiKey: string; baseURL?: string; dangerouslyAllowBrowser?: boolean; defaultHeaders?: Record<string, string> }) {
+    return new OpenAI({
+      apiKey: config.apiKey,
+      baseURL: config.baseURL,
+      dangerouslyAllowBrowser: config.dangerouslyAllowBrowser,
+      defaultHeaders: config.defaultHeaders,
+      fetch: async (url, init) => {
+        const headers = new Headers(init?.headers);
+        const sessionToken = localStorage.getItem('agent-session-token');
+        if (sessionToken) {
+          headers.set('X-Session-Token', sessionToken);
+        }
+        if (this.turnstileToken) {
+          headers.set('X-Turnstile-Token', this.turnstileToken);
+          this.turnstileToken = null; // consume token
+        }
+        const response = await fetch(url, {
+          ...init,
+          headers
+        });
+        const newSessionToken = response.headers.get('X-Session-Token');
+        if (newSessionToken) {
+          localStorage.setItem('agent-session-token', newSessionToken);
+        }
+        return response;
+      }
+    });
+  }
 
   constructor(options: { 
     apiKey: string; 
@@ -19,7 +52,7 @@ export class LlmBridge {
     tools?: any[];
     defaultHeaders?: Record<string, string>;
   }) {
-    this.openai = new OpenAI({
+    this.openai = this.createOpenAI({
       apiKey: options.apiKey,
       baseURL: options.baseURL,
       dangerouslyAllowBrowser: options.dangerouslyAllowBrowser,
@@ -31,7 +64,7 @@ export class LlmBridge {
   }
 
   updateConfig(config: { apiKey: string; endpoint: string; model: string; defaultHeaders?: Record<string, string> }) {
-    this.openai = new OpenAI({
+    this.openai = this.createOpenAI({
       apiKey: config.apiKey,
       baseURL: config.endpoint,
       dangerouslyAllowBrowser: true,

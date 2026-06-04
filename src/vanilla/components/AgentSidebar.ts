@@ -287,14 +287,20 @@ export class AgentSidebar extends BaseComponent<AgentSidebarProps> {
 
         this.chatInput = new ChatInput({
             isProcessing: false,
-            onSend: (text) => this.chatLogic.handleSend(text),
+            onSend: (text, turnstileToken) => {
+                if (turnstileToken && this.llmBridge) {
+                    this.llmBridge.setTurnstileToken(turnstileToken);
+                }
+                this.chatLogic.handleSend(text);
+            },
             onCancel: () => this.chatLogic.handleCancel(),
             models: this.props.models,
             currentModelId: this.store.getState().currentModelId,
             onModelChange: (id) => this.initLogic.updateModel(id),
             injections: this.store.getState().injections,
             filesystem: this.store.getState().actualFilesystem,
-            placeholder: 'Ask anything, @ to mention files, / for skills, # for system...'
+            placeholder: 'Ask anything, @ to mention files, / for skills, # for system...',
+            turnstileSiteKey: this.props.turnstileSiteKey
         });
         this.query('#chat-input-root')?.appendChild(this.chatInput.getElement());
         this.chatInput.init();

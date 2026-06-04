@@ -17,7 +17,7 @@ interface SuggestionKeyDownProps { event: KeyboardEvent; }
 
 interface ChatInputProps {
   isProcessing: boolean;
-  onSend: (text: string) => void;
+  onSend: (text: string, turnstileToken?: string) => void;
   onCancel: () => void;
   placeholder?: string;
   onOpenTerminal?: () => void;
@@ -26,6 +26,7 @@ interface ChatInputProps {
   onModelChange: (id: string) => void;
   injections: AgentInjection[];
   filesystem?: Record<string, string>;
+  turnstileSiteKey?: string;
 }
 
 // ─── Suggestion data ─────────────────────────────────────────────────────────
@@ -360,6 +361,9 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
   private editor: Editor | null = null;
   private isModelMenuOpen: boolean = false;
   private selectedModelIndex: number = 0;
+  private turnstileWidgetId: string | null = null;
+  private turnstileContainer: HTMLElement | null = null;
+  private pendingTextToSend: string | null = null;
 
   protected createRootElement(): HTMLElement {
     const div = document.createElement('div');
@@ -371,7 +375,63 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
     this.renderShell();
     this.setupEditor();
     this.setupStaticListeners();
+    this.setupTurnstile();
     this.updateDynamicParts();
+  }
+
+  private setupTurnstile() {
+    if (!this.props.turnstileSiteKey) return;
+
+    // Inject Turnstile script if not already present
+    if (!document.querySelector('script[src*="challenges.cloudflare.com"]')) {
+      const script = document.createElement('script');
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+
+    // Create an invisible container for Turnstile
+    this.turnstileContainer = document.createElement('div');
+    this.turnstileContainer.style.display = 'none';
+    this.element.appendChild(this.turnstileContainer);
+
+    const checkAndRender = () => {
+      if ((window as any).turnstile) {
+        try {
+          this.turnstileWidgetId = (window as any).turnstile.render(this.turnstileContainer, {
+            sitekey: this.props.turnstileSiteKey,
+            size: 'invisible',
+            callback: (token: string) => {
+              if (this.pendingTextToSend) {
+                this.props.onSend(this.pendingTextToSend, token);
+                this.pendingTextToSend = null;
+                this.editor?.commands.clearContent(true);
+                this.updateSendButton();
+              }
+              if (this.turnstileWidgetId) {
+                (window as any).turnstile.reset(this.turnstileWidgetId);
+              }
+            },
+            'error-callback': (err: any) => {
+              console.error('Turnstile error:', err);
+              if (this.pendingTextToSend) {
+                this.props.onSend(this.pendingTextToSend);
+                this.pendingTextToSend = null;
+                this.editor?.commands.clearContent(true);
+                this.updateSendButton();
+              }
+            }
+          });
+        } catch (e) {
+          console.error('Failed to render Turnstile widget:', e);
+        }
+      } else {
+        setTimeout(checkAndRender, 100);
+      }
+    };
+
+    checkAndRender();
   }
 
   render() {
@@ -695,9 +755,15 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
     const doc = this.editor.getJSON();
     const text = serializeDoc(doc);
     if (!text.trim()) return;
-    this.props.onSend(text);
-    this.editor.commands.clearContent(true);
-    this.updateSendButton();
+
+    if (this.props.turnstileSiteKey && (window as any).turnstile && this.turnstileWidgetId) {
+      this.pendingTextToSend = text;
+      (window as any).turnstile.execute(this.turnstileContainer, this.turnstileWidgetId);
+    } else {
+      this.props.onSend(text);
+      this.editor.commands.clearContent(true);
+      this.updateSendButton();
+    }
   }
 
   // ── Focus ──────────────────────────────────────────────────────────────────
@@ -711,6 +777,11 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
   // ── Destroy ────────────────────────────────────────────────────────────────
 
   destroy() {
+    if (this.turnstileWidgetId && (window as any).turnstile) {
+      try {
+        (window as any).turnstile.remove(this.turnstileWidgetId);
+      } catch (e) {}
+    }
     this.editor?.destroy();
     this.editor = null;
   }

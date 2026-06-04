@@ -76,4 +76,5 @@ export interface AgentSidebarProps {
     includeThinking?: boolean;
     injections?: AgentInjection[];
     customBashCommands?: (ctx: { pagefind: any, getFs: () => any }) => any[];
+    turnstileSiteKey?: string;
 }
