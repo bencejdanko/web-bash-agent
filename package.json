@@ -1,8 +1,8 @@
 {
-  "name": "bash-agent-astro",
+  "name": "web-bash-agent",
   "version": "1.0.0",
   "type": "module",
-  "description": "Astro Integration for a Bash-enabled Agent",
+  "description": "A vanilla js client-side bash-enabled agent",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",

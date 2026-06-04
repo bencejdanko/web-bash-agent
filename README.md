@@ -1,4 +1,4 @@
-# bash-agent
+# web-bash-agent
 
 An pure vanilla JS (TypeScript) implementation for an in-browser agent to attach to your site using [`just-bash`](https://github.com/vercel-labs/just-bash). 
 
@@ -8,7 +8,7 @@ You can choose to mount filesystems for the agent to access using a virtual, in-
 
 ```bash
 # install
-pnpm i bash-agent
+pnpm i web-bash-agent
 ```
 
 ## Usage
@@ -30,4 +30,12 @@ cp wrangler.toml.example wrangler.toml
 
 # deploy
 pnpm dlx wrangler deploy
+```
+
+## (For developer) npm publishing
+
+```bash
+npm login
+pnpm run build
+pnpm publish
 ```
