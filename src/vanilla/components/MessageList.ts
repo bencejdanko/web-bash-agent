@@ -72,6 +72,10 @@ export class MessageList extends BaseComponent<MessageListProps> {
             }
         });
 
+        // Save current scroll position and check if near bottom before clearing content
+        const previousScrollTop = this.element.scrollTop;
+        const wasNearBottom = this.element.scrollHeight - this.element.scrollTop - this.element.clientHeight < 150;
+
         this.element.innerHTML = '';
 
         turns.forEach((turn, idx) => {
@@ -239,19 +243,21 @@ export class MessageList extends BaseComponent<MessageListProps> {
             this.element.appendChild(turnDiv);
         });
 
+        // Restore scroll position synchronously to prevent screen jump to 0
+        this.element.scrollTop = previousScrollTop;
+
         // Clean up thinking indicator if not processing
         if (!this.props.isProcessing && this.thinkingIndicator) {
             this.thinkingIndicator.destroy();
             this.thinkingIndicator = null;
         }
 
-        // Scroll to bottom
+        // Scroll to bottom if we were already near bottom (instant scroll during active streaming to avoid jank)
         setTimeout(() => {
-            const isNearBottom = this.element.scrollHeight - this.element.scrollTop - this.element.clientHeight < 100;
-            if (isNearBottom || this.props.isProcessing) {
+            if (wasNearBottom) {
                 this.element.scrollTo({
                     top: this.element.scrollHeight,
-                    behavior: 'smooth'
+                    behavior: this.props.isProcessing ? 'auto' : 'smooth'
                 });
             }
         }, 50);
