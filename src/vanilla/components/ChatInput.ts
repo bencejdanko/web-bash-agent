@@ -364,6 +364,7 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
   private turnstileWidgetId: string | null = null;
   private turnstileContainer: HTMLElement | null = null;
   private pendingTextToSend: string | null = null;
+  private wasProcessing: boolean = false;
 
   protected createRootElement(): HTMLElement {
     const div = document.createElement('div');
@@ -391,30 +392,40 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
       document.head.appendChild(script);
     }
 
-    // Create an invisible container for Turnstile
+    // Create container for Turnstile (fixed in the bottom left of the entire page)
     this.turnstileContainer = document.createElement('div');
-    this.turnstileContainer.style.display = 'none';
-    this.element.appendChild(this.turnstileContainer);
+    this.turnstileContainer.className = 'turnstile-container';
+    this.turnstileContainer.style.position = 'fixed';
+    this.turnstileContainer.style.bottom = '16px';
+    this.turnstileContainer.style.left = '16px';
+    this.turnstileContainer.style.zIndex = '99999';
+    this.turnstileContainer.style.display = 'none'; // Hidden by default, only visible during active challenge
+    document.body.appendChild(this.turnstileContainer);
 
     const checkAndRender = () => {
       if ((window as any).turnstile) {
         try {
           this.turnstileWidgetId = (window as any).turnstile.render(this.turnstileContainer, {
             sitekey: this.props.turnstileSiteKey,
-            size: 'invisible',
+            execution: 'execute',
             callback: (token: string) => {
+              // Hide Turnstile container when solved
+              if (this.turnstileContainer) {
+                this.turnstileContainer.style.display = 'none';
+              }
               if (this.pendingTextToSend) {
                 this.props.onSend(this.pendingTextToSend, token);
                 this.pendingTextToSend = null;
                 this.editor?.commands.clearContent(true);
                 this.updateSendButton();
               }
-              if (this.turnstileWidgetId) {
-                (window as any).turnstile.reset(this.turnstileWidgetId);
-              }
             },
             'error-callback': (err: any) => {
               console.error('Turnstile error:', err);
+              // Hide Turnstile container on error
+              if (this.turnstileContainer) {
+                this.turnstileContainer.style.display = 'none';
+              }
               if (this.pendingTextToSend) {
                 this.props.onSend(this.pendingTextToSend);
                 this.pendingTextToSend = null;
@@ -620,6 +631,18 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
     if (this.editor.isEditable !== editable) {
       this.editor.setEditable(editable);
     }
+
+    // Reset Turnstile widget when processing finishes so a new challenge runs for the next turn
+    if (this.wasProcessing && !this.props.isProcessing) {
+      if (this.props.turnstileSiteKey && (window as any).turnstile && this.turnstileWidgetId) {
+        try {
+          (window as any).turnstile.reset(this.turnstileWidgetId);
+        } catch (e) {
+          console.error('Failed to reset Turnstile:', e);
+        }
+      }
+    }
+    this.wasProcessing = this.props.isProcessing;
   }
 
   private updateSendButton() {
@@ -758,6 +781,10 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
 
     if (this.props.turnstileSiteKey && (window as any).turnstile && this.turnstileWidgetId) {
       this.pendingTextToSend = text;
+      // Show Turnstile container when executing challenge
+      if (this.turnstileContainer) {
+        this.turnstileContainer.style.display = 'block';
+      }
       (window as any).turnstile.execute(this.turnstileContainer, this.turnstileWidgetId);
     } else {
       this.props.onSend(text);
@@ -780,6 +807,11 @@ export class ChatInput extends BaseComponent<ChatInputProps> {
     if (this.turnstileWidgetId && (window as any).turnstile) {
       try {
         (window as any).turnstile.remove(this.turnstileWidgetId);
+      } catch (e) {}
+    }
+    if (this.turnstileContainer) {
+      try {
+        this.turnstileContainer.remove();
       } catch (e) {}
     }
     this.editor?.destroy();

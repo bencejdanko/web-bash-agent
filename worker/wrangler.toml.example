@@ -3,7 +3,6 @@ main = "index.ts"
 compatibility_date = "2024-04-05"
 
 [vars]
-
 # These are sensitive, optionally manage with:
 # pnpm dlx wrangler secret put <var>
 TURNSTILE_SECRET_KEY = ""
@@ -12,6 +11,8 @@ OPENROUTER_TOKEN = ""
 # these are not sensitive, and set to * by default for simplicity
 ALLOWED_ORIGINS = "*"
 RATE_LIMIT_PER_MINUTE = 20
+APPROVED_MODELS = "nvidia/nemotron-3-super-120b-a12b,Qwen/Qwen3.5-27B"
+
 
 
 [observability]

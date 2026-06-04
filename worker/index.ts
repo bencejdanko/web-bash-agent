@@ -1,14 +1,10 @@
 export interface Env {
   ALLOWED_ORIGINS?: string;
+  APPROVED_MODELS?: string;
   RATE_LIMIT_PER_MINUTE?: string | number;
   TURNSTILE_SECRET_KEY?: string;
   [key: string]: any;
 }
-
-const APPROVED_MODELS = [
-  "nvidia/nemotron-3-super-120b-a12b",
-  "Qwen/Qwen3.5-27B"
-];
 
 // In-memory rate limiting map (applies per V8 isolate instance)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -74,7 +70,7 @@ async function verifyTurnstile(token: string, secretKey: string, remoteIp?: stri
 // Generate HMAC-SHA256 Session Token
 async function generateSessionToken(ip: string, secretKey: string): Promise<string> {
   const expiry = Date.now() + 15 * 60 * 1000; // 15 minutes session validity
-  const data = `${ip}:${expiry}`;
+  const data = `${ip}|${expiry}`;
   
   const encoder = new TextEncoder();
   const keyBuf = encoder.encode(secretKey);
@@ -93,13 +89,13 @@ async function generateSessionToken(ip: string, secretKey: string): Promise<stri
     .map(b => b.toString(16).padStart(2, "0"))
     .join("");
     
-  return `${data}:${sigHex}`;
+  return `${data}|${sigHex}`;
 }
 
 // Verify HMAC-SHA256 Session Token
 async function verifySessionToken(token: string, ip: string, secretKey: string): Promise<boolean> {
   try {
-    const parts = token.split(":");
+    const parts = token.split("|");
     if (parts.length !== 3) return false;
     
     const [tokenIp, expiryStr, sigHex] = parts;
@@ -108,7 +104,7 @@ async function verifySessionToken(token: string, ip: string, secretKey: string):
     if (tokenIp !== ip) return false;
     if (Date.now() > expiry) return false;
     
-    const data = `${tokenIp}:${expiryStr}`;
+    const data = `${tokenIp}|${expiryStr}`;
     const encoder = new TextEncoder();
     const keyBuf = encoder.encode(secretKey);
     const dataBuf = encoder.encode(data);
@@ -155,40 +151,48 @@ export default {
       });
     }
 
-    // 2. Turnstile / Session Token verification (if secret key is set)
+    // 2. Turnstile / Session Token verification (strict requirement)
+    if (!env.TURNSTILE_SECRET_KEY) {
+      return new Response("Internal Server Error: TURNSTILE_SECRET_KEY is not configured.", {
+        status: 500,
+        headers: corsHeaders(request, env)
+      });
+    }
+
     let newSessionToken: string | null = null;
+    const sessionToken = request.headers.get("X-Session-Token");
+    const turnstileToken = request.headers.get("X-Turnstile-Token");
     
-    if (env.TURNSTILE_SECRET_KEY) {
-      const sessionToken = request.headers.get("X-Session-Token");
-      const turnstileToken = request.headers.get("X-Turnstile-Token");
-      
-      let authenticated = false;
-      
-      if (sessionToken) {
-        authenticated = await verifySessionToken(sessionToken, ip, env.TURNSTILE_SECRET_KEY);
+    let authenticated = false;
+    
+    if (sessionToken) {
+      authenticated = await verifySessionToken(sessionToken, ip, env.TURNSTILE_SECRET_KEY);
+    }
+    
+    if (!authenticated && turnstileToken) {
+      const isTurnstileValid = await verifyTurnstile(turnstileToken, env.TURNSTILE_SECRET_KEY, ip);
+      if (isTurnstileValid) {
+        authenticated = true;
+        newSessionToken = await generateSessionToken(ip, env.TURNSTILE_SECRET_KEY);
       }
-      
-      if (!authenticated && turnstileToken) {
-        const isTurnstileValid = await verifyTurnstile(turnstileToken, env.TURNSTILE_SECRET_KEY, ip);
-        if (isTurnstileValid) {
-          authenticated = true;
-          newSessionToken = await generateSessionToken(ip, env.TURNSTILE_SECRET_KEY);
-        }
-      }
-      
-      if (!authenticated) {
-        return new Response("Unauthorized: Invalid or missing CAPTCHA or Session token.", {
-          status: 401,
-          headers: corsHeaders(request, env)
-        });
-      }
+    }
+    
+    if (!authenticated) {
+      return new Response("Unauthorized: Invalid or missing CAPTCHA or Session token.", {
+        status: 401,
+        headers: corsHeaders(request, env)
+      });
     }
 
     try {
       const body = await request.json();
       const model = body.model;
 
-      if (!APPROVED_MODELS.includes(model)) {
+      const approvedModels = (env.APPROVED_MODELS || "nvidia/nemotron-3-super-120b-a12b,Qwen/Qwen3.5-27B")
+        .split(",")
+        .map(m => m.trim());
+
+      if (!approvedModels.includes(model)) {
         return new Response(`Model ${model} is not approved for this proxy.`, { 
           status: 403,
           headers: corsHeaders(request, env)
