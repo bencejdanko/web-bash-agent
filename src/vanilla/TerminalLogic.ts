@@ -169,9 +169,7 @@ export class TerminalLogic {
     }
 
     public getPrompt() {
-        const cwd = this.sandbox.getCwd() || '/site';
-        const displayCwd = cwd === '/site' ? '~' : cwd.replace('/site', '~').replace(/\/$/, '');
-        return `\x1b[32muser@agent\x1b[0m:\x1b[34m${displayCwd}\x1b[0m$ `;
+        return this.sandbox.getPrompt();
     }
 
     private getVisiblePromptLength(): number {

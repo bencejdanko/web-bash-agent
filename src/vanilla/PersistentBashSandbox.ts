@@ -27,6 +27,8 @@ export class PersistentBashSandbox {
     private bash: Bash;
     private currentCwd: string;
     private currentEnv: Record<string, string>;
+    private subshellHandler: ((command: string) => Promise<ExecResult>) | null = null;
+    private customPromptFn: (() => string) | null = null;
 
     constructor(options: PersistentBashOptions = {}) {
         this.currentCwd = options.cwd || '/';
@@ -44,7 +46,9 @@ export class PersistentBashSandbox {
 
         // 1. Prepare Context for late-binding (e.g. FS)
         const context = { 
-            getFs: () => this.bash?.fs 
+            getFs: () => this.bash?.fs,
+            getSandbox: () => this,
+            setSubshell: (handler: any, promptFn?: any) => this.setSubshell(handler, promptFn),
         };
         
         // 2. Resolve commands from the mandatory factory (if provided)
@@ -74,10 +78,28 @@ export class PersistentBashSandbox {
         return String(val);
     }
 
+    setSubshell(handler: ((command: string) => Promise<ExecResult>) | null, promptFn?: (() => string) | null) {
+        this.subshellHandler = handler;
+        this.customPromptFn = promptFn || null;
+    }
+
+    getPrompt(): string {
+        if (this.customPromptFn) {
+            return this.customPromptFn();
+        }
+        const cwd = this.currentCwd || '/site';
+        const displayCwd = cwd === '/site' ? '~' : cwd.replace('/site', '~').replace(/\/$/, '');
+        return `\x1b[32muser@agent\x1b[0m:\x1b[34m${displayCwd}\x1b[0m$ `;
+    }
+
     /**
      * Executes a command and preserves the resulting environment and CWD.
      */
     async exec(command: string): Promise<ExecResult> {
+        if (this.subshellHandler) {
+            return await this.subshellHandler(command);
+        }
+
         try {
             const result = await (this.bash.exec(command, {
                 cwd: this.currentCwd,
