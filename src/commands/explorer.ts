@@ -247,6 +247,16 @@ export class MinimalExplorerModal extends MinimalWindowModal {
   }
 }
 
+/**
+ * Reusable helper to open File Explorer modal.
+ */
+export function openExplorerModal(options: ExplorerOptions) {
+  const modal = new MinimalExplorerModal(options);
+  modal.show();
+  return modal;
+}
+
+
 async function runExplorer(args: string[], ctx: any, context?: { getFs?: () => any }) {
   try {
     const fs = (context?.getFs ? context.getFs() : null) || ctx.fs;

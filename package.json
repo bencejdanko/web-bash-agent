@@ -1,8 +1,8 @@
 {
-  "name": "web-bash-agent",
+  "name": "pugilister",
   "version": "1.0.2",
   "type": "module",
-  "description": "A vanilla js client-side bash-enabled agent",
+  "description": "Lightweight headless browser sandbox and AI agent API",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -39,6 +39,7 @@
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-serialize": "^0.14.0",
     "@xterm/xterm": "^6.0.0",
+    "d3": "^7.9.0",
     "highlight.js": "11.9.0",
     "just-bash": "^2.14.0",
     "marked": "12.0.0",
@@ -48,6 +49,7 @@
   },
   "devDependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@types/d3": "^7.4.3",
     "@types/node": "^25.5.2",
     "astro": "^6.1.3",
     "jsdom": "^29.0.1",

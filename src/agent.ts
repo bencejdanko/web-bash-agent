@@ -18,8 +18,6 @@ export interface AgentOptions {
   bashSandbox?: PersistentBashSandbox;
   customBashCommands?: (ctx: any) => any[];
   systemPrompt?: string;
-  turnstileToken?: string;
-  turnstileSiteKey?: string;
   defaultHeaders?: Record<string, string>;
   onLog?: (message: string, level?: 'info' | 'tool' | 'result' | 'error') => void;
   onStep?: (step: { iteration: number; toolCalls?: any[]; response?: string }) => void;
@@ -109,11 +107,6 @@ export async function agent(prompt: string, options: AgentOptions = {}): Promise
       defaultHeaders,
       dangerouslyAllowBrowser: true,
     });
-
-    const turnstileToken = await resolveTurnstileToken(options.turnstileSiteKey, options.turnstileToken);
-    if (turnstileToken) {
-      llm.setTurnstileToken(turnstileToken);
-    }
 
     // 3. Execution Loop
     const messages: any[] = [
@@ -252,62 +245,4 @@ export async function agent(prompt: string, options: AgentOptions = {}): Promise
 
 if (typeof window !== 'undefined') {
   (window as any).agent = agent;
-}
-
-export async function resolveTurnstileToken(siteKey?: string, explicitToken?: string): Promise<string | undefined> {
-  if (explicitToken) return explicitToken;
-  if (typeof window === 'undefined') return undefined;
-
-  // 1. Try turnstile.getResponse()
-  if ((window as any).turnstile && typeof (window as any).turnstile.getResponse === 'function') {
-    const resp = (window as any).turnstile.getResponse();
-    if (resp) return resp;
-  }
-
-  // 2. If turnstileSiteKey is provided, render Turnstile invisibly to get a token
-  if (siteKey) {
-    try {
-      if (!(window as any).turnstile) {
-        await new Promise<void>((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-          script.async = true;
-          script.defer = true;
-          script.onload = () => resolve();
-          script.onerror = () => reject(new Error('Failed to load Turnstile API script'));
-          document.head.appendChild(script);
-        });
-      }
-
-      if ((window as any).turnstile) {
-        return await new Promise<string | undefined>((resolve) => {
-          const container = document.createElement('div');
-          container.style.display = 'none';
-          document.body.appendChild(container);
-
-          const widgetId = (window as any).turnstile.render(container, {
-            sitekey: siteKey,
-            callback: (token: string) => {
-              try { (window as any).turnstile.remove(widgetId); } catch {}
-              container.remove();
-              resolve(token);
-            },
-            'error-callback': () => {
-              container.remove();
-              resolve(undefined);
-            }
-          });
-
-          setTimeout(() => {
-            container.remove();
-            resolve(undefined);
-          }, 8000);
-        });
-      }
-    } catch (e) {
-      console.warn('Turnstile resolution warning:', e);
-    }
-  }
-
-  return undefined;
 }
