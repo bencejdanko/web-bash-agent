@@ -23,15 +23,16 @@ export function createBashTool(customDescription?: string): AgentTool {
         },
       },
     },
-    handler: async ({ command }, { iterationId, toolCallId }) => {
-      const manager = (window as any).terminalSessionManager;
-      if (manager && iterationId && toolCallId) {
-        const sessionId = `${iterationId}-${toolCallId}`;
-        return await manager.runCommand(sessionId, command);
+    handler: async ({ command }, context?: any) => {
+      const sandbox = context?.sandbox || (window as any).bashSandbox;
+      if (sandbox) {
+        const res = await sandbox.exec(command);
+        let out = '';
+        if (res.stdout) out += res.stdout;
+        if (res.stderr) out += res.stderr;
+        return out || '(command completed with no output)';
       }
-      
-      // Fallback if manager is missing (unlikely in this architecture)
-      return '(error: session manager unavailable)';
+      return '(error: sandbox unavailable)';
     },
   };
 }

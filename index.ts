@@ -1,5 +1,7 @@
-export { AgentSidebar } from './src/vanilla/components/AgentSidebar';
-export { PersistentBashSandbox as BashSandbox } from './src/vanilla/PersistentBashSandbox';
+export { agent } from './src/agent';
+export type { AgentOptions, AgentResult, ToolCallRecord } from './src/agent';
+
+export { PersistentBashSandbox as BashSandbox } from './src/PersistentBashSandbox';
 export { LlmBridge } from './src/llmBridge';
 export { getFilesystem, getAgentContextFilesystem } from './src/filesystem';
 export { bashTool } from './src/tools/bash';
@@ -8,5 +10,5 @@ export { createNotepadCommand, createEditCommand, openNotepadModal, MinimalNotep
 export { createExplorerCommand, createFilesCommand, MinimalExplorerModal } from './src/commands/explorer';
 export { MinimalWindowModal } from './src/commands/windowModal';
 
-export type { Message, AgentSidebarProps, ToolConfig, ModelConfig } from './src/types';
-export type { PersistentBashOptions as BashSandboxOptions, ExecResult } from './src/vanilla/PersistentBashSandbox';
+export type { Message, ToolConfig, ModelConfig } from './src/types';
+export type { PersistentBashOptions as BashSandboxOptions, ExecResult } from './src/PersistentBashSandbox';

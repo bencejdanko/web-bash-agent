@@ -61,6 +61,28 @@ export class PersistentBashSandbox {
             env: this.currentEnv,
             customCommands: allCommands,
         });
+
+        if (typeof window !== 'undefined') {
+            (window as any).bashSandbox = this;
+            (window as any).bash = async (command: string) => {
+                const res = await this.exec(command);
+                if (res.stdout) console.log(res.stdout);
+                if (res.stderr) console.error(res.stderr);
+                return res;
+            };
+            (window as any).exec = (window as any).bash;
+            const fsFn: any = (dirPath = '/') => this.bash.fs.readdir(dirPath);
+            fsFn.ls = (dirPath = '/') => this.bash.fs.readdir(dirPath);
+            fsFn.cat = async (filePath: string) => {
+                const content = await this.bash.fs.readFile(filePath);
+                return this.decode(content);
+            };
+            fsFn.write = (filePath: string, text: string) => this.bash.fs.writeFile(filePath, text);
+            fsFn.rm = (filePath: string) => (this.bash.fs as any).unlink ? (this.bash.fs as any).unlink(filePath) : null;
+            fsFn.tree = () => (typeof (this.bash.fs as any).getAllPaths === 'function' ? (this.bash.fs as any).getAllPaths() : null);
+            fsFn._raw = this.bash.fs;
+            (window as any).fs = fsFn;
+        }
     }
 
     private decode(val: any): string {

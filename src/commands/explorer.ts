@@ -296,3 +296,27 @@ export function createFilesCommand(context?: { getFs?: () => any }) {
     return await runExplorer(args, ctx, context);
   });
 }
+
+if (typeof window !== 'undefined') {
+  (window as any).explorer = (path?: string) => {
+    const fs = (window as any).fs?._raw || (window as any).bashSandbox?.fs;
+    const modal = new MinimalExplorerModal({
+      initialPath: path || '/',
+      fs,
+    });
+    modal.show();
+    return modal;
+  };
+
+  (window as any).files = (window as any).explorer;
+
+  (window as any).notepad = async (fileOrPath?: string) => {
+    const fs = (window as any).fs?._raw || (window as any).bashSandbox?.fs;
+    const target = fileOrPath || 'untitled.txt';
+    const currentCwd = (window as any).bashSandbox?.getCwd() || '/';
+    const filePath = target.startsWith('/') ? target : `${currentCwd}/${target}`.replace(/\/+/g, '/');
+    const filename = filePath.split('/').pop() || target;
+    return await openNotepadModal({ filename, filePath, fs });
+  };
+}
+
