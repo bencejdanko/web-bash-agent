@@ -3,7 +3,6 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: {
     index: 'index.ts',
-    server: 'src/server.ts',
   },
   format: ['esm'],
   target: 'es2020', 

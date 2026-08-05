@@ -10,12 +10,7 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./server": {
-      "types": "./dist/server.d.ts",
-      "import": "./dist/server.js"
-    },
-    "./dist/*": "./dist/*"
+    }
   },
   "files": [
     "dist"
@@ -28,6 +23,7 @@
   },
   "packageManager": "pnpm@10.28.0",
   "dependencies": {
+    "@duckdb/duckdb-wasm": "1.33.1-dev57.0",
     "@tiptap/core": "^3.22.3",
     "@tiptap/extension-document": "^3.22.3",
     "@tiptap/extension-hard-break": "^3.22.3",
@@ -39,17 +35,16 @@
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-serialize": "^0.14.0",
     "@xterm/xterm": "^6.0.0",
-    "d3": "^7.9.0",
     "highlight.js": "11.9.0",
     "just-bash": "^2.14.0",
     "marked": "12.0.0",
     "marked-highlight": "2.2.1",
     "openai": "^6.33.0",
+    "pyodide": "^0.26.4",
     "split.js": "^1.6.5"
   },
   "devDependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@types/d3": "^7.4.3",
     "@types/node": "^25.5.2",
     "astro": "^6.1.3",
     "jsdom": "^29.0.1",

@@ -4,8 +4,8 @@ import { ModelConfig, Message } from './types';
 import { discoverInjections } from './skills';
 import { registry } from './registry';
 import { createPythonCommand } from './commands/python';
-import { createNotepadCommand, createEditCommand } from './commands/notepad';
-import { createExplorerCommand, createFilesCommand } from './commands/explorer';
+import { createDuckDBCommand } from './commands/duckdb';
+import { createOpenCommand, createSaveCommand, createOpenDirCommand } from './commands/fileaccess';
 
 export interface AgentOptions {
   filesystem?: Record<string, string>;
@@ -16,7 +16,8 @@ export interface AgentOptions {
   maxIterations?: number;
   verbose?: boolean;
   bashSandbox?: PersistentBashSandbox;
-  customBashCommands?: (ctx: any) => any[];
+  /** Pre-instantiated command objects to register in the sandbox. */
+  commands?: any[];
   systemPrompt?: string;
   defaultHeaders?: Record<string, string>;
   onLog?: (message: string, level?: 'info' | 'tool' | 'result' | 'error') => void;
@@ -55,18 +56,18 @@ export async function agent(prompt: string, options: AgentOptions = {}): Promise
   try {
     // 1. Setup Sandbox
     const filesystem = options.filesystem || {};
-    const defaultCustomCommands = (ctx: any) => [
-      createPythonCommand(ctx),
-      createNotepadCommand(ctx),
-      createEditCommand(ctx),
-      createExplorerCommand(ctx),
-      createFilesCommand(ctx),
+    const defaultCommands = [
+      createPythonCommand(),
+      createDuckDBCommand(),
+      createOpenCommand(),
+      createSaveCommand(),
+      createOpenDirCommand(),
     ];
-    const customCommandsFactory = options.customBashCommands || defaultCustomCommands;
+    const resolvedCommands = options.commands ?? defaultCommands;
 
     const sandbox = options.bashSandbox || new PersistentBashSandbox({
       files: filesystem,
-      customCommands: customCommandsFactory,
+      customCommands: resolvedCommands,
       normalizePaths: false,
     });
 
