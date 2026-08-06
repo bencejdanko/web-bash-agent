@@ -26,7 +26,7 @@ export interface CompletionResult {
 }
 
 const BUILTIN_COMMAND_NAMES = [
-    'alias', 'cat', 'cd', 'chmod', 'clear', 'cp', 'duckdb', 'echo', 'env',
+    'agent', 'alias', 'cat', 'cd', 'chmod', 'clear', 'cp', 'duckdb', 'echo', 'edit', 'env',
     'export', 'find', 'grep', 'head', 'history', 'hostname', 'ls', 'mkdir',
     'mv', 'open', 'open-dir', 'python', 'pwd', 'rm', 'rmdir', 'save', 'sort',
     'tail', 'touch', 'type', 'uniq', 'unset', 'wc', 'whoami'
@@ -52,6 +52,24 @@ export class Sandbox {
     private currentCwd: string;
     private currentEnv: Record<string, string>;
     private customCommandNames: string[];
+    private stdoutListeners: Set<(text: string) => void> = new Set();
+
+    public onStdout(listener: (text: string) => void): () => void {
+        this.stdoutListeners.add(listener);
+        return () => {
+            this.stdoutListeners.delete(listener);
+        };
+    }
+
+    public emitStdout(text: string): void {
+        for (const listener of this.stdoutListeners) {
+            try {
+                listener(text);
+            } catch (err) {
+                console.error('Error in stdout listener:', err);
+            }
+        }
+    }
 
     constructor(options: SandboxOptions = {}) {
         this.currentCwd = options.cwd || '/';
@@ -205,7 +223,7 @@ export class Sandbox {
             try {
                 const entries = await this.bash.fs.readdir(this.currentCwd);
                 matchingFiles = entries.filter(e => e.startsWith(activeToken) && !e.startsWith('.'));
-            } catch {}
+            } catch { }
 
             const matches = Array.from(new Set([...matchingCmds, ...matchingFiles]));
 
@@ -284,7 +302,7 @@ export class Sandbox {
                 const fullEntryPath = this.bash.fs.resolvePath(resolveDir, entry);
                 const stat = await this.bash.fs.stat(fullEntryPath);
                 isDir = stat.isDirectory;
-            } catch {}
+            } catch { }
 
             // Preserve original user prefix token (e.g. ~/ or src/ or relative)
             const tokenDirPart = activeToken.includes('/') ? activeToken.slice(0, activeToken.lastIndexOf('/') + 1) : '';

@@ -5,6 +5,7 @@ import { bashTool } from './tools/bash';
 import { createPythonCommand } from './commands/python';
 import { createDuckDBCommand } from './commands/duckdb';
 import { createOpenCommand, createSaveCommand, createOpenDirCommand } from './commands/fileaccess';
+import { createAgentCommand } from './commands/agent';
 
 export interface AgentOptions {
   models?: ModelConfig[];
@@ -59,12 +60,13 @@ export async function agent(
   };
 
   if (verbose) {
-    console.group(`🤖 Agent: "${prompt}"`);
+    console.group(`[Agent] Prompt: "${prompt}"`);
   }
 
   try {
     // 1. Setup Sandbox
     const defaultCommands = [
+      createAgentCommand(),
       createPythonCommand(),
       createDuckDBCommand(),
       createOpenCommand(),
@@ -94,11 +96,13 @@ export async function agent(
       defaultHeaders['X-Router-URL'] = selectedModel.routerUrl;
     }
 
+    const activeSystemPrompt = options.systemPrompt || 'You are an autonomous agent capable of running bash commands, inspecting files, executing python scripts, and modifying the filesystem to achieve the user goal.';
+
     const llm = new LlmBridge({
       apiKey,
       baseURL: endpoint,
       model: modelId,
-      systemPrompt: options.systemPrompt || 'You are an autonomous agent capable of running bash commands, inspecting files, executing python scripts, and modifying the filesystem to achieve the user goal.',
+      systemPrompt: activeSystemPrompt,
       tools: finalTools,
       defaultHeaders,
       dangerouslyAllowBrowser: true,
@@ -118,7 +122,7 @@ export async function agent(
       log(`Starting iteration ${iterations}/${maxIterations}`, 'info');
 
       if (verbose) {
-        console.group(`⚙️ Iteration ${iterations}`);
+        console.group(`Iteration ${iterations}`);
       }
 
       // Call LLM
@@ -130,7 +134,7 @@ export async function agent(
       if (assistantMsg.content) {
         finalOutput = assistantMsg.content;
         if (verbose) {
-          console.log(`💬 Agent Response:`, assistantMsg.content);
+          console.log(`Agent Response:`, assistantMsg.content);
         }
       }
 
@@ -160,7 +164,7 @@ export async function agent(
         }
 
         if (verbose) {
-          console.log(`🛠️ Tool Call: ${fnName}`, fnArgs);
+          console.log(`Tool Call: ${fnName}`, fnArgs);
         }
 
         let toolResultStr = '';
@@ -186,7 +190,7 @@ export async function agent(
         }
 
         if (verbose) {
-          console.log(`📤 Tool Output [${fnName}]:`, toolResultStr);
+          console.log(`Tool Output [${fnName}]:`, toolResultStr);
         }
 
         log(`Executed ${fnName}`, 'tool');
@@ -204,7 +208,7 @@ export async function agent(
     }
 
     if (verbose) {
-      console.log(`✅ Agent finished in ${iterations} iterations.`);
+      console.log(`Agent finished in ${iterations} iterations.`);
       console.groupEnd();
     }
 
@@ -220,7 +224,7 @@ export async function agent(
 
   } catch (err: any) {
     if (verbose) {
-      console.error(`❌ Agent Error:`, err);
+      console.error(`Agent Error:`, err);
       console.groupEnd();
     }
     log(`Agent Error: ${err?.message || String(err)}`, 'error');

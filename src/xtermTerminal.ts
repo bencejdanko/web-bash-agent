@@ -15,6 +15,8 @@ export interface MountTerminalOptions {
   fontSize?: number;
   /** Font family */
   fontFamily?: string;
+  /** Fixed number of terminal rows */
+  rows?: number;
 }
 
 function ensureXtermCss() {
@@ -84,14 +86,16 @@ export class XTermTerminalUI {
       cursorStyle: 'block',
       allowProposedApi: true,
       scrollback: 5000,
+      ...(options.rows ? { rows: options.rows } : {}),
     });
 
     this.fitAddon = new FitAddon();
     this.term.loadAddon(this.fitAddon);
     this.term.open(container);
-    this.fitAddon.fit();
 
-    this.resizeHandler = () => this.fitAddon.fit();
+    this.fitTerminal();
+
+    this.resizeHandler = () => this.fitTerminal();
     window.addEventListener('resize', this.resizeHandler);
 
     // Custom Key Event Handler for copy/paste
@@ -126,6 +130,10 @@ export class XTermTerminalUI {
 
     this.initDataHandler();
     this.term.focus();
+  }
+
+  public fitTerminal() {
+    this.fitAddon.fit();
   }
 
   private writePrompt() {
@@ -192,10 +200,16 @@ export class XTermTerminalUI {
         }
 
         this.busy = true;
+        let streamedChars = 0;
+        const unsubscribe = this.sandbox.onStdout((text) => {
+          streamedChars += text.length;
+          this.term.write(text.replace(/\n/g, '\r\n'));
+        });
+
         try {
           const res = await this.sandbox.exec(cmd);
           let printedText = '';
-          if (res.stdout) {
+          if (res.stdout && streamedChars === 0) {
             this.term.write(res.stdout.replace(/\n/g, '\r\n'));
             printedText += res.stdout;
           }
@@ -222,6 +236,7 @@ export class XTermTerminalUI {
         } catch (err) {
           this.term.write('\x1b[38;5;203mError: ' + String(err) + '\r\n\x1b[0m');
         } finally {
+          unsubscribe();
           this.busy = false;
           this.writePrompt();
         }

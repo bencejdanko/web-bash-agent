@@ -3,14 +3,18 @@ import { Sandbox } from './Sandbox';
 import { createPythonCommand } from './commands/python';
 import { createDuckDBCommand } from './commands/duckdb';
 import { createOpenCommand, createSaveCommand, createOpenDirCommand } from './commands/fileaccess';
+import { createAgentCommand } from './commands/agent';
+import { createEditCommand } from './commands/edit';
 
 /** Built-in commands available by string name. */
 const BUILTIN_COMMANDS: Record<string, () => any> = {
+  agent: createAgentCommand,
   python: createPythonCommand,
   duckdb: createDuckDBCommand,
   open: createOpenCommand,
   save: createSaveCommand,
   'open-dir': createOpenDirCommand,
+  edit: createEditCommand,
 };
 
 export interface InitPugilisterOptions extends Omit<AgentOptions, 'sandbox' | 'commands'> {

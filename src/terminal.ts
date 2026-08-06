@@ -189,11 +189,21 @@ export class TerminalUI {
         this.historyIdx = this.history.length;
 
         this.appendOutput(`$ ${cmd}\n`, '#111111');
-        const res = await this.sandbox.exec(cmd);
-        if (res.stdout) this.appendOutput(res.stdout, '#111111');
-        if (res.stderr) this.appendOutput(res.stderr, '#666666');
-        if (!res.stdout && !res.stderr) {
-          this.appendOutput(`(exit code ${res.exitCode})\n`, '#888888');
+        let streamedChars = 0;
+        const unsubscribe = this.sandbox.onStdout((text) => {
+          streamedChars += text.length;
+          this.appendOutput(text, '#111111');
+        });
+
+        try {
+          const res = await this.sandbox.exec(cmd);
+          if (res.stdout && streamedChars === 0) this.appendOutput(res.stdout, '#111111');
+          if (res.stderr) this.appendOutput(res.stderr, '#666666');
+          if (!res.stdout && !res.stderr && res.exitCode !== 0 && streamedChars === 0) {
+            this.appendOutput(`(exit code ${res.exitCode})\n`, '#888888');
+          }
+        } finally {
+          unsubscribe();
         }
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();

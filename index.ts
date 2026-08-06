@@ -11,6 +11,15 @@ export { bashTool } from './src/tools/bash';
 export { createPythonCommand, initPython } from './src/commands/python';
 export { createDuckDBCommand, initDuckDB } from './src/commands/duckdb';
 export { createOpenCommand, createSaveCommand, createOpenDirCommand } from './src/commands/fileaccess';
+export { createEditCommand } from './src/commands/edit';
+export {
+  createAgentCommand,
+  getStoredAgentConfig,
+  setStoredAgentConfig,
+  clearStoredAgentConfig,
+  CONFIG_STORAGE_KEY_ENDPOINT,
+  CONFIG_STORAGE_KEY_API_KEY,
+} from './src/commands/agent';
 
 
 export { defineWorkflow, computeWorkflowLayoutRanks } from './src/workflow/definition';
