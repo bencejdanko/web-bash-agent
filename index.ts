@@ -1,8 +1,10 @@
 export { agent } from './src/agent';
 export type { AgentOptions, AgentResult, ToolCallRecord } from './src/agent';
 
-export { PersistentBashSandbox as BashSandbox } from './src/PersistentBashSandbox';
+export { Sandbox } from './src/Sandbox';
+export type { CompletionResult, SandboxOptions } from './src/Sandbox';
 export { initPugilister, type InitPugilisterOptions } from './src/init';
+export { mountTerminal, XTermTerminalUI, type MountTerminalOptions } from './src/xtermTerminal';
 export { defineCommand } from 'just-bash/browser';
 export { LlmBridge } from './src/llmBridge';
 export { bashTool } from './src/tools/bash';
@@ -14,8 +16,8 @@ export { createOpenCommand, createSaveCommand, createOpenDirCommand } from './sr
 export { defineWorkflow, computeWorkflowLayoutRanks } from './src/workflow/definition';
 export { WorkflowRunner } from './src/workflow/runner';
 
-export type { Message, ToolConfig, ModelConfig } from './src/types';
-export type { PersistentBashOptions as BashSandboxOptions, ExecResult } from './src/PersistentBashSandbox';
+export type { Message, ModelConfig, AgentTool, ToolDefinition, ToolHandler } from './src/types';
+export type { ExecResult } from './src/Sandbox';
 export type {
   WorkflowDefinition,
   WorkflowInputSchema,

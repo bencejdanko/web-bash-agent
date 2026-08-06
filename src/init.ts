@@ -1,5 +1,5 @@
 import { agent, type AgentOptions } from './agent';
-import { PersistentBashSandbox } from './PersistentBashSandbox';
+import { Sandbox } from './Sandbox';
 import { createPythonCommand } from './commands/python';
 import { createDuckDBCommand } from './commands/duckdb';
 import { createOpenCommand, createSaveCommand, createOpenDirCommand } from './commands/fileaccess';
@@ -13,11 +13,7 @@ const BUILTIN_COMMANDS: Record<string, () => any> = {
   'open-dir': createOpenDirCommand,
 };
 
-export interface InitPugilisterOptions extends Omit<AgentOptions, 'bashSandbox' | 'commands'> {
-  /** DOM element ID containing JSON configuration (defaults to 'pugilister-config') */
-  configId?: string;
-  /** Files to mount into the virtual filesystem, e.g. from import.meta.glob */
-  files?: Record<string, string>;
+export interface InitPugilisterOptions extends Omit<AgentOptions, 'sandbox' | 'commands'> {
   /** Working directory */
   cwd?: string;
   /** Environment variables */
@@ -27,46 +23,20 @@ export interface InitPugilisterOptions extends Omit<AgentOptions, 'bashSandbox' 
    * or pre-instantiated command objects. Defaults to all built-ins.
    *
    * @example
-   * commands: ['python', 'duckdb', createMyCustomCommand()]
+   * commands: ['python', 'duckdb', 'open-dir']
    */
   commands?: Array<string | any>;
 }
 
 /**
- * 1-liner client initializer for Pugilister.
- *
- * Reads the virtual filesystem from `options.files` or a `<script id="pugilister-config">`
- * DOM element, then starts a sandbox with the requested commands.
+ * Core initializer for Pugilister.
+ * Resolves commands and builds the sandbox. Terminal UI is the consuming app's concern.
  *
  * @example
- * // Vite / Astro / SvelteKit / Nuxt
- * const files = import.meta.glob('/src/content/**\/*.md', { query: '?raw', eager: true });
- * initPugilister({ files, commands: ['python', 'duckdb'] });
- *
- * @example
- * // Vanilla HTML (no bundler)
- * // Add <script id="pugilister-config" type="application/json">{"files":{"hello.txt":"hi"}}</script>
- * initPugilister({ commands: ['python'] });
+ * const { sandbox, agent } = initPugilister({ commands: ['python', 'duckdb'] });
  */
 export function initPugilister(options: InitPugilisterOptions = {}) {
-  // 1. Collect files from options or DOM
-  let filesystem: Record<string, string> = options.files || {};
-
-  if (typeof document !== 'undefined') {
-    const configId = options.configId || 'pugilister-config';
-    const configEl = document.getElementById(configId);
-    if (configEl?.textContent) {
-      try {
-        const parsed = JSON.parse(configEl.textContent);
-        if (parsed.filesystem) filesystem = { ...parsed.filesystem, ...filesystem };
-        if (parsed.files) filesystem = { ...parsed.files, ...filesystem };
-      } catch {
-        // Ignore parse errors
-      }
-    }
-  }
-
-  // 2. Resolve commands
+  // 1. Resolve commands
   const requestedCommands = options.commands ?? Object.keys(BUILTIN_COMMANDS);
   const resolvedCommands: any[] = requestedCommands.map((cmd) => {
     if (typeof cmd === 'string') {
@@ -77,19 +47,17 @@ export function initPugilister(options: InitPugilisterOptions = {}) {
     return cmd; // already an instantiated command object
   });
 
-  // 3. Build sandbox
-  const sandbox = new PersistentBashSandbox({
-    files: filesystem,
+  // 2. Build sandbox
+  const sandbox = new Sandbox({
     cwd: options.cwd,
     env: options.env,
     customCommands: resolvedCommands,
   });
 
-  // 4. Build runAgent helper
+  // 3. Build runAgent helper
   const runAgent = (prompt: string, opts: Partial<AgentOptions> = {}) => {
     return agent(prompt, {
-      bashSandbox: sandbox,
-      filesystem,
+      sandbox,
       ...options,
       ...opts,
     });
@@ -100,5 +68,5 @@ export function initPugilister(options: InitPugilisterOptions = {}) {
     (window as any).agent = runAgent;
   }
 
-  return { sandbox, agent: runAgent, filesystem };
+  return { sandbox, agent: runAgent };
 }

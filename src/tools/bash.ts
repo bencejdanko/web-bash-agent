@@ -1,4 +1,4 @@
-import { AgentTool } from '../types/tools';
+import { AgentTool } from '../types';
 
 export function createBashTool(customDescription?: string): AgentTool {
   return {

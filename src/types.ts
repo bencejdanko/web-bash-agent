@@ -1,3 +1,19 @@
+export interface ToolDefinition {
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters: any;
+  };
+}
+
+export type ToolHandler = (args: any, context?: any) => Promise<string>;
+
+export interface AgentTool {
+  definition: ToolDefinition;
+  handler: ToolHandler;
+}
+
 export interface Message {
   role: 'user' | 'assistant' | 'tool' | 'system';
   content: string | null;
@@ -13,28 +29,11 @@ export interface Message {
   startTime?: number;
 }
 
-export interface AgentInjection {
-    type: 'system' | 'skill';
-    name: string;
-    description: string;
-    instructions: string;
-    path: string;
-    metadata?: Record<string, string>;
-}
-
-export type AgentSkill = AgentInjection;
-
-export type ToolConfig = 
-    | { type: 'bash' }
-    | { type: 'load-skill' }
-    | { type: 'mcp'; serverUrl: string }
-    | { type: string; [key: string]: any };
-
 export interface ModelConfig {
-    id: string;
-    name: string;
-    endpoint: string;
-    apiKey?: string;
-    keyIdentifier?: string;
-    routerUrl?: string;
+  id: string;
+  name: string;
+  endpoint: string;
+  apiKey?: string;
+  keyIdentifier?: string;
+  routerUrl?: string;
 }

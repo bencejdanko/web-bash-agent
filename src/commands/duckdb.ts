@@ -92,107 +92,27 @@ export function formatTable(rows: Record<string, any>[]): string {
  */
 async function syncWorkspaceToDuckDB(db: duckdb.AsyncDuckDB, fs: any, rootDir: string = '/') {
   if (!fs) return;
-
-  const datasetExtensions = ['.csv', '.tsv', '.json', '.parquet', '.txt', '.tbl', '.dat'];
-
-  const registerFile = async (virtualPath: string) => {
-    const lastDot = virtualPath.lastIndexOf('.');
-    const ext = lastDot !== -1 ? virtualPath.substring(lastDot).toLowerCase() : '';
-    if (ext && !datasetExtensions.includes(ext)) return;
-
+  const paths: string[] = typeof fs.getAllPaths === 'function' ? fs.getAllPaths() : [];
+  for (const path of paths) {
     try {
-      const content = await fs.readFile(virtualPath);
-      if (content === undefined || content === null) return;
-
-      const isString = typeof content === 'string';
-      const buffer = !isString
-        ? content instanceof Uint8Array
-          ? content
-          : new Uint8Array(content)
-        : null;
-
-      const cleanPath = virtualPath.startsWith('/') ? virtualPath.slice(1) : virtualPath;
-      const absolutePath = '/' + cleanPath;
+      const content = await fs.readFile(path);
+      if (content === undefined || content === null) continue;
+      const cleanPath = path.startsWith('/') ? path.slice(1) : path;
       const basename = cleanPath.split('/').pop() || cleanPath;
-
-      const pathsToRegister = Array.from(new Set([cleanPath, absolutePath, basename, virtualPath]));
-
-      for (const p of pathsToRegister) {
-        if (!p) continue;
+      for (const p of [path, cleanPath, '/' + cleanPath, basename]) {
         try {
-          if (isString) {
+          if (typeof content === 'string') {
             await db.registerFileText(p, content);
-          } else if (buffer) {
-            await db.registerFileBuffer(p, buffer);
+          } else {
+            await db.registerFileBuffer(p, content instanceof Uint8Array ? content : new Uint8Array(content));
           }
         } catch {
           // Ignore registration duplicates
         }
       }
-    } catch (e) {
-      // Ignore read failures
-    }
-  };
-
-  // 1. Try using fs.getAllPaths() if available on InMemoryFileSystem
-  if (typeof fs.getAllPaths === 'function') {
-    try {
-      const allPaths: string[] = fs.getAllPaths();
-      for (const p of allPaths) {
-        await registerFile(p);
-      }
-      return;
     } catch {
-      // Fallthrough to recursive walk
+      // Ignore unreadable files
     }
-  }
-
-  // 2. Recursive directory walk with file/dir checks
-  const visited = new Set<string>();
-  async function walk(dir: string) {
-    if (visited.has(dir)) return;
-    visited.add(dir);
-
-    try {
-      const entries = await fs.readdir(dir);
-      for (const entry of entries) {
-        const fullPath = (dir === '/' ? `/${entry}` : `${dir}/${entry}`).replace(/\/+/g, '/');
-
-        let isDir = false;
-        let isFile = false;
-
-        if (typeof fs.stat === 'function') {
-          try {
-            const st = await fs.stat(fullPath);
-            if (st) {
-              isDir = Boolean(st.isDirectory || (typeof st.isDirectory === 'function' && st.isDirectory()));
-              isFile = Boolean(st.isFile || (typeof st.isFile === 'function' && st.isFile()));
-            }
-          } catch {
-            // Ignore stat error
-          }
-        }
-
-        if (isDir) {
-          await walk(fullPath);
-        } else if (isFile) {
-          await registerFile(fullPath);
-        } else {
-          try {
-            await walk(fullPath);
-          } catch {
-            await registerFile(fullPath);
-          }
-        }
-      }
-    } catch {
-      // Not a directory or read error
-    }
-  }
-
-  await walk(rootDir);
-  if (rootDir !== '/') {
-    await walk('/');
   }
 }
 

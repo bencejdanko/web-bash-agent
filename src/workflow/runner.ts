@@ -6,7 +6,7 @@ import {
   LogEntry,
 } from './types';
 import { agent } from '../agent';
-import { PersistentBashSandbox } from '../PersistentBashSandbox';
+import { Sandbox } from '../Sandbox';
 
 export class WorkflowRunner {
   private definition: WorkflowDefinition;
@@ -14,7 +14,7 @@ export class WorkflowRunner {
   private states: Map<string, WorkflowStepState> = new Map();
   private results: Record<string, WorkflowStepResult> = {};
   private inputs: Record<string, any> = {};
-  private sandbox: PersistentBashSandbox;
+  private sandbox: Sandbox;
   private isRunning: boolean = false;
   private isCancelled: boolean = false;
 
@@ -24,9 +24,7 @@ export class WorkflowRunner {
     this.inputs = inputs;
 
     // Initialize sandbox
-    this.sandbox = options.bashSandbox || new PersistentBashSandbox({
-      files: options.filesystem || {},
-    });
+    this.sandbox = options.sandbox || new Sandbox();
 
     // Initialize step states
     for (const step of definition.steps) {

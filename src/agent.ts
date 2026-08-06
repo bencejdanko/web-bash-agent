@@ -1,21 +1,21 @@
-import { PersistentBashSandbox } from './PersistentBashSandbox';
+import { Sandbox } from './Sandbox';
 import { LlmBridge } from './llmBridge';
-import { ModelConfig, Message } from './types';
-import { discoverInjections } from './skills';
-import { registry } from './registry';
+import { ModelConfig, Message, AgentTool } from './types';
+import { bashTool } from './tools/bash';
 import { createPythonCommand } from './commands/python';
 import { createDuckDBCommand } from './commands/duckdb';
 import { createOpenCommand, createSaveCommand, createOpenDirCommand } from './commands/fileaccess';
 
 export interface AgentOptions {
-  filesystem?: Record<string, string>;
   models?: ModelConfig[];
   model?: string;
   apiKey?: string;
   endpoint?: string;
   maxIterations?: number;
   verbose?: boolean;
-  bashSandbox?: PersistentBashSandbox;
+  sandbox?: Sandbox;
+  /** Custom tools for the agent (defaults to [bashTool]). */
+  tools?: AgentTool[];
   /** Pre-instantiated command objects to register in the sandbox. */
   commands?: any[];
   systemPrompt?: string;
@@ -37,16 +37,25 @@ export interface AgentResult {
   iterations: number;
   messages: Message[];
   toolCalls: ToolCallRecord[];
+  history?: Message[];
+  error?: string;
 }
 
-export async function agent(prompt: string, options: AgentOptions = {}): Promise<AgentResult> {
+export async function agent(
+  prompt: string,
+  options: AgentOptions = {}
+): Promise<AgentResult> {
   const verbose = options.verbose ?? true;
   const maxIterations = options.maxIterations ?? 15;
 
   const log = (msg: string, level: 'info' | 'tool' | 'result' | 'error' = 'info') => {
-    if (options.onLog) {
-      options.onLog(msg, level);
+    if (verbose) {
+      if (level === 'tool') console.log(`%c  ${msg}`, 'color: #0066cc');
+      else if (level === 'result') console.log(`%c  ${msg}`, 'color: #6e6e73');
+      else if (level === 'error') console.log(`%c  ${msg}`, 'color: #c0392b');
+      else console.log(`  ${msg}`);
     }
+    options.onLog?.(msg, level);
   };
 
   if (verbose) {
@@ -55,7 +64,6 @@ export async function agent(prompt: string, options: AgentOptions = {}): Promise
 
   try {
     // 1. Setup Sandbox
-    const filesystem = options.filesystem || {};
     const defaultCommands = [
       createPythonCommand(),
       createDuckDBCommand(),
@@ -65,26 +73,13 @@ export async function agent(prompt: string, options: AgentOptions = {}): Promise
     ];
     const resolvedCommands = options.commands ?? defaultCommands;
 
-    const sandbox = options.bashSandbox || new PersistentBashSandbox({
-      files: filesystem,
+    const sandbox = options.sandbox || new Sandbox({
       customCommands: resolvedCommands,
       normalizePaths: false,
     });
 
     // 2. Setup Tools & LLM Bridge
-    const injections = discoverInjections(filesystem);
-    const skillContext = { skills: injections.filter((i) => i.type === 'skill') };
-    const toolConfigs = [{ type: 'bash' }, { type: 'load-skill' }];
-    const finalTools: any[] = [];
-
-    for (const config of toolConfigs) {
-      const result = await registry.getTool(config, skillContext);
-      if (Array.isArray(result)) {
-        finalTools.push(...result);
-      } else if (result) {
-        finalTools.push(result);
-      }
-    }
+    const finalTools: AgentTool[] = options.tools ?? [bashTool];
 
     const selectedModel = options.models?.find((m) => m.id === options.model) || options.models?.[0];
     const modelId = options.model || selectedModel?.id || 'gemini-2.5-flash';
@@ -169,12 +164,8 @@ export async function agent(prompt: string, options: AgentOptions = {}): Promise
         }
 
         let toolResultStr = '';
-        const matchedTool = finalTools.find((t) => {
-          const name = t.definition?.function?.name || t.name || t.definition?.name;
-          return name === fnName;
-        });
-
-        const fn = matchedTool?.handler || matchedTool?.execute;
+        const matchedTool = finalTools.find((t) => t.definition?.function?.name === fnName);
+        const fn = matchedTool?.handler;
 
         if (matchedTool && typeof fn === 'function') {
           try {

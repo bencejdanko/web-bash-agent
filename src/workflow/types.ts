@@ -1,4 +1,4 @@
-import { PersistentBashSandbox } from '../PersistentBashSandbox';
+import { Sandbox } from '../Sandbox';
 import { AgentOptions } from '../agent';
 
 export type WorkflowInputType = 'text' | 'textarea' | 'password' | 'select' | 'number' | 'boolean';
@@ -23,7 +23,7 @@ export type WorkflowInputSchema = Record<string, WorkflowInputConfig>;
 export interface WorkflowStepContext {
   inputs: Record<string, any>;
   results: Record<string, { success: boolean; output: string; toolCalls?: any[] }>;
-  sandbox: PersistentBashSandbox;
+  sandbox: Sandbox;
   fs: any;
   options: AgentOptions;
   log: (msg: string, level?: 'info' | 'tool' | 'result' | 'error') => void;
@@ -78,8 +78,7 @@ export interface WorkflowRunOptions {
   apiKey?: string;
   endpoint?: string;
   model?: string;
-  bashSandbox?: PersistentBashSandbox;
-  filesystem?: Record<string, string>;
+  sandbox?: Sandbox;
   onStepStatusChange?: (stepId: string, status: WorkflowStepStatus, state: WorkflowStepState) => void;
   onStepLog?: (stepId: string, log: LogEntry) => void;
   onWorkflowComplete?: (results: Record<string, WorkflowStepResult>) => void;
